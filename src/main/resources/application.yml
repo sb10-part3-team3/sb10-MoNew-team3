@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: monew
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+logging:
+  level:
+    root: info

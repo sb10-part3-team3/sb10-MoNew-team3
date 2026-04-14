@@ -35,3 +35,25 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# 환경변수
+.env
+*.env
+/src/main/resources/application-secret.yml
+
+### MacOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+
+### IntelliJ IDEA 추가 세팅 ###
+*.log
+.idea/httpRequests/
+.idea/dataSources/
+.idea/dataSources.local.xml
+
+# 로그 파일이 로컬에 생성될 경우를 대비
+logs/
+*.log
