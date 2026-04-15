@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
   @Bean
-  public OpenAPI monewOpenAPI() {
+  public OpenAPI createMonewOpenAPI() {
     return new OpenAPI()
         .info(new Info()
             .title("Monew API 정의")
