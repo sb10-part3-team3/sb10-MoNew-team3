@@ -14,7 +14,6 @@ public record ErrorResponse(
     String code,
     String message,
     Map<String, Object> details,
-    String exceptionType,
     int status
 ) {
 
@@ -24,7 +23,6 @@ public record ErrorResponse(
         e.getErrorCode().name(),
         e.getMessage(),
         e.getDetails() != null ? e.getDetails() : Map.of(),
-        e.getClass().getSimpleName(),
         e.getErrorCode().getStatus().value()
     );
   }
@@ -41,7 +39,6 @@ public record ErrorResponse(
         ErrorCode.INVALID_INPUT_VALUE.name(),
         ErrorCode.INVALID_INPUT_VALUE.getMessage(),
         details,
-        e.getClass().getSimpleName(),
         ErrorCode.INVALID_INPUT_VALUE.getStatus().value()
     );
   }
@@ -53,7 +50,6 @@ public record ErrorResponse(
         ErrorCode.INVALID_PARAMETER_TYPE.name(),
         ErrorCode.INVALID_PARAMETER_TYPE.getMessage(),
         details != null ? details : Map.of(),
-        e.getClass().getSimpleName(),
         ErrorCode.INVALID_PARAMETER_TYPE.getStatus().value()
     );
   }
@@ -64,7 +60,6 @@ public record ErrorResponse(
         ErrorCode.INTERNAL_SERVER_ERROR.name(),
         ErrorCode.INTERNAL_SERVER_ERROR.getMessage(),
         Map.of(),
-        e.getClass().getSimpleName(),
         HttpStatus.INTERNAL_SERVER_ERROR.value()
     );
   }
