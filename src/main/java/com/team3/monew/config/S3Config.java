@@ -19,7 +19,7 @@ public class S3Config {
   private final AwsProperties props;
 
   @Bean
-  public S3Client s3Client() {
+  public S3Client createS3Client() {
     if (props.getRegion() == null || props.getRegion().isBlank()) {
       throw new IllegalArgumentException("AWS S3 region은 필수 설정값입니다. (cloud.aws.region)");
     }
