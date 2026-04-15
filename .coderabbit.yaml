@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# General
+language: ko-KR                 # 언어설정
+early_access: false             # early-access 기능
+
+reviews:
+  # Summary
+  high_level_summary: true      # PR 설명에 대한 요약
+
+  # Walkthrough
+  collapse_walkthrough: false   # Walkthrough 항목 접기
+  changed_files_summary: true   # 파일변경에 대해 요약
+  sequence_diagrams: true               # 로직에 대한 시퀀스 다이어그램 표현
+  estimate_code_review_effort: false    # 코드리뷰 예상시간 표현
+  related_issues: true          # 연관된 issue 항목 표시
+  related_prs: true             # 연관된 PR 항목 표시
+  suggested_labels: false       # PR에 연관된 라벨 표시
+
+  # Behavior
+  profile: assertive            # 엄격한 리뷰 스타일
+  poem: false                   # 명언기능
+
+  # general
+  review_status: true           # 리뷰 진행도 표시
+  review_details: true          # 리뷰의 상세함
+  auto_review:
+    base_branches:
+      - "dev"                   # dev 브랜치만
+  path_instructions:
+    - path: "src/main/java/**"
+      instructions: |
+        코드 네이밍 컨벤션은 아래와 같아
+          1. 기본원칙: 약어사용 최소화, 의미가 명확한 단어 사용
+            - 예외: id(Identifier), dto
+          2. Java 코드 네이밍
+            - 클래스/인터페이스: PascalCase. 역할을 나타내는 접미사 추가
+            - 메서드: camelCase. 동사로 시작
+            - 변수/필드: camelCase
+            - 상수: UPPER_SNAKE_CASE
+          3. DB 네이밍
+            - 테이블명: UPPER_SNAKE_CASE. 복수형
+            - 컬럼명: lower_snake_case
