@@ -1,17 +1,19 @@
 package com.team3.monew.config;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @Setter
+@RequiredArgsConstructor
 @ConfigurationProperties(prefix = "cloud.aws")
 public class AwsProperties {
 
-  private Credentials credentials = new Credentials();
-  private String region;
-  private S3 s3 = new S3();
+  private final Credentials credentials;
+  private final String region;
+  private final S3 s3;
 
   @Getter
   @Setter

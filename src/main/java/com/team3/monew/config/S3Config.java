@@ -16,23 +16,23 @@ import software.amazon.awssdk.services.s3.S3Client;
 @EnableConfigurationProperties(AwsProperties.class)
 public class S3Config {
 
-  private final AwsProperties props;
+  private final AwsProperties awsProperties;
 
   @Bean
   public S3Client createS3Client() {
-    if (props.getRegion() == null || props.getRegion().isBlank()) {
+    if (awsProperties.getRegion() == null || awsProperties.getRegion().isBlank()) {
       throw new IllegalArgumentException("AWS S3 region은 필수 설정값입니다. (cloud.aws.region)");
     }
 
     return S3Client.builder()
-        .region(Region.of(props.getRegion()))
+        .region(Region.of(awsProperties.getRegion()))
         .credentialsProvider(getCredentialsProvider())
         .build();
   }
 
   private AwsCredentialsProvider getCredentialsProvider() {
-    String accessKey = props.getCredentials().getAccessKey();
-    String secretKey = props.getCredentials().getSecretKey();
+    String accessKey = awsProperties.getCredentials().getAccessKey();
+    String secretKey = awsProperties.getCredentials().getSecretKey();
 
     return accessKey != null && !accessKey.isBlank()
         && secretKey != null && !secretKey.isBlank()
