@@ -52,7 +52,7 @@ public record ErrorResponse(
         Instant.now(),
         ErrorCode.INVALID_PARAMETER_TYPE.name(),
         ErrorCode.INVALID_PARAMETER_TYPE.getMessage(),
-        details,
+        details != null ? details : Map.of(),
         e.getClass().getSimpleName(),
         ErrorCode.INVALID_PARAMETER_TYPE.getStatus().value()
     );
