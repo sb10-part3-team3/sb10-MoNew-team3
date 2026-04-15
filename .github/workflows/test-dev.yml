@@ -5,9 +5,13 @@ on:
     branches:
       - dev
     paths-ignore:
-      - 'README.md'
+      - '**/README.md'
+      - '**/*.md'
+      - '**/*.mdx'
+      - 'docs/**'
+      - '**/.env.example'
+      - '**/*.example'
       - '.gitignore'
-      - '.env.example'
 
 jobs:
   test:
