@@ -1,4 +1,4 @@
-package com.team3.monew.common.logging;
+package com.team3.monew.global.logging;
 
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -28,7 +28,7 @@ public class ServiceLoggingAspect {
             return result;
         } catch (Exception e) {
             long end = System.currentTimeMillis();
-            log.error("[ERROR] {}.{}() {}ms - {}", className, methodName, (end - start), e.getMessage());
+            log.error("[ERROR] {}.{}() {}ms", className, methodName, (end - start), e);
             throw e;
         }
     }
