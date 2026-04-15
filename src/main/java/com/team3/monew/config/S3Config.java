@@ -20,6 +20,10 @@ public class S3Config {
 
   @Bean
   public S3Client s3Client() {
+    if (props.getRegion() == null || props.getRegion().isBlank()) {
+      throw new IllegalArgumentException("AWS S3 region은 필수 설정값입니다. (cloud.aws.region)");
+    }
+
     return S3Client.builder()
         .region(Region.of(props.getRegion()))
         .credentialsProvider(getCredentialsProvider())
