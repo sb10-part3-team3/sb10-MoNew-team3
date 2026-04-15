@@ -12,7 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AwsProperties {
 
   private final Credentials credentials;
-  private final String region;
+  private final Region region;
   private final S3 s3;
 
   @Getter
@@ -21,6 +21,18 @@ public class AwsProperties {
 
     private String accessKey;
     private String secretKey;
+  }
+
+  @Getter
+  @Setter
+  public static class Region {
+
+    private String staticRegion;
+
+    // Yaml의 static과 매핑용
+    public void setStatic(String staticRegion) {
+      this.staticRegion = staticRegion;
+    }
   }
 
   @Getter
