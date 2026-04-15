@@ -44,6 +44,7 @@ jobs:
         if: always()
         with:
           files: build/test-results/test/*.xml
+          if-no-files-found: warn
 
       - name: 테스트 커버리지 업로드
         uses: codecov/codecov-action@v4
