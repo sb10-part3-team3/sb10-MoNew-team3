@@ -10,13 +10,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false
   sql:
     init:
       mode: never
 
 logging:
   level:
-    com.sprint.mission.discodeit: debug
+    com.team3.monew: debug
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
