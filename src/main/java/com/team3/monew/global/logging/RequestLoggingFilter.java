@@ -5,15 +5,12 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.security.Principal;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 @Component
@@ -30,85 +27,85 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     private static final String X_FORWARDED_FOR_HEADER = "X-Forwarded-For";
     private static final String X_REAL_IP_HEADER = "X-Real-IP";
 
-    private final TrustedProxyMatcher trustedProxies;
-
-    public RequestLoggingFilter(@Value("${monew.logging.trusted-proxies:}") String trustedProxyConfig) {
-        this.trustedProxies = new TrustedProxyMatcher(trustedProxyConfig);
-    }
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // 이 필터가 사용하는 MDC 키만 복구해 다른 필터/추적 값은 유지한다.
+        // 요청 처리 중 이 필터가 덮어쓸 MDC 값만 미리 저장한다.
+        // traceId, spanId처럼 다른 필터나 추적 라이브러리가 넣은 값은 건드리지 않기 위함이다.
         String[] previousMdcValues = Arrays.stream(MDC_KEYS).map(MDC::get).toArray(String[]::new);
 
         try {
             String requestId = UUID.randomUUID().toString();
-            String remoteAddr = sanitizeIpAddress(request.getRemoteAddr());
 
-            // logback MDC 패턴에 사용할 요청 단위 값을 저장한다.
+            // logback-spring.xml의 %X{...} 패턴이 읽을 요청 단위 값을 MDC에 넣는다.
+            // 이후 컨트롤러/서비스/라이브러리에서 찍히는 로그에 같은 requestId와 clientIp가 함께 출력된다.
             MDC.put(REQUEST_ID, requestId);
-            MDC.put(CLIENT_IP, extractClientIp(request, remoteAddr));
-            putIfNotBlank(USER_ID, extractUserId(request, remoteAddr));
+            MDC.put(CLIENT_IP, extractClientIp(request));
+            String userId = extractUserId(request);
+            if (userId != null && !userId.isBlank()) {
+                MDC.put(USER_ID, userId);
+            } else {
+                MDC.remove(USER_ID);
+            }
 
+            // 클라이언트가 장애 문의 시 서버 로그와 매칭할 수 있도록 요청 ID를 응답에도 내려준다.
             response.setHeader(REQUEST_ID_RESPONSE_HEADER, requestId);
             filterChain.doFilter(request, response);
         } finally {
+            // 요청이 끝나면 이 필터가 관리한 MDC 키만 원래 상태로 되돌린다.
+            // MDC.clear()를 쓰면 다른 컴포넌트의 MDC 값까지 지워질 수 있다.
             restoreMdcValues(previousMdcValues);
         }
     }
 
-    private String extractClientIp(HttpServletRequest request, String remoteAddr) {
-        if (remoteAddr == null) {
-            return UNKNOWN_CLIENT_IP;
+    // 요청에서 로그에 남길 클라이언트 IP를 우선순위에 따라 추출한다.
+    private String extractClientIp(HttpServletRequest request) {
+        String forwardedClientIp = extractForwardedClientIp(request.getHeader(X_FORWARDED_FOR_HEADER));
+        String realIp = sanitizeForMdc(request.getHeader(X_REAL_IP_HEADER));
+        String remoteAddr = sanitizeForMdc(request.getRemoteAddr());
+
+        if (forwardedClientIp != null && !forwardedClientIp.isBlank()) {
+            return forwardedClientIp;
         }
-        if (!trustedProxies.matches(remoteAddr)) {
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp;
+        }
+        if (remoteAddr != null && !remoteAddr.isBlank()) {
             return remoteAddr;
         }
-
-        // 직접 연결된 대상이 신뢰 프록시일 때만 forwarded 헤더를 사용한다.
-        String forwardedClientIp = extractForwardedClientIp(request.getHeader(X_FORWARDED_FOR_HEADER));
-        return firstNonNull(forwardedClientIp, sanitizeIpAddress(request.getHeader(X_REAL_IP_HEADER)), remoteAddr);
+        return UNKNOWN_CLIENT_IP;
     }
 
-    private String extractUserId(HttpServletRequest request, String remoteAddr) {
-        // 클라이언트가 보낸 헤더보다 서버에서 인증된 사용자 정보를 우선한다.
+    // 인증 정보가 있으면 우선 사용하고, 없으면 요청 헤더에서 사용자 ID를 추출한다.
+    private String extractUserId(HttpServletRequest request) {
+        // 인증 컨텍스트에서 얻은 사용자 정보가 있으면 헤더보다 우선한다.
         Principal principal = request.getUserPrincipal();
         String authenticatedUserId = principal == null ? null : sanitizeForMdc(principal.getName());
         if (authenticatedUserId != null && !authenticatedUserId.isBlank()) {
             return authenticatedUserId;
         }
-        return trustedProxies.matches(remoteAddr) ? sanitizeForMdc(request.getHeader(REQUEST_USER_ID_HEADER)) : null;
+
+        return sanitizeForMdc(request.getHeader(REQUEST_USER_ID_HEADER));
     }
 
+    // X-Forwarded-For 헤더의 여러 IP 중 첫 번째 유효 값을 반환한다.
     private String extractForwardedClientIp(String forwardedFor) {
         if (forwardedFor == null || forwardedFor.isBlank()) {
             return null;
         }
 
-        // 프록시 체인에서 오른쪽부터 확인해 가장 가까운 신뢰되지 않은 IP를 선택한다.
-        List<String> forwardedIps = Arrays.stream(forwardedFor.split(","))
-                .map(this::sanitizeIpAddress)
-                .filter(Objects::nonNull)
-                .toList();
-
-        for (int i = forwardedIps.size() - 1; i >= 0; i--) {
-            if (!trustedProxies.matches(forwardedIps.get(i))) {
-                return forwardedIps.get(i);
-            }
-        }
-        return forwardedIps.isEmpty() ? null : forwardedIps.get(0);
+        // X-Forwarded-For는 "client, proxy1, proxy2" 형태로 누적되므로 첫 번째 값을 클라이언트 IP로 사용한다.
+        return Arrays.stream(forwardedFor.split(","))
+                .map(this::sanitizeForMdc)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .orElse(null);
     }
 
-    private void putIfNotBlank(String key, String value) {
-        if (value != null && !value.isBlank()) {
-            MDC.put(key, value);
-        }
-    }
-
+    // 요청 처리 전 MDC 값을 복구해 같은 스레드의 다음 작업에 값이 섞이지 않게 한다.
     private void restoreMdcValues(String[] previousValues) {
         for (int i = 0; i < MDC_KEYS.length; i++) {
             if (previousValues[i] == null) {
@@ -119,17 +116,10 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         }
     }
 
+    // MDC에 넣기 전 줄바꿈을 제거해 로그 라인 위조를 막는다.
     private String sanitizeForMdc(String value) {
-        // MDC에 저장하기 전 CR/LF를 제거해 로그 주입을 방지한다.
+        // 헤더 값에 줄바꿈이 섞이면 로그 라인을 위조할 수 있어 MDC 저장 전에 제거한다.
         return value == null ? null : value.replace("\r", "").replace("\n", "").trim();
     }
 
-    private String sanitizeIpAddress(String value) {
-        String sanitized = sanitizeForMdc(value);
-        return TrustedProxyMatcher.isIpAddress(sanitized) ? sanitized : null;
-    }
-
-    private static String firstNonNull(String... values) {
-        return Arrays.stream(values).filter(Objects::nonNull).findFirst().orElse(null);
-    }
 }
