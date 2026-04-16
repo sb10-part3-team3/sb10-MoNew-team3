@@ -12,7 +12,7 @@ spring:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/monew}
   jpa:
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -22,7 +22,7 @@ spring:
 
 logging:
   level:
-    com.sprint.mission.discodeit: debug
+    com.team3.monew: debug
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
 
