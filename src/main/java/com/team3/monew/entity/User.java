@@ -50,4 +50,8 @@ public class User extends SoftDeleteEntity {
 
         return user;
     }
+
+    public void changePassword(String newPassword) {
+        this.password = newPassword;
+    }
 }
