@@ -23,4 +23,12 @@ public class InterestKeyword extends BaseEntity {
 
     @Column(nullable = false, length = 100)
     private String keyword;
+
+    public static InterestKeyword create(Interest interest, String keyword) {
+        InterestKeyword interestKeyword = new InterestKeyword();
+        interestKeyword.interest = interest;
+        interestKeyword.keyword = keyword;
+
+        return interestKeyword;
+    }
 }

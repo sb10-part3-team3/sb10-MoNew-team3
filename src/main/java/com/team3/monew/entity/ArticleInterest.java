@@ -36,4 +36,18 @@ public class ArticleInterest {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    public static ArticleInterest create(
+            NewsArticle article,
+            Interest interest,
+            String matchedKeyword
+    ) {
+        ArticleInterest articleInterest = new ArticleInterest();
+        articleInterest.article = article;
+        articleInterest.interest = interest;
+        articleInterest.matchedKeyword = matchedKeyword;
+        articleInterest.createdAt = Instant.now();
+
+        return articleInterest;
+    }
 }

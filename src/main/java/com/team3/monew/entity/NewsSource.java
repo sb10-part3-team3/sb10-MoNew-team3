@@ -28,4 +28,17 @@ public class NewsSource extends BaseEntity {
 
     @OneToMany(mappedBy = "source")
     private List<NewsArticle> articles = new ArrayList<>();
+
+    public static NewsSource create(
+            String name,
+            NewsSourceType sourceType,
+            String baseUrl
+    ) {
+        NewsSource source = new NewsSource();
+        source.name = name;
+        source.sourceType = sourceType;
+        source.baseUrl = baseUrl;
+
+        return source;
+    }
 }

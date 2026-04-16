@@ -29,4 +29,12 @@ public class Interest extends BaseEntity {
 
     @OneToMany(mappedBy = "interest")
     private List<ArticleInterest> articleInterests = new ArrayList<>();
+
+    public static Interest create(String name) {
+        Interest interest = new Interest();
+        interest.name = name;
+        interest.subscriberCount = 0;
+
+        return interest;
+    }
 }

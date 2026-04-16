@@ -47,9 +47,43 @@ public class Notification extends BaseEntity {
 
     // 확인 여부
     @Column(name = "is_confirmed", nullable = false)
-    private boolean isConfirmed;
+    private boolean isConfirmed = false;
 
     // 확인 시각
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
+
+    public static Notification createCommentNotification(
+            User user,
+            String content,
+            UUID commentId,
+            User actorUser
+    ) {
+        Notification notification = new Notification();
+        notification.user = user;
+        notification.notificationType = NotificationType.COMMENT_LIKE;
+        notification.content = content;
+        notification.resourceType = NotificationResourceType.COMMENT;
+        notification.resourceId = commentId;
+        notification.actorUser = actorUser;
+
+        return notification;
+    }
+
+    public static Notification createInterestNotification(
+            User user,
+            String content,
+            UUID interestId,
+            User actorUser
+    ) {
+        Notification notification = new Notification();
+        notification.user = user;
+        notification.notificationType = NotificationType.NEW_ARTICLE;
+        notification.content = content;
+        notification.resourceType = NotificationResourceType.INTEREST;
+        notification.resourceId = interestId;
+        notification.actorUser = actorUser;
+
+        return notification;
+    }
 }

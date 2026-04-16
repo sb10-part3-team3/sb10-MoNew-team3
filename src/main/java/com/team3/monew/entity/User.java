@@ -38,4 +38,16 @@ public class User extends SoftDeleteEntity {
 
     @OneToMany(mappedBy = "user")
     private List<Notification> notifications = new ArrayList<>();
+
+    public static User create(String email, String nickname, String password) {
+        User user = new User();
+        user.email = email;
+        user.nickname = nickname;
+        user.password = password;
+
+        // 필요하면 기본값 설정
+        user.purgeScheduledAt = null;
+
+        return user;
+    }
 }

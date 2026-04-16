@@ -46,4 +46,23 @@ public class NewsArticle extends SoftDeleteEntity {
 
     @OneToMany(mappedBy = "article")
     private List<ArticleView> articleViews = new ArrayList<>();
+
+    public static NewsArticle create(
+            NewsSource source,
+            String originalLink,
+            String title,
+            Instant publishedAt,
+            String summary
+    ) {
+        NewsArticle article = new NewsArticle();
+        article.source = source;
+        article.originalLink = originalLink;
+        article.title = title;
+        article.publishedAt = publishedAt;
+        article.summary = summary;
+        article.commentCount = 0;
+        article.viewCount = 0;
+
+        return article;
+    }
 }

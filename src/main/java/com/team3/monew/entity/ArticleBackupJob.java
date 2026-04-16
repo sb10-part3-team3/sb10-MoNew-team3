@@ -42,4 +42,17 @@ public class ArticleBackupJob extends BaseEntity {
 
     @Column(length = 1000)
     private String errorMessage;
+
+    public static ArticleBackupJob create(
+            LocalDate backupDate,
+            BackupJobType jobType
+    ) {
+        ArticleBackupJob job = new ArticleBackupJob();
+        job.backupDate = backupDate;
+        job.jobType = jobType;
+        job.status = BackupJobStatus.PENDING; // 초기 상태
+        job.articleCount = 0;
+
+        return job;
+    }
 }

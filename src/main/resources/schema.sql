@@ -183,7 +183,7 @@ CREATE TABLE comments (
                           id UUID PRIMARY KEY,
                           article_id UUID NOT NULL,
                           user_id UUID NOT NULL,
-                          content CLOB NOT NULL,
+                          content VARCHAR(10000) NOT NULL,
 
                           like_count INT NOT NULL DEFAULT 0,
 

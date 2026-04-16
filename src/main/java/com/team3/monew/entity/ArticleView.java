@@ -36,4 +36,16 @@ public class ArticleView {
 
     @Column(nullable = false)
     private Instant lastViewedAt;
+
+    public static ArticleView create(NewsArticle article, User user) {
+        ArticleView view = new ArticleView();
+        view.article = article;
+        view.user = user;
+
+        Instant now = Instant.now();
+        view.firstViewedAt = now;
+        view.lastViewedAt = now;
+
+        return view;
+    }
 }

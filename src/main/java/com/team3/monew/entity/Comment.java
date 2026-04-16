@@ -23,8 +23,7 @@ public class Comment extends SoftDeleteEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, length = 10000)
     private String content;
 
     @Column(nullable = false)
@@ -32,4 +31,14 @@ public class Comment extends SoftDeleteEntity {
 
     @OneToMany(mappedBy = "comment")
     private List<CommentLike> commentLikes = new ArrayList<>();
+
+    public static Comment create(NewsArticle article, User user, String content) {
+        Comment comment = new Comment();
+        comment.article = article;
+        comment.user = user;
+        comment.content = content;
+        comment.likeCount = 0;
+
+        return comment;
+    }
 }

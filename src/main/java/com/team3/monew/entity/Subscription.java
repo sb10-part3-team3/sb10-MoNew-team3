@@ -33,4 +33,13 @@ public class Subscription {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    public static Subscription create(User user, Interest interest) {
+        Subscription subscription = new Subscription();
+        subscription.user = user;
+        subscription.interest = interest;
+        subscription.createdAt = Instant.now();
+
+        return subscription;
+    }
 }

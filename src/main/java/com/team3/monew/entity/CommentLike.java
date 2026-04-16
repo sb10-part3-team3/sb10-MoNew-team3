@@ -33,4 +33,13 @@ public class CommentLike {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    public static CommentLike create(Comment comment, User user) {
+        CommentLike commentLike = new CommentLike();
+        commentLike.comment = comment;
+        commentLike.user = user;
+        commentLike.createdAt = Instant.now();
+
+        return commentLike;
+    }
 }
