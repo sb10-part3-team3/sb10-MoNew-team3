@@ -23,14 +23,18 @@ public class UserService {
   @Transactional
   public UserDto registerUser(UserRegisterRequest userRegisterRequest) {
 
-    if (userRepository.existsByEmail(userRegisterRequest.email())) {
-      throw new DuplicateEmailException(userRegisterRequest.email());
-    }
+    validateDuplicateEmail(userRegisterRequest.email());
 
     User user = userMapper.toEntity(userRegisterRequest);
     String encodedPassword = passwordEncoder.encode(userRegisterRequest.password());
     user.changePassword(encodedPassword);
 
     return userMapper.toDto(userRepository.save(user));
+  }
+
+  private void validateDuplicateEmail(String email) {
+    if (userRepository.existsByEmail(email)) {
+      throw new DuplicateEmailException(email);
+    }
   }
 }
