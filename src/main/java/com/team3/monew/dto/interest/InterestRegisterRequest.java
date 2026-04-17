@@ -4,11 +4,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import java.util.List;
 
-public record InterestResisterRequest(
+public record InterestRegisterRequest(
     @NotBlank
     String name,
     @NotEmpty
-    List<String> keywords
+    List<@NotBlank String> keywords
 ) {
 
 }

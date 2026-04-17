@@ -1,10 +1,12 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.interest.InterestDto;
-import com.team3.monew.dto.interest.InterestResisterRequest;
+import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
+import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -28,38 +30,53 @@ class InterestServiceTest {
   @Mock
   private InterestRepository interestRepository;
 
+  @Mock
+  private InterestMapper interestMapper;
+
   @InjectMocks
   private InterestService interestService;
 
   @Tag("unit")
   @Test
   @DisplayName("관심사를 등록할 수 있다")
-  void shouldResisterInterest_whenCreateRequest() {
+  void shouldRegisterInterest_whenCreateRequest() {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "주식",
         List.of("코스피", "삼성전자")
     );
 
+    Interest savedInterest = Interest.create("주식");
+    savedInterest.addKeyword("코스피");
+    savedInterest.addKeyword("삼성전자");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "주식",
+        List.of("코스피", "삼성전자"),
+        0,
+        false
+    );
+
     given(interestRepository.existsByName("주식")).willReturn(false);
-    given(interestRepository.save(any(Interest.class)))
-        .willAnswer(invocation -> invocation.getArgument(0));
+    given(interestRepository.findAll()).willReturn(List.of());
+    given(interestRepository.save(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
 
     // when
     InterestDto result = interestService.create(request);
 
     // then
     assertThat(result.name()).isEqualTo("주식");
-    assertThat(result.keywords())
-        .containsExactlyInAnyOrder("코스피", "삼성전자");
+    assertThat(result.keywords()).containsExactlyInAnyOrder("코스피", "삼성전자");
   }
 
   @Tag("unit")
   @Test
   @DisplayName("중복된 관심사 이름은 등록에 실패한다")
-  void shouldFailToResister_whenDuplicateNameExists() {
+  void shouldFailToRegister_whenDuplicateNameExists() {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "테스트",
         List.of("test", "keyword")
     );
@@ -76,9 +93,9 @@ class InterestServiceTest {
   @Tag("unit")
   @Test
   @DisplayName("관심사 이름의 유사도가 80% 이상이면 등록에 실패한다")
-  void shouldFailToResisterInterest_whenNameSimilar80percenOver() {
+  void shouldFailToRegisterInterest_whenNameSimilar80percenOver() {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "applf",
         List.of("keyword")
     );

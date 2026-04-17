@@ -1,7 +1,7 @@
 package com.team3.monew.controller.api;
 
 import com.team3.monew.dto.interest.InterestDto;
-import com.team3.monew.dto.interest.InterestResisterRequest;
+import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -54,9 +54,9 @@ public interface InterestApi {
           required = true,
           content = @Content(
               mediaType = "application/json",
-              schema = @Schema(implementation = InterestResisterRequest.class)
+              schema = @Schema(implementation = InterestRegisterRequest.class)
           )
       )
-      @RequestBody @Valid InterestResisterRequest dto
+      @RequestBody @Valid InterestRegisterRequest dto
   );
 }

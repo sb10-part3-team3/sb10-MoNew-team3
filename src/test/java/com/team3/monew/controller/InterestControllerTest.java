@@ -2,7 +2,7 @@ package com.team3.monew.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.interest.InterestDto;
-import com.team3.monew.dto.interest.InterestResisterRequest;
+import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.service.InterestService;
 import org.junit.jupiter.api.DisplayName;
@@ -37,9 +37,9 @@ class InterestControllerTest {
 
   @Test
   @DisplayName("내가 구독하지 않은 상태인 관심사를 등록할 수 있다")
-  void shouldResisterInterest_whenInterestNameDoesntDuplicate() throws Exception {
+  void shouldRegisterInterest_whenInterestNameDoesntDuplicate() throws Exception {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "주식",
         List.of("코스피", "삼성전자")
     );
@@ -52,7 +52,7 @@ class InterestControllerTest {
         false
     );
 
-    given(interestService.create(any(InterestResisterRequest.class)))
+    given(interestService.create(any(InterestRegisterRequest.class)))
         .willReturn(response);
 
     // when & then
@@ -69,14 +69,14 @@ class InterestControllerTest {
 
   @Test
   @DisplayName("중복된 관심사 이름이면 등록에 실패한다")
-  void shouldFailToResister_whenDuplicateNameExists() throws Exception {
+  void shouldFailToRegister_whenDuplicateNameExists() throws Exception {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "test",
         List.of("keyword", "test")
     );
 
-    given(interestService.create(any(InterestResisterRequest.class)))
+    given(interestService.create(any(InterestRegisterRequest.class)))
         .willThrow(new InterestDuplicateNameException());
 
     // when & then
@@ -88,9 +88,9 @@ class InterestControllerTest {
 
   @Test
   @DisplayName("관심사 키워드가 비어 있으면 관심사 등록에 실패한다")
-  void shouldFailToResister_whenKeywordsAreEmpty() throws Exception {
+  void shouldFailToRegister_whenKeywordsAreEmpty() throws Exception {
     // given
-    InterestResisterRequest request = new InterestResisterRequest("noKeyword", List.of());
+    InterestRegisterRequest request = new InterestRegisterRequest("noKeyword", List.of());
 
     // when & then
     mockMvc.perform(post("/api/interests")

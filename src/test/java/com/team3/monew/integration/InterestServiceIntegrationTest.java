@@ -1,7 +1,7 @@
 package com.team3.monew.integration;
 
 import com.team3.monew.dto.interest.InterestDto;
-import com.team3.monew.dto.interest.InterestResisterRequest;
+import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
@@ -32,9 +32,9 @@ public class InterestServiceIntegrationTest {
 
   @Test
   @DisplayName("관심사를 등록하면 키워드와 함께 저장된다")
-  void shouldResisterInterest_whenCreateRequest() {
+  void shouldRegisterInterest_whenCreateRequest() {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "주식",
         List.of("코스피", "삼성전자")
     );
@@ -56,12 +56,12 @@ public class InterestServiceIntegrationTest {
   @DisplayName("이미 같은 이름의 관심사가 존재하면 등록에 실패한다")
   void shouldThrowException_whenDuplicateNameExists() {
     // given
-    InterestResisterRequest request1 = new InterestResisterRequest(
+    InterestRegisterRequest request1 = new InterestRegisterRequest(
         "테스트",
         List.of("test", "keyword")
     );
 
-    InterestResisterRequest request2 = new InterestResisterRequest(
+    InterestRegisterRequest request2 = new InterestRegisterRequest(
         "테스트",
         List.of("asdf")
     );
@@ -75,14 +75,14 @@ public class InterestServiceIntegrationTest {
 
   @Test
   @DisplayName("관심사 이름의 유사도가 80% 이상이면 등록에 실패한다")
-  void shouldFailToResisterInterest_whenNameSimilar80percenOver() {
+  void shouldFailToRegisterInterest_whenNameSimilar80percenOver() {
     // given
-    InterestResisterRequest request = new InterestResisterRequest(
+    InterestRegisterRequest request = new InterestRegisterRequest(
         "apple",
         List.of("keyword")
     );
 
-    InterestResisterRequest request2 = new InterestResisterRequest(
+    InterestRegisterRequest request2 = new InterestRegisterRequest(
         "applf",
         List.of("keyword")
     );

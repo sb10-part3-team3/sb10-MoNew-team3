@@ -1,7 +1,7 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.interest.InterestDto;
-import com.team3.monew.dto.interest.InterestResisterRequest;
+import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
@@ -24,7 +24,7 @@ public class InterestService {
   private final InterestRepository interestRepository;
   private final InterestMapper interestMapper;
 
-  public InterestDto create(InterestResisterRequest dto) {
+  public InterestDto create(InterestRegisterRequest dto) {
     log.info("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
 
@@ -57,8 +57,8 @@ public class InterestService {
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {
-    return interestRepository.findInterestById(interestId)
-        .orElseThrow(() -> new InterestNotFoundException());
+    return interestRepository.findById(interestId)
+        .orElseThrow(InterestNotFoundException::new);
   }
 
   // 유사도 계산 메서드
@@ -67,6 +67,11 @@ public class InterestService {
     String normalizedB = normalize(b);
     int distance = levenshtein(normalizedA, normalizedB);
     int maxLength = Math.max(normalizedA.length(), normalizedB.length());
+
+    if (maxLength == 0) {
+      // 둘 다 빈 문자열이면 동일한 것으로 간주함
+      return 1.0;
+    }
 
     return 1.0 - ((double) distance / maxLength);
   }

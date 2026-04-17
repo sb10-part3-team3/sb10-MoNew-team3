@@ -2,7 +2,7 @@ package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.InterestApi;
 import com.team3.monew.dto.interest.InterestDto;
-import com.team3.monew.dto.interest.InterestResisterRequest;
+import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.service.InterestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ public class InterestController implements InterestApi {
 
   @Override
   public ResponseEntity<InterestDto> create(
-      @Valid @RequestBody InterestResisterRequest dto
+      @Valid @RequestBody InterestRegisterRequest dto
   ) {
     InterestDto response = interestService.create(dto);
 
