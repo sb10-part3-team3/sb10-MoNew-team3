@@ -7,6 +7,7 @@ import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,12 @@ public class UserService {
     String encodedPassword = passwordEncoder.encode(userRegisterRequest.password());
     user.changePassword(encodedPassword);
 
-    return userMapper.toDto(userRepository.save(user));
+    // 동시성 문제로 DB레벨 중복 예외 발생 시 예외 전환
+    try {
+      return userMapper.toDto(userRepository.save(user));
+    } catch (DataIntegrityViolationException e) {
+      throw new DuplicateEmailException();
+    }
   }
 
   private void validateDuplicateEmail(String email) {
