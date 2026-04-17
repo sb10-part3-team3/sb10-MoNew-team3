@@ -43,7 +43,7 @@ public class InterestServiceIntegrationTest {
     InterestDto savedInterest = interestService.create(request);
 
     // then
-    Optional<Interest> found = interestRepository.findInterestById(savedInterest.id());
+    Optional<Interest> found = interestRepository.findById(savedInterest.id());
 
     assertThat(found).isPresent();
     assertThat(found.get().getName()).isEqualTo("주식");
