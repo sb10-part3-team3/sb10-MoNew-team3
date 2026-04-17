@@ -60,7 +60,7 @@ class InterestServiceTest {
 
     given(interestRepository.existsByName("주식")).willReturn(false);
     given(interestRepository.findAll()).willReturn(List.of());
-    given(interestRepository.save(any(Interest.class))).willReturn(savedInterest);
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
     given(interestMapper.toDto(savedInterest, false)).willReturn(response);
 
     // when
@@ -87,7 +87,7 @@ class InterestServiceTest {
     assertThatThrownBy(() -> interestService.create(request))
         .isInstanceOf(InterestDuplicateNameException.class);
 
-    then(interestRepository).should(never()).save(any());
+    then(interestRepository).should(never()).saveAndFlush(any());
   }
 
   @Tag("unit")
@@ -109,6 +109,6 @@ class InterestServiceTest {
     assertThatThrownBy(() -> interestService.create(request))
         .isInstanceOf(InterestDuplicateNameException.class);
 
-    then(interestRepository).should(never()).save(any());
+    then(interestRepository).should(never()).saveAndFlush(any());
   }
 }
