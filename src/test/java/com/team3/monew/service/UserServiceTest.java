@@ -15,6 +15,7 @@ import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
 import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,7 @@ class UserServiceTest {
   private UserService userService;
 
   @Test
+  @DisplayName("이미 존재하는 이메일이면 DuplicateEmailException을 던진다")
   void shouldThrowDuplicateEmailException_whenEmailAlreadyExists() {
     UserRegisterRequest userRegisterRequest = new UserRegisterRequest(
         "email1@example.com", "username1", "password1"
@@ -54,6 +56,7 @@ class UserServiceTest {
   }
 
   @Test
+  @DisplayName("이미 존재하는 이메일로 가입 시 DuplicateEmailException이 발생한다")
   void shouldRegisterUser_whenValidRequest() {
     // given
     UserRegisterRequest request = new UserRegisterRequest(
