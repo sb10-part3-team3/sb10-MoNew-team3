@@ -1,6 +1,7 @@
 package com.team3.monew.entity;
 
 import com.team3.monew.entity.base.SoftDeleteEntity;
+import com.team3.monew.exception.user.InvalidPasswordException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -49,5 +50,12 @@ public class User extends SoftDeleteEntity {
         user.purgeScheduledAt = null;
 
         return user;
+    }
+
+    public void changePassword(String newPassword) {
+        if (newPassword == null || newPassword.isBlank()) {
+            throw new InvalidPasswordException();
+        }
+        this.password = newPassword;
     }
 }
