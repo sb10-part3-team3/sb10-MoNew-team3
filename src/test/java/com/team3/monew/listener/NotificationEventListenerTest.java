@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
 
+import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.service.NotificationService;
 import java.util.UUID;
@@ -32,7 +33,8 @@ class NotificationEventListenerTest {
     UUID actorUserId = UUID.randomUUID();
     UUID commentId = UUID.randomUUID();
     UUID writerId = UUID.randomUUID();
-
+    CommentLikedNotificationRequest request = new CommentLikedNotificationRequest(actorUserId,
+        commentId, writerId);
     CommentLikedEvent event = new CommentLikedEvent(actorUserId, commentId, writerId);
 
     // when
@@ -40,6 +42,6 @@ class NotificationEventListenerTest {
 
     // then
     then(notificationService).should()
-        .registerLikeNotification(eq(actorUserId), eq(commentId), eq(writerId));
+        .registerLikeNotification(eq(request));
   }
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 
+import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.service.NotificationService;
 import java.util.UUID;
@@ -70,7 +71,8 @@ public class NotificationEventListenerIntegrationTest {
     // then
     // 비동기 실행 시간을 고려
     then(notificationEventListener).should(after(1000).never()).handleCommentLikedEvent(event);
-    then(notificationService).should(never()).registerLikeNotification(any(), any(), any());
+    then(notificationService).should(never())
+        .registerLikeNotification(any(CommentLikedNotificationRequest.class));
   }
 
   @Test
@@ -90,7 +92,8 @@ public class NotificationEventListenerIntegrationTest {
     // then
     //비동기 고려하여 타임 아웃 설정
     then(notificationEventListener).should(timeout(1000)).handleCommentLikedEvent(event);
-    then(notificationService).should(timeout(1000)).registerLikeNotification(any(), any(), any());
+    then(notificationService).should(timeout(1000)).registerLikeNotification(any(
+        CommentLikedNotificationRequest.class));
   }
 
   @Test
@@ -105,7 +108,8 @@ public class NotificationEventListenerIntegrationTest {
     willAnswer(invocation -> {
       listenerThreadName.set(Thread.currentThread().getName());
       return null;
-    }).given(notificationService).registerLikeNotification(any(), any(), any());
+    }).given(notificationService)
+        .registerLikeNotification(any(CommentLikedNotificationRequest.class));
 
     CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID(),
         UUID.randomUUID());
@@ -121,7 +125,8 @@ public class NotificationEventListenerIntegrationTest {
     await()
         .atMost(1, java.util.concurrent.TimeUnit.SECONDS) // 최대 1초 대기
         .untilAsserted(() -> {
-          then(notificationService).should().registerLikeNotification(any(), any(), any());
+          then(notificationService).should()
+              .registerLikeNotification(any(CommentLikedNotificationRequest.class));
           assertThat(listenerThreadName.get()).isNotNull();
           assertThat(listenerThreadName.get()).isNotEqualTo(mainThreadName);
         });

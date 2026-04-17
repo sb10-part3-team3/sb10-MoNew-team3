@@ -1,5 +1,6 @@
 package com.team3.monew.listener;
 
+import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,11 @@ public class NotificationEventListener {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   public void handleCommentLikedEvent(CommentLikedEvent event) {
     notificationService.registerLikeNotification(
-        event.actorUserId(),
-        event.commentId(),
-        event.writerId()
+        new CommentLikedNotificationRequest(
+            event.actorUserId(),
+            event.commentId(),
+            event.writerId()
+        )
     );
   }
 }
