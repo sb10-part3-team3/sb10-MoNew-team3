@@ -132,7 +132,7 @@ class UserControllerTest {
     );
 
     given(userService.registerUser(any(UserRegisterRequest.class)))
-        .willThrow(new DuplicateEmailException("user@example.com"));
+        .willThrow(new DuplicateEmailException());
 
     // when & then
     mockMvc.perform(post("/api/users")
