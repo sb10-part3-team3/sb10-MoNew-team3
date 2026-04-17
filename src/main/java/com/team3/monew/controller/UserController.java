@@ -21,9 +21,9 @@ public class UserController implements UserApi {
   private final UserService userService;
 
   @PostMapping
-  public ResponseEntity<UserDto> createUser(
+  public ResponseEntity<UserDto> registerUser(
       @Valid @RequestBody UserRegisterRequest userRegisterRequest
   ) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(userRegisterRequest));
+    return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerUser(userRegisterRequest));
   }
 }

@@ -20,6 +20,6 @@ public interface UserApi {
       @ApiResponse(responseCode = "409", description = "이메일 중복"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
-  ResponseEntity<UserDto> createUser(@Valid @RequestBody UserRegisterRequest userRegisterRequest);
+  ResponseEntity<UserDto> registerUser(@Valid @RequestBody UserRegisterRequest userRegisterRequest);
 
 }

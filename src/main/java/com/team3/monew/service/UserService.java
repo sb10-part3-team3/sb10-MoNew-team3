@@ -21,7 +21,7 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
 
   @Transactional
-  public UserDto createUser(UserRegisterRequest userRegisterRequest) {
+  public UserDto registerUser(UserRegisterRequest userRegisterRequest) {
 
     if (userRepository.existsByEmail(userRegisterRequest.email())) {
       throw new DuplicateEmailException(userRegisterRequest.email());

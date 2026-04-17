@@ -34,7 +34,7 @@ class UserIntegrationTest {
 
   @Test
   @DisplayName("유효한 요청이면 회원가입에 성공한다")
-  void shouldCreateUser_whenRequestIsValid() throws Exception {
+  void shouldRegisterUser_whenRequestIsValid() throws Exception {
     // given
     UserRegisterRequest request = new UserRegisterRequest(
         "user@example.com",

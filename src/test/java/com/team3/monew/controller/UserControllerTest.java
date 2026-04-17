@@ -42,7 +42,7 @@ class UserControllerTest {
 
   @Test
   @DisplayName("유효한 요청이면 201과 사용자 정보를 반환한다")
-  void shouldCreateUser_whenRequestIsValid() throws Exception {
+  void shouldRegisterUser_whenRequestIsValid() throws Exception {
     // given
     UserRegisterRequest request = new UserRegisterRequest(
         "user@example.com",
@@ -57,7 +57,7 @@ class UserControllerTest {
         Instant.now()
     );
 
-    given(userService.createUser(any(UserRegisterRequest.class)))
+    given(userService.registerUser(any(UserRegisterRequest.class)))
         .willReturn(response);
 
     // when & then
@@ -131,7 +131,7 @@ class UserControllerTest {
         "password123"
     );
 
-    given(userService.createUser(any(UserRegisterRequest.class)))
+    given(userService.registerUser(any(UserRegisterRequest.class)))
         .willThrow(new DuplicateEmailException("user@example.com"));
 
     // when & then

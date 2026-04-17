@@ -45,7 +45,7 @@ class UserServiceTest {
 
     given(userRepository.existsByEmail("email1@example.com")).willReturn(true);
 
-    assertThatThrownBy(() -> userService.createUser(userRegisterRequest)).isInstanceOf(
+    assertThatThrownBy(() -> userService.registerUser(userRegisterRequest)).isInstanceOf(
         DuplicateEmailException.class);
     verify(userRepository).existsByEmail("email1@example.com");
     verify(userRepository, never()).save(any());
@@ -54,7 +54,7 @@ class UserServiceTest {
   }
 
   @Test
-  void shouldCreateUser_whenValidRequest() {
+  void shouldRegisterUser_whenValidRequest() {
     // given
     UserRegisterRequest request = new UserRegisterRequest(
         "email1@example.com", "username1", "password1"
@@ -71,7 +71,7 @@ class UserServiceTest {
     given(passwordEncoder.encode("password1")).willReturn("encodedPassword1");
 
     // when
-    UserDto result = userService.createUser(request);
+    UserDto result = userService.registerUser(request);
 
     // then
     assertThat(result).isEqualTo(userDto);
