@@ -22,6 +22,11 @@ public class SecurityConfig {
     http
         // CSRF 보호 비활성화
         .csrf(csrf -> csrf.disable())
+        // h2 console 접속을 위한 설정
+        .headers(headers ->
+                headers.frameOptions(frame -> frame.sameOrigin()
+                )
+        )
         .authorizeHttpRequests(
             auth -> auth
                 // 모든 요청 허용
