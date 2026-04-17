@@ -30,9 +30,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -76,12 +76,12 @@ class CommentServiceTest {
     }
 
     @Nested
-    @DisplayName("댓글 등록은")
+    @DisplayName("댓글 등록 기능을 검증한다.")
     class RegisterComment {
 
         @Test
-        @DisplayName("존재하는 기사와 사용자로 댓글을 성공적으로 등록한다.")
-        void registerComment_Success() {
+        @DisplayName("존재하는 기사와 사용자로 댓글을 등록하면 댓글 등록 결과를 반환한다.")
+        void shouldRegisterComment_whenArticleAndUserExist() {
             // given
             Comment savedComment = Comment.create(article, user, content);
             CommentDto expected = new CommentDto(
@@ -121,8 +121,8 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 기사에는 등록할 수 없다.")
-        void registerComment_NotExistArticle_ThrowsException() {
+        @DisplayName("존재하지 않는 기사에 댓글을 등록하면 비즈니스 예외가 발생한다.")
+        void shouldThrowBusinessException_whenArticleDoesNotExist() {
             // given
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.empty());
 
@@ -138,8 +138,8 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 사용자로는 등록할 수 없다.")
-        void registerComment_NotExistUser_ThrowsException() {
+        @DisplayName("존재하지 않는 사용자로 댓글을 등록하면 비즈니스 예외가 발생한다.")
+        void shouldThrowBusinessException_whenUserDoesNotExist() {
             // given
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
             given(userRepository.findById(userId)).willReturn(Optional.empty());
@@ -157,8 +157,8 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("삭제된 기사에는 등록할 수 없다.")
-        void registerComment_DeletedArticle_ThrowsException() {
+        @DisplayName("삭제된 기사에 댓글을 등록하면 비즈니스 예외가 발생한다.")
+        void shouldThrowBusinessException_whenArticleIsDeleted() {
             // given
             markDeleted(article);
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
@@ -175,8 +175,8 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("삭제된 사용자로는 등록할 수 없다.")
-        void registerComment_DeletedUser_ThrowsException() {
+        @DisplayName("삭제된 사용자로 댓글을 등록하면 비즈니스 예외가 발생한다.")
+        void shouldThrowBusinessException_whenUserIsDeleted() {
             // given
             markDeleted(user);
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
