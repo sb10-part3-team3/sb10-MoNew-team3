@@ -10,7 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.dto.user.UserRegisterRequest;
-import com.team3.monew.exception.DuplicateEmailException;
+import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.UserService;
 import java.time.Instant;

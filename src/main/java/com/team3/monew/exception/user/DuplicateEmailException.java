@@ -1,4 +1,4 @@
-package com.team3.monew.exception;
+package com.team3.monew.exception.user;
 
 import com.team3.monew.global.enums.ErrorCode;
 import java.util.Map;

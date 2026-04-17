@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.entity.User;
-import com.team3.monew.exception.DuplicateEmailException;
+import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
