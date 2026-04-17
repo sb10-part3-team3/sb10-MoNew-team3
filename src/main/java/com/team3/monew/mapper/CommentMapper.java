@@ -8,9 +8,9 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CommentMapper {
 
-    @Mapping(target = "articleId", source = "article.id")
-    @Mapping(target = "userId", source = "user.id")
-    @Mapping(target = "userNickname", source = "user.nickname")
+    @Mapping(target = "articleId", source = "comment.article.id")
+    @Mapping(target = "userId", source = "comment.user.id")
+    @Mapping(target = "userNickname", source = "comment.user.nickname")
     @Mapping(target = "likeCount", expression = "java((long) comment.getLikeCount())")
     @Mapping(target = "likedByMe", source = "likedByMe")
     CommentDto toDto(Comment comment, Boolean likedByMe);
