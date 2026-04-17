@@ -56,7 +56,7 @@ class UserServiceTest {
   }
 
   @Test
-  @DisplayName("이미 존재하는 이메일로 가입 시 DuplicateEmailException이 발생한다")
+  @DisplayName("유효한 요청으로 회원가입 시 사용자가 정상 생성된다")
   void shouldRegisterUser_whenValidRequest() {
     // given
     UserRegisterRequest request = new UserRegisterRequest(
