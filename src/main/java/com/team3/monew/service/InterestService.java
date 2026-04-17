@@ -9,6 +9,7 @@ import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,10 +35,8 @@ public class InterestService {
     }
 
     List<Interest> interests = interestRepository.findAll();
-
     for (Interest interest : interests) {
       double similarity = calculateSimilarity(interest.getName(), dto.name());
-
       if (similarity >= 0.8) {
         log.warn("관심사 등록 실패 - 유사한 이름 존재, requestName={}, existingName={}, similarity={}",
             dto.name(), interest.getName(), similarity);
@@ -48,7 +47,13 @@ public class InterestService {
     Interest interest = Interest.create(dto.name());
     dto.keywords().forEach(interest::addKeyword);
 
-    Interest savedInterest = interestRepository.save(interest);
+    Interest savedInterest;
+    try {
+      savedInterest = interestRepository.saveAndFlush(interest);
+    } catch (DataIntegrityViolationException e) {
+      log.warn("관심사 등록 실패 - DB unique 제약 위반, name={}", dto.name());
+      throw new InterestDuplicateNameException();
+    }
 
     log.info("관심사 등록 성공 - interestId={}, name={}",
         savedInterest.getId(), savedInterest.getName());

@@ -75,7 +75,7 @@ public class InterestServiceIntegrationTest {
 
   @Test
   @DisplayName("관심사 이름의 유사도가 80% 이상이면 등록에 실패한다")
-  void shouldFailToRegisterInterest_whenNameSimilar80percenOver() {
+  void shouldFailToRegisterInterest_whenNameSimilar80percentOver() {
     // given
     InterestRegisterRequest request = new InterestRegisterRequest(
         "apple",
