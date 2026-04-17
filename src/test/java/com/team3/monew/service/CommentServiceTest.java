@@ -7,7 +7,10 @@ import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
-import com.team3.monew.global.exception.BusinessException;
+import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
+import com.team3.monew.exception.user.DeletedUserException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
@@ -105,6 +108,7 @@ class CommentServiceTest {
 
             // then
             assertThat(actual).isEqualTo(expected);
+            assertThat(article.getCommentCount()).isEqualTo(1);
             then(newsArticleRepository).should().findById(articleId);
             then(userRepository).should().findById(userId);
             then(commentRepository).should().save(argThat(comment ->
@@ -121,14 +125,14 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 기사에 댓글을 등록하면 비즈니스 예외가 발생한다.")
-        void shouldThrowBusinessException_whenArticleDoesNotExist() {
+        @DisplayName("존재하지 않는 기사에 댓글을 등록하면 기사 없음 예외가 발생한다.")
+        void shouldThrowArticleNotFoundException_whenArticleDoesNotExist() {
             // given
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> commentService.registerComment(request))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(ArticleNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
             then(newsArticleRepository).shouldHaveNoMoreInteractions();
@@ -138,15 +142,15 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("존재하지 않는 사용자로 댓글을 등록하면 비즈니스 예외가 발생한다.")
-        void shouldThrowBusinessException_whenUserDoesNotExist() {
+        @DisplayName("존재하지 않는 사용자로 댓글을 등록하면 사용자 없음 예외가 발생한다.")
+        void shouldThrowUserNotFoundException_whenUserDoesNotExist() {
             // given
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> commentService.registerComment(request))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(UserNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
             then(userRepository).should().findById(userId);
@@ -157,15 +161,15 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("삭제된 기사에 댓글을 등록하면 비즈니스 예외가 발생한다.")
-        void shouldThrowBusinessException_whenArticleIsDeleted() {
+        @DisplayName("삭제된 기사에 댓글을 등록하면 삭제된 기사 예외가 발생한다.")
+        void shouldThrowDeletedArticleException_whenArticleIsDeleted() {
             // given
             markDeleted(article);
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
 
             // when & then
             assertThatThrownBy(() -> commentService.registerComment(request))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(DeletedArticleException.class);
 
             then(newsArticleRepository).should().findById(articleId);
             then(newsArticleRepository).shouldHaveNoMoreInteractions();
@@ -175,8 +179,8 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("삭제된 사용자로 댓글을 등록하면 비즈니스 예외가 발생한다.")
-        void shouldThrowBusinessException_whenUserIsDeleted() {
+        @DisplayName("삭제된 사용자로 댓글을 등록하면 삭제된 사용자 예외가 발생한다.")
+        void shouldThrowDeletedUserException_whenUserIsDeleted() {
             // given
             markDeleted(user);
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
@@ -184,7 +188,7 @@ class CommentServiceTest {
 
             // when & then
             assertThatThrownBy(() -> commentService.registerComment(request))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(DeletedUserException.class);
 
             then(newsArticleRepository).should().findById(articleId);
             then(userRepository).should().findById(userId);

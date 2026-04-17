@@ -18,4 +18,8 @@ public abstract class SoftDeleteEntity extends BaseEntity {
     private DeleteStatus deleteStatus = DeleteStatus.ACTIVE;
 
     private Instant deletedAt;
+
+    public boolean isDeleted() {
+        return deleteStatus == DeleteStatus.DELETED;
+    }
 }
