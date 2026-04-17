@@ -19,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -80,7 +81,12 @@ class UserServiceTest {
     assertThat(result).isEqualTo(userDto);
     verify(userRepository).existsByEmail("email1@example.com");
     verify(userMapper).toEntity(request);
-    verify(userRepository).save(user);
+
+    ArgumentCaptor<User> savedUserCaptor = ArgumentCaptor.forClass(User.class);
+    verify(userRepository).save(savedUserCaptor.capture());
+    // capture한 user의 password를 service가 encode 했는지 확인
+    assertThat(savedUserCaptor.getValue().getPassword()).isEqualTo("encodedPassword1");
+
     verify(userMapper).toDto(savedUser);
     verify(passwordEncoder).encode("password1");
   }
