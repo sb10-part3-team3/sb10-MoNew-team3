@@ -1,8 +1,8 @@
 package com.team3.monew.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.team3.monew.dto.data.CommentDto;
-import com.team3.monew.dto.request.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.CommentService;
 import java.time.Instant;
@@ -19,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,7 +52,7 @@ class CommentControllerTest {
       UUID articleId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
       String content = "댓글 내용입니다.";
-      CommentRegisterRequest request = new CommentRegisterRequest(articleId, userId, content);
+      CommentRegisterRequest request = new CommentRegisterRequest(articleId, content);
       CommentDto response = new CommentDto(
           commentId,
           articleId,
@@ -63,10 +64,12 @@ class CommentControllerTest {
           Instant.parse("2026-04-17T00:00:00Z")
       );
 
-      given(commentService.registerComment(any(CommentRegisterRequest.class))).willReturn(response);
+      given(commentService.registerComment(any(CommentRegisterRequest.class), eq(userId)))
+          .willReturn(response);
 
       // when & then
       mockMvc.perform(post("/api/comments")
+              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isCreated())
@@ -79,7 +82,7 @@ class CommentControllerTest {
           .andExpect(jsonPath("$.likedByMe").value(false))
           .andExpect(jsonPath("$.createdAt").value("2026-04-17T00:00:00Z"));
 
-      then(commentService).should().registerComment(any(CommentRegisterRequest.class));
+      then(commentService).should().registerComment(any(CommentRegisterRequest.class), eq(userId));
       then(commentService).shouldHaveNoMoreInteractions();
     }
 
@@ -88,7 +91,6 @@ class CommentControllerTest {
     void shouldReturnBadRequest_whenContentIsEmpty() throws Exception {
       // given
       CommentRegisterRequest request = new CommentRegisterRequest(
-          UUID.randomUUID(),
           UUID.randomUUID(),
           ""
       );
@@ -111,7 +113,6 @@ class CommentControllerTest {
       // given
       CommentRegisterRequest request = new CommentRegisterRequest(
           UUID.randomUUID(),
-          UUID.randomUUID(),
           "a".repeat(501)
       );
 
@@ -131,23 +132,24 @@ class CommentControllerTest {
     @DisplayName("댓글 등록 중 예상하지 못한 오류가 발생하면 500 Internal Server Error로 응답한다.")
     void shouldReturnInternalServerError_whenUnexpectedExceptionOccurs() throws Exception {
       // given
+      UUID userId = UUID.randomUUID();
       CommentRegisterRequest request = new CommentRegisterRequest(
-          UUID.randomUUID(),
           UUID.randomUUID(),
           "댓글 내용입니다."
       );
-      given(commentService.registerComment(any(CommentRegisterRequest.class)))
+      given(commentService.registerComment(any(CommentRegisterRequest.class), eq(userId)))
           .willThrow(new RuntimeException("unexpected error"));
 
       // when & then
       mockMvc.perform(post("/api/comments")
+              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isInternalServerError())
           .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
           .andExpect(jsonPath("$.status").value(500));
 
-      then(commentService).should().registerComment(any(CommentRegisterRequest.class));
+      then(commentService).should().registerComment(any(CommentRegisterRequest.class), eq(userId));
       then(commentService).shouldHaveNoMoreInteractions();
     }
   }

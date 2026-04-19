@@ -1,4 +1,4 @@
-package com.team3.monew.dto.data;
+package com.team3.monew.dto.comment;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -7,7 +7,7 @@ public record CommentLikeDto(
         UUID id,
         UUID likedBy,
         Instant createdAt,
-        UUID commendId,
+        UUID commentId,
         UUID articleId,
         UUID commentUserId,
         String commentUserNickname,

@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.team3.monew.dto.request.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
@@ -53,12 +53,12 @@ class CommentIntegrationTest {
     User user = saveUser();
     CommentRegisterRequest request = new CommentRegisterRequest(
         article.getId(),
-        user.getId(),
         "댓글 내용입니다."
     );
 
     // when & then
     mockMvc.perform(post("/api/comments")
+            .principal(() -> user.getId().toString())
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
@@ -88,14 +88,15 @@ class CommentIntegrationTest {
   @DisplayName("존재하지 않는 기사에 댓글을 등록하면 404 Not Found로 응답한다.")
   void shouldReturnNotFound_whenArticleDoesNotExist() throws Exception {
     // given
+    UUID userId = UUID.randomUUID();
     CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(),
         UUID.randomUUID(),
         "댓글 내용입니다."
     );
 
     // when & then
     mockMvc.perform(post("/api/comments")
+            .principal(() -> userId.toString())
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isNotFound())
@@ -109,7 +110,6 @@ class CommentIntegrationTest {
   void shouldReturnBadRequest_whenContentIsEmpty() throws Exception {
     // given
     CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(),
         UUID.randomUUID(),
         ""
     );

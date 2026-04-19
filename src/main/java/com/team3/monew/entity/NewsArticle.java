@@ -66,7 +66,4 @@ public class NewsArticle extends SoftDeleteEntity {
         return article;
     }
 
-    public void increaseCommentCount() {
-        this.commentCount++;
-    }
 }

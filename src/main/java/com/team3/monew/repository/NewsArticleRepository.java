@@ -1,9 +1,15 @@
 package com.team3.monew.repository;
 
 import com.team3.monew.entity.NewsArticle;
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID> {
+
+  @Modifying(flushAutomatically = true)
+  @Query("update NewsArticle article set article.commentCount = article.commentCount + 1 where article.id = :articleId")
+  int incrementCommentCountById(@Param("articleId") UUID articleId);
 }

@@ -1,7 +1,7 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.data.CommentDto;
-import com.team3.monew.dto.request.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
@@ -31,29 +31,28 @@ public class CommentService {
   private final NewsArticleRepository newsArticleRepository;
 
   @Transactional
-  public CommentDto registerComment(CommentRegisterRequest request) {
-    log.debug("댓글 등록 요청 처리 시작: articleId={}, userId={}", request.articleId(), request.userId());
+  public CommentDto registerComment(CommentRegisterRequest request, UUID userId) {
+    log.debug("댓글 등록 요청 처리 시작: articleId={}, userId={}", request.articleId(), userId);
 
     NewsArticle article = findActiveArticle(request.articleId());
-    User user = findActiveUser(request.userId());
+    User user = findActiveUser(userId);
 
     Comment comment = Comment.create(article, user, request.content());
     Comment savedComment = commentRepository.save(comment);
-    article.increaseCommentCount();
+    newsArticleRepository.incrementCommentCountById(request.articleId());
 
     log.info(
-        "댓글 등록 주요 로직 완료: articleId={}, userId={}, commentId={}, articleCommentCount={}",
+        "댓글 등록 주요 로직 완료: articleId={}, userId={}, commentId={}",
         request.articleId(),
-        request.userId(),
-        savedComment.getId(),
-        article.getCommentCount()
+        userId,
+        savedComment.getId()
     );
 
     CommentDto commentDto = commentMapper.toDto(savedComment, false);
     log.info(
         "댓글 등록 서비스 종료: articleId={}, userId={}, commentId={}",
         request.articleId(),
-        request.userId(),
+        userId,
         savedComment.getId()
     );
     return commentDto;

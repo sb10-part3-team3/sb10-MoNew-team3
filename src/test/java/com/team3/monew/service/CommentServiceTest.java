@@ -1,7 +1,7 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.data.CommentDto;
-import com.team3.monew.dto.request.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
@@ -67,7 +67,7 @@ class CommentServiceTest {
         articleId = UUID.randomUUID();
         userId = UUID.randomUUID();
         content = "댓글 내용입니다.";
-        request = new CommentRegisterRequest(articleId, userId, content);
+        request = new CommentRegisterRequest(articleId, content);
         article = NewsArticle.create(
                 mock(NewsSource.class),
                 "https://news.example.com/articles/1",
@@ -104,11 +104,10 @@ class CommentServiceTest {
             given(commentMapper.toDto(savedComment, false)).willReturn(expected);
 
             // when
-            CommentDto actual = commentService.registerComment(request);
+            CommentDto actual = commentService.registerComment(request, userId);
 
             // then
             assertThat(actual).isEqualTo(expected);
-            assertThat(article.getCommentCount()).isEqualTo(1);
             then(newsArticleRepository).should().findById(articleId);
             then(userRepository).should().findById(userId);
             then(commentRepository).should().save(argThat(comment ->
@@ -117,6 +116,7 @@ class CommentServiceTest {
                             && comment.getContent().equals(content)
                             && comment.getLikeCount() == 0
             ));
+            then(newsArticleRepository).should().incrementCommentCountById(articleId);
             then(commentMapper).should().toDto(savedComment, false);
             then(newsArticleRepository).shouldHaveNoMoreInteractions();
             then(userRepository).shouldHaveNoMoreInteractions();
@@ -131,7 +131,7 @@ class CommentServiceTest {
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request))
+            assertThatThrownBy(() -> commentService.registerComment(request, userId))
                     .isInstanceOf(ArticleNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
@@ -149,7 +149,7 @@ class CommentServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request))
+            assertThatThrownBy(() -> commentService.registerComment(request, userId))
                     .isInstanceOf(UserNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
@@ -168,7 +168,7 @@ class CommentServiceTest {
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request))
+            assertThatThrownBy(() -> commentService.registerComment(request, userId))
                     .isInstanceOf(DeletedArticleException.class);
 
             then(newsArticleRepository).should().findById(articleId);
@@ -187,7 +187,7 @@ class CommentServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request))
+            assertThatThrownBy(() -> commentService.registerComment(request, userId))
                     .isInstanceOf(DeletedUserException.class);
 
             then(newsArticleRepository).should().findById(articleId);
