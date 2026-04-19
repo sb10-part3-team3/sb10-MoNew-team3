@@ -67,7 +67,7 @@ class CommentServiceTest {
         articleId = UUID.randomUUID();
         userId = UUID.randomUUID();
         content = "댓글 내용입니다.";
-        request = new CommentRegisterRequest(articleId, content);
+        request = new CommentRegisterRequest(articleId, userId, content);
         article = NewsArticle.create(
                 mock(NewsSource.class),
                 "https://news.example.com/articles/1",
@@ -104,7 +104,7 @@ class CommentServiceTest {
             given(commentMapper.toDto(savedComment, false)).willReturn(expected);
 
             // when
-            CommentDto actual = commentService.registerComment(request, userId);
+            CommentDto actual = commentService.registerComment(request);
 
             // then
             assertThat(actual).isEqualTo(expected);
@@ -131,7 +131,7 @@ class CommentServiceTest {
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request, userId))
+            assertThatThrownBy(() -> commentService.registerComment(request))
                     .isInstanceOf(ArticleNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
@@ -149,7 +149,7 @@ class CommentServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request, userId))
+            assertThatThrownBy(() -> commentService.registerComment(request))
                     .isInstanceOf(UserNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
@@ -168,7 +168,7 @@ class CommentServiceTest {
             given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request, userId))
+            assertThatThrownBy(() -> commentService.registerComment(request))
                     .isInstanceOf(DeletedArticleException.class);
 
             then(newsArticleRepository).should().findById(articleId);
@@ -187,7 +187,7 @@ class CommentServiceTest {
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when & then
-            assertThatThrownBy(() -> commentService.registerComment(request, userId))
+            assertThatThrownBy(() -> commentService.registerComment(request))
                     .isInstanceOf(DeletedUserException.class);
 
             then(newsArticleRepository).should().findById(articleId);

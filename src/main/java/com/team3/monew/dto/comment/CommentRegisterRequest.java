@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 public record CommentRegisterRequest(
         @NotNull
         UUID articleId,
+        @NotNull
+        UUID userId,
         @NotBlank @Size(min = 1, max = 500)
         String content
 ) {
