@@ -1,8 +1,10 @@
 package com.team3.monew.service;
 
+import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.entity.User;
+import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
@@ -36,6 +38,16 @@ public class UserService {
     } catch (DataIntegrityViolationException e) {
       throw new DuplicateEmailException();
     }
+  }
+
+  public UserDto loginUser(UserLoginRequest userLoginRequest) {
+    User user = userRepository.findByEmail(userLoginRequest.email())
+        .orElseThrow(AuthException::new);
+
+    if (!passwordEncoder.matches(userLoginRequest.password(), user.getPassword())) {
+      throw new AuthException();
+    }
+    return userMapper.toDto(user);
   }
 
   private void validateDuplicateEmail(String email) {
