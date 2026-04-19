@@ -35,28 +35,26 @@ public class CommentService {
   private final NewsArticleRepository newsArticleRepository;
 
   @Transactional
-  public CommentDto registerComment(CommentRegisterRequest request, UUID userId) {
-    log.debug("댓글 등록 요청 처리 시작: articleId={}, userId={}", request.articleId(), userId);
+  public CommentDto registerComment(CommentRegisterRequest request) {
+    log.debug("댓글 등록 요청 처리 시작: articleId={}, userId={}", request.articleId(), request.userId());
 
     NewsArticle article = findActiveArticle(request.articleId());
-    User user = findActiveUser(userId);
+    User user = findActiveUser(request.userId());
 
     Comment comment = Comment.create(article, user, request.content());
     Comment savedComment = commentRepository.save(comment);
     newsArticleRepository.incrementCommentCountById(request.articleId());
 
-    log.info(
-        "댓글 등록 주요 로직 완료: articleId={}, userId={}, commentId={}",
-        request.articleId(),
-        userId,
-        savedComment.getId()
-    );
-
     CommentDto commentDto = commentMapper.toDto(savedComment, false);
     log.info(
+        "댓글 등록 완료: commentId={}, articleId={}",
+        savedComment.getId(),
+        request.articleId()
+    );
+    log.debug(
         "댓글 등록 서비스 종료: articleId={}, userId={}, commentId={}",
         request.articleId(),
-        userId,
+        request.userId(),
         savedComment.getId()
     );
     return commentDto;
