@@ -37,4 +37,10 @@ public class Interest extends BaseEntity {
 
         return interest;
     }
+
+    // keyword는 해당 메서드를 통해 서비스에서 따로 붙임 -> entity에 책임이 몰리는 것을 방지하기 위함
+    public void addKeyword(String keyword) {
+        InterestKeyword interestKeyword = InterestKeyword.create(this, keyword);
+        this.keywords.add(interestKeyword);
+    }
 }
