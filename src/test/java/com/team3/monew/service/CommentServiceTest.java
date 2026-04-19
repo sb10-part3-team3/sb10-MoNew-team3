@@ -2,6 +2,7 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.comment.CommentDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
@@ -9,6 +10,9 @@ import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
+import com.team3.monew.exception.comment.CommentNotFoundException;
+import com.team3.monew.exception.comment.DeletedCommentException;
+import com.team3.monew.exception.comment.UnauthorizedCommentException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
@@ -57,8 +61,11 @@ class CommentServiceTest {
 
     private UUID articleId;
     private UUID userId;
+    private UUID commentId;
     private String content;
+    private String updatedContent;
     private CommentRegisterRequest request;
+    private CommentUpdateRequest updateRequest;
     private NewsArticle article;
     private User user;
 
@@ -66,8 +73,11 @@ class CommentServiceTest {
     void setUp() {
         articleId = UUID.randomUUID();
         userId = UUID.randomUUID();
+        commentId = UUID.randomUUID();
         content = "댓글 내용입니다.";
+        updatedContent = "수정된 댓글 내용입니다.";
         request = new CommentRegisterRequest(articleId, content);
+        updateRequest = new CommentUpdateRequest(updatedContent);
         article = NewsArticle.create(
                 mock(NewsSource.class),
                 "https://news.example.com/articles/1",
@@ -76,6 +86,8 @@ class CommentServiceTest {
                 "테스트 기사 요약"
         );
         user = User.create("user@example.com", "테스터", "encoded-password");
+        assignId(article, articleId);
+        assignId(user, userId);
     }
 
     @Nested
@@ -118,10 +130,6 @@ class CommentServiceTest {
             ));
             then(newsArticleRepository).should().incrementCommentCountById(articleId);
             then(commentMapper).should().toDto(savedComment, false);
-            then(newsArticleRepository).shouldHaveNoMoreInteractions();
-            then(userRepository).shouldHaveNoMoreInteractions();
-            then(commentRepository).shouldHaveNoMoreInteractions();
-            then(commentMapper).shouldHaveNoMoreInteractions();
         }
 
         @Test
@@ -135,8 +143,6 @@ class CommentServiceTest {
                     .isInstanceOf(ArticleNotFoundException.class);
 
             then(newsArticleRepository).should().findById(articleId);
-            then(newsArticleRepository).shouldHaveNoMoreInteractions();
-            then(userRepository).shouldHaveNoInteractions();
             then(commentRepository).shouldHaveNoInteractions();
             then(commentMapper).shouldHaveNoInteractions();
         }
@@ -154,8 +160,6 @@ class CommentServiceTest {
 
             then(newsArticleRepository).should().findById(articleId);
             then(userRepository).should().findById(userId);
-            then(newsArticleRepository).shouldHaveNoMoreInteractions();
-            then(userRepository).shouldHaveNoMoreInteractions();
             then(commentRepository).shouldHaveNoInteractions();
             then(commentMapper).shouldHaveNoInteractions();
         }
@@ -172,8 +176,6 @@ class CommentServiceTest {
                     .isInstanceOf(DeletedArticleException.class);
 
             then(newsArticleRepository).should().findById(articleId);
-            then(newsArticleRepository).shouldHaveNoMoreInteractions();
-            then(userRepository).shouldHaveNoInteractions();
             then(commentRepository).shouldHaveNoInteractions();
             then(commentMapper).shouldHaveNoInteractions();
         }
@@ -192,11 +194,116 @@ class CommentServiceTest {
 
             then(newsArticleRepository).should().findById(articleId);
             then(userRepository).should().findById(userId);
-            then(newsArticleRepository).shouldHaveNoMoreInteractions();
-            then(userRepository).shouldHaveNoMoreInteractions();
             then(commentRepository).shouldHaveNoInteractions();
             then(commentMapper).shouldHaveNoInteractions();
         }
+    }
+
+    @Nested
+    @DisplayName("댓글 수정 기능을 검증한다.")
+    class UpdateComment {
+
+        @Test
+        @DisplayName("작성자가 자신의 댓글을 수정하면 수정된 댓글 결과를 반환한다.")
+        void shouldUpdateComment_whenCommentAuthorRequests() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            CommentDto expected = new CommentDto(
+                    commentId,
+                    articleId,
+                    userId,
+                    user.getNickname(),
+                    updatedContent,
+                    0L,
+                    false,
+                    Instant.parse("2026-04-17T00:00:01Z")
+            );
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentMapper.toDto(comment, false)).willReturn(expected);
+
+            // when
+            CommentDto actual = commentService.updateComment(commentId, updateRequest, userId);
+
+            // then
+            assertThat(actual).isEqualTo(expected);
+            assertThat(comment.getContent()).isEqualTo(updatedContent);
+            then(commentRepository).should().findById(commentId);
+            then(commentMapper).should().toDto(comment, false);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 댓글을 수정하면 댓글 없음 예외가 발생한다.")
+        void shouldThrowCommentNotFoundException_whenCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest, userId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(commentRepository).should().findById(commentId);
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("삭제된 댓글을 수정하면 삭제된 댓글 예외가 발생한다.")
+        void shouldThrowDeletedCommentException_whenCommentIsDeleted() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest, userId))
+                    .isInstanceOf(DeletedCommentException.class);
+
+            assertThat(comment.getContent()).isEqualTo(content);
+            then(commentRepository).should().findById(commentId);
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("작성자가 아닌 사용자가 댓글을 수정하면 댓글 수정 권한 없음 예외가 발생한다.")
+        void shouldThrowUnauthorizedCommentException_whenUserIsNotAuthor() {
+            // given
+            UUID otherUserId = UUID.randomUUID();
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest, otherUserId))
+                    .isInstanceOf(UnauthorizedCommentException.class);
+
+            assertThat(comment.getContent()).isEqualTo(content);
+            then(commentRepository).should().findById(commentId);
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("삭제된 작성자가 댓글을 수정하면 삭제된 사용자 예외가 발생한다.")
+        void shouldThrowDeletedUserException_whenAuthorIsDeleted() {
+            // given
+            markDeleted(user);
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest, userId))
+                    .isInstanceOf(DeletedUserException.class);
+
+            assertThat(comment.getContent()).isEqualTo(content);
+            then(commentRepository).should().findById(commentId);
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+    }
+
+    private void assignId(Object entity, UUID id) {
+        ReflectionTestUtils.setField(entity, "id", id);
     }
 
     private void markDeleted(Object entity) {

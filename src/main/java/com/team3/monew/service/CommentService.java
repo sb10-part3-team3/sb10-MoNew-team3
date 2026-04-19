@@ -2,6 +2,7 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.comment.CommentDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
@@ -56,6 +57,11 @@ public class CommentService {
         savedComment.getId()
     );
     return commentDto;
+  }
+
+  @Transactional
+  public CommentDto updateComment(UUID commentId, CommentUpdateRequest request, UUID userId) {
+    throw new UnsupportedOperationException("댓글 수정 기능은 아직 구현되지 않았습니다.");
   }
 
   private NewsArticle findActiveArticle(UUID articleId) {
