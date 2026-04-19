@@ -8,6 +8,9 @@ import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
+import com.team3.monew.exception.comment.CommentNotFoundException;
+import com.team3.monew.exception.comment.DeletedCommentException;
+import com.team3.monew.exception.comment.UnauthorizedCommentException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
@@ -61,7 +64,21 @@ public class CommentService {
 
   @Transactional
   public CommentDto updateComment(UUID commentId, CommentUpdateRequest request, UUID userId) {
-    throw new UnsupportedOperationException("댓글 수정 기능은 아직 구현되지 않았습니다.");
+    Comment comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new CommentNotFoundException(commentId));
+
+    if (comment.isDeleted()) {
+      throw new DeletedCommentException(commentId);
+    }
+    if (comment.getUser().isDeleted()) {
+      throw new DeletedUserException(userId);
+    }
+    if (!comment.getUser().getId().equals(userId)) {
+      throw new UnauthorizedCommentException(commentId);
+    }
+
+    comment.updateContent(request.content());
+    return commentMapper.toDto(comment, false);
   }
 
   private NewsArticle findActiveArticle(UUID articleId) {
