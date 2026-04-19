@@ -32,7 +32,9 @@ public class UserController implements UserApi {
   public ResponseEntity<UserDto> loginUser(
       @Valid @RequestBody UserLoginRequest userLoginRequest
   ) {
-    // 헤더 처리 예정
-    return ResponseEntity.ok(userService.loginUser(userLoginRequest));
+    UserDto userDto = userService.loginUser(userLoginRequest);
+    return ResponseEntity.ok()
+        .header("monew-request-id", userDto.id().toString())
+        .body(userDto);
   }
 }
