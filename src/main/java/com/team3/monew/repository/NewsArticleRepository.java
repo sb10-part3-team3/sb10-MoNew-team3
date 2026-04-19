@@ -1,6 +1,7 @@
 package com.team3.monew.repository;
 
 import com.team3.monew.entity.NewsArticle;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -21,4 +22,6 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID> 
       where article.id = :articleId
       """)
   void decrementCommentCountById(@Param("articleId") UUID articleId);
+
+  List<NewsArticle> findAllByOriginalLinkIn(List<String> originalLinks);
 }
