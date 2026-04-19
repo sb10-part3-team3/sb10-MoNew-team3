@@ -15,9 +15,11 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -30,6 +32,8 @@ public class CommentService {
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
+    log.debug("댓글 등록 요청 처리 시작: articleId={}, userId={}", request.articleId(), request.userId());
+
     NewsArticle article = findActiveArticle(request.articleId());
     User user = findActiveUser(request.userId());
 
@@ -37,26 +41,49 @@ public class CommentService {
     Comment savedComment = commentRepository.save(comment);
     article.increaseCommentCount();
 
-    return commentMapper.toDto(savedComment, false);
+    log.info(
+        "댓글 등록 주요 로직 완료: articleId={}, userId={}, commentId={}, articleCommentCount={}",
+        request.articleId(),
+        request.userId(),
+        savedComment.getId(),
+        article.getCommentCount()
+    );
+
+    CommentDto commentDto = commentMapper.toDto(savedComment, false);
+    log.info(
+        "댓글 등록 서비스 종료: articleId={}, userId={}, commentId={}",
+        request.articleId(),
+        request.userId(),
+        savedComment.getId()
+    );
+    return commentDto;
   }
 
   private NewsArticle findActiveArticle(UUID articleId) {
+    log.debug("댓글 등록 기사 조회 시작: articleId={}", articleId);
+
     NewsArticle article = newsArticleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(articleId));
 
     if (article.isDeleted()) {
       throw new DeletedArticleException(articleId);
     }
+
+    log.debug("댓글 등록 기사 조회 완료: articleId={}", articleId);
     return article;
   }
 
   private User findActiveUser(UUID userId) {
+    log.debug("댓글 등록 사용자 조회 시작: userId={}", userId);
+
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
 
     if (user.isDeleted()) {
       throw new DeletedUserException(userId);
     }
+
+    log.debug("댓글 등록 사용자 조회 완료: userId={}", userId);
     return user;
   }
 }
