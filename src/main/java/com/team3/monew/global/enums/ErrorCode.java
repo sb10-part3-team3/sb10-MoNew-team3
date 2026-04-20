@@ -11,13 +11,10 @@ public enum ErrorCode {
   ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "기사를 찾을 수 없습니다."),
   ARTICLE_DELETED(HttpStatus.BAD_REQUEST, "삭제된 기사입니다."),
   COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 댓글입니다."),
-  COMMENT_DELETED(HttpStatus.BAD_REQUEST, "삭제된 댓글입니다."),
+  COMMENT_DELETED(HttpStatus.NOT_FOUND, "삭제된 댓글입니다."),
   COMMENT_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "댓글 수정 권한이 없습니다."),
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
   USER_DELETED(HttpStatus.BAD_REQUEST, "삭제된 사용자입니다."),
-
-  // COMMENT_EXCEPTION
-
 
   // INTEREST EXCEPTION
   INTEREST_NAME_DUPLICATE(HttpStatus.CONFLICT, "중복된 관심사 이름입니다."),
