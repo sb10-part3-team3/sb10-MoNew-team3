@@ -6,5 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, UUID> {
 
-  boolean existsByUserIdAndInterestId(UUID userid, UUID interestId);
+  boolean existsByUserIdAndInterestId(UUID userId, UUID interestId);
 }
