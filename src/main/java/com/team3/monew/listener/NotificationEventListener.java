@@ -2,7 +2,8 @@ package com.team3.monew.listener;
 
 import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
-import com.team3.monew.global.exception.BusinessException;
+import com.team3.monew.exception.comment.CommentNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,7 @@ public class NotificationEventListener {
               event.commentId()
           )
       );
-    } catch (BusinessException e) {
+    } catch (CommentNotFoundException | UserNotFoundException e) {
       log.info("알림 전송 취소: 관련 리소스를 찾을 수 없음: CommentId={}, ActorUserId={}, Message={}, Details={}",
           event.commentId(), event.actorUserId(), e.getMessage(), e.getDetails());
     } //그 외는 비동기 예외

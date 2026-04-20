@@ -10,6 +10,7 @@ import static org.mockito.BDDMockito.willThrow;
 import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.comment.CommentNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.service.NotificationService;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -49,13 +50,29 @@ class NotificationEventListenerTest {
   }
 
   @Test
-  @DisplayName("알림 등록 중 커스텀 예외가 발생하면 리스너가 처리하고 예외를 외부로 전파하지 않는다.")
-  void shouldCatchAndHandleBusinessException_whenServiceThrowsIt() {
+  @DisplayName("알림 등록 중 댓글 예외가 발생하면 리스너가 처리하고 예외를 외부로 전파하지 않는다.")
+  void shouldCatchAndHandleCommentNotFoundsException_whenServiceThrowsIt() {
     // given
     CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
 
     // 서비스에서 댓글을 찾지 못함
     willThrow(new CommentNotFoundException(UUID.randomUUID()))
+        .given(notificationService)
+        .registerLikeNotification(any(CommentLikedNotificationRequest.class));
+
+    // when & then
+    assertDoesNotThrow(() -> notificationEventListener.handleCommentLikedEvent(event));
+    then(notificationService).should().registerLikeNotification(any());
+  }
+
+  @Test
+  @DisplayName("알림 등록 중 사용자 예외가 발생하면 리스너가 처리하고 예외를 외부로 전파하지 않는다.")
+  void shouldCatchAndHandleUserNotFoundsException_whenServiceThrowsIt() {
+    // given
+    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+
+    // 서비스에서 댓글을 찾지 못함
+    willThrow(new UserNotFoundException(UUID.randomUUID()))
         .given(notificationService)
         .registerLikeNotification(any(CommentLikedNotificationRequest.class));
 
