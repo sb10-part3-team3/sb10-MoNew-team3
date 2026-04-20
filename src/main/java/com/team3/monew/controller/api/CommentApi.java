@@ -38,7 +38,7 @@ public interface CommentApi {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<CommentDto> updateComment(
-      @PathVariable("commentId") UUID commentId,
+      @PathVariable UUID commentId,
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
       @Valid @RequestBody CommentUpdateRequest commentUpdateRequest
   );

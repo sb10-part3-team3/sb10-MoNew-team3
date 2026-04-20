@@ -62,6 +62,8 @@ public class CommentService {
 
   @Transactional
   public CommentDto updateComment(UUID commentId, UUID requestUserId, CommentUpdateRequest request) {
+    log.debug("댓글 수정 요청 처리 시작: commentId={}, requestUserId={}", commentId, requestUserId);
+
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
 
@@ -72,12 +74,16 @@ public class CommentService {
     if (comment.getUser().isDeleted()) {
       throw new DeletedUserException(authorId);
     }
+
     if (!authorId.equals(requestUserId)) {
       throw new UnauthorizedCommentException(commentId);
     }
 
     comment.updateContent(request.content());
-    return commentMapper.toDto(comment, false);
+    CommentDto commentDto = commentMapper.toDto(comment, false);
+    log.info("댓글 수정 완료: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.debug("댓글 수정 서비스 종료: commentId={}, requestUserId={}", commentId, requestUserId);
+    return commentDto;
   }
 
   private NewsArticle findActiveArticle(UUID articleId) {
