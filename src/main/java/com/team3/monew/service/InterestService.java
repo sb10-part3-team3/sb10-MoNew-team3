@@ -111,6 +111,10 @@ public class InterestService {
     boolean subscribedByMe =
         subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
 
+    // 기존 키워드와 dto의 키워드중 중복되는게 있을 경우 지워지지 않는 경우를 대비
+    interest.getKeywords().clear();
+    interestRepository.flush();
+
     interest.updateKeywords(keywords);
 
     log.debug("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
