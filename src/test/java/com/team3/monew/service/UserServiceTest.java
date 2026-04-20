@@ -99,7 +99,7 @@ class UserServiceTest {
   void shouldThrowAuthException_whenInvalidPassword() {
     // given
     String email = "email1@naver.com";
-    String rawPassword = "invalidPassword";
+    String rawPassword = "rawPassword";
     String encodedPassword = "encoded-password";
 
     User user = User.create(email, "username1", encodedPassword);
@@ -138,7 +138,7 @@ class UserServiceTest {
   void shouldLoginUser_whenValidRequest() {
     // given
     String email = "email1@naver.com";
-    String rawPassword = "invalidPassword";
+    String rawPassword = "rawPassword";
     String encodedPassword = "encoded-password";
 
     User user = User.create(email, "username1", encodedPassword);

@@ -27,7 +27,7 @@ public interface UserApi {
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "로그인 성공"),
       @ApiResponse(responseCode = "400", description = "잘못된 요청(입력값 검증 실패)"),
-      @ApiResponse(responseCode = "401", description = "로그인 실패(이메일 또는 비밀번호 불일치")
+      @ApiResponse(responseCode = "401", description = "로그인 실패(이메일 또는 비밀번호 불일치)")
   })
   ResponseEntity<UserDto> loginUser(@Valid @RequestBody UserLoginRequest userLoginRequest);
 
