@@ -41,7 +41,7 @@ class UserIntegrationTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "user@example.com",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -60,13 +60,13 @@ class UserIntegrationTest {
     UserRegisterRequest firstRequest = new UserRegisterRequest(
         "duplicate@example.com",
         "nickname1",
-        "password123"
+        "password123!"
     );
 
     UserRegisterRequest secondRequest = new UserRegisterRequest(
         "duplicate@example.com",
         "nickname2",
-        "password456"
+        "password456!"
     );
 
     mockMvc.perform(post("/api/users")
@@ -88,7 +88,7 @@ class UserIntegrationTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "invalid-email",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -105,7 +105,7 @@ class UserIntegrationTest {
     UserRegisterRequest registerRequest = new UserRegisterRequest(
         "login-success@example.com",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     mockMvc.perform(post("/api/users")
@@ -115,7 +115,7 @@ class UserIntegrationTest {
 
     UserLoginRequest loginRequest = new UserLoginRequest(
         "login-success@example.com",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -134,7 +134,7 @@ class UserIntegrationTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "invalid-email",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -150,7 +150,7 @@ class UserIntegrationTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "user@example.com",
-        "aaaaaaa"
+        "aaaaaaa123"
     );
 
     // when & then
@@ -167,7 +167,7 @@ class UserIntegrationTest {
     UserRegisterRequest registerRequest = new UserRegisterRequest(
         "login-fail@example.com",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     mockMvc.perform(post("/api/users")
@@ -177,7 +177,7 @@ class UserIntegrationTest {
 
     UserLoginRequest loginRequest = new UserLoginRequest(
         "login-fail@example.com",
-        "wrongPassword123"
+        "wrongPassword123!"
     );
 
     // when & then

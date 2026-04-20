@@ -48,7 +48,7 @@ class UserControllerTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "user@example.com",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     UserDto response = new UserDto(
@@ -78,7 +78,7 @@ class UserControllerTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -95,7 +95,7 @@ class UserControllerTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "invalid-email",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -112,7 +112,7 @@ class UserControllerTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "user@example.com",
         "nickname",
-        "aaaaaaaa"
+        "aaaaaaaa12"
     );
 
     // when & then
@@ -129,7 +129,7 @@ class UserControllerTest {
     UserRegisterRequest request = new UserRegisterRequest(
         "user@example.com",
         "nickname",
-        "password123"
+        "password123!"
     );
 
     given(userService.registerUser(any(UserRegisterRequest.class)))
@@ -148,7 +148,7 @@ class UserControllerTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "user@example.com",
-        "password123"
+        "password123!"
     );
 
     UserDto response = new UserDto(
@@ -180,7 +180,7 @@ class UserControllerTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "invalid-email",
-        "password123"
+        "password123!"
     );
 
     // when & then
@@ -196,7 +196,7 @@ class UserControllerTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "user@example.com",
-        "aaaaaaa" // 예: 숫자 미포함 또는 길이 미달
+        "aaaaaaa123" // 예: 특수문자 미포함
     );
 
     // when & then
@@ -212,7 +212,7 @@ class UserControllerTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "user@example.com",
-        "password123"
+        "password123!"
     );
 
     given(userService.loginUser(any(UserLoginRequest.class)))
@@ -231,7 +231,7 @@ class UserControllerTest {
     // given
     UserLoginRequest request = new UserLoginRequest(
         "user@example.com",
-        "wrongPassword123"
+        "wrongPassword123!"
     );
 
     given(userService.loginUser(any(UserLoginRequest.class)))
