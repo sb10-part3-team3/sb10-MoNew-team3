@@ -8,6 +8,7 @@ import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
+import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
@@ -18,6 +19,7 @@ import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
+import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,6 +57,9 @@ class CommentServiceTest {
 
     @Mock
     private NewsArticleRepository newsArticleRepository;
+
+    @Mock
+    private NotificationRepository notificationRepository;
 
     @InjectMocks
     private CommentService commentService;
@@ -300,6 +305,115 @@ class CommentServiceTest {
             assertThat(comment.getContent()).isEqualTo(content);
             then(commentRepository).should().findById(commentId);
             then(commentMapper).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("delete comment")
+    class DeleteComment {
+
+        @Test
+        @DisplayName("marks comment deleted and decreases article comment count")
+        void shouldDeleteComment_whenCommentExists() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when
+            commentService.deleteComment(commentId);
+
+            // then
+            assertThat(comment.isDeleted()).isTrue();
+            assertThat(comment.getDeletedAt()).isNotNull();
+            then(newsArticleRepository).should().decrementCommentCountById(articleId);
+        }
+
+        @Test
+        @DisplayName("throws CommentNotFoundException when comment does not exist")
+        void shouldThrowCommentNotFoundException_whenDeleteCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.deleteComment(commentId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(notificationRepository).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("throws DeletedCommentException when comment is already deleted")
+        void shouldThrowDeletedCommentException_whenDeleteCommentIsAlreadyDeleted() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.deleteComment(commentId))
+                    .isInstanceOf(DeletedCommentException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(notificationRepository).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("hard delete comment")
+    class HardDeleteComment {
+
+        @Test
+        @DisplayName("deletes active comment, related notifications, and decreases article comment count")
+        void shouldHardDeleteCommentAndDecreaseCommentCount_whenActiveCommentExists() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when
+            commentService.hardDeleteComment(commentId);
+
+            // then
+            then(newsArticleRepository).should().decrementCommentCountById(articleId);
+            then(notificationRepository).should()
+                    .deleteByResourceTypeAndResourceId(NotificationResourceType.COMMENT, commentId);
+            then(commentRepository).should().delete(comment);
+        }
+
+        @Test
+        @DisplayName("deletes already deleted comment and related notifications without decreasing comment count")
+        void shouldHardDeleteCommentWithoutDecreasingCommentCount_whenDeletedCommentExists() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when
+            commentService.hardDeleteComment(commentId);
+
+            // then
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(notificationRepository).should()
+                    .deleteByResourceTypeAndResourceId(NotificationResourceType.COMMENT, commentId);
+            then(commentRepository).should().delete(comment);
+        }
+
+        @Test
+        @DisplayName("throws CommentNotFoundException when comment does not exist")
+        void shouldThrowCommentNotFoundException_whenHardDeleteCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.hardDeleteComment(commentId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(notificationRepository).shouldHaveNoInteractions();
         }
     }
 
