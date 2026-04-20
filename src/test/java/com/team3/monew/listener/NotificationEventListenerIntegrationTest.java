@@ -129,6 +129,7 @@ public class NotificationEventListenerIntegrationTest {
               .registerLikeNotification(any(CommentLikedNotificationRequest.class));
           assertThat(listenerThreadName.get()).isNotNull();
           assertThat(listenerThreadName.get()).isNotEqualTo(mainThreadName);
+          assertThat(listenerThreadName.get()).startsWith("real-time-noti-task-");//스레드풀 확인
         });
   }
 }
