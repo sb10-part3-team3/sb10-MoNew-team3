@@ -16,6 +16,7 @@ import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -72,8 +73,8 @@ public class InterestService {
   }
 
   public InterestDto updateKeyword(UUID userId, UUID interestId, InterestUpdateRequest dto) {
-    log.debug("관심사 키워드 수정 요청 - interestId={}, userId={}, keywordCount={}",
-        interestId, userId, dto.keywords() == null ? 0 : dto.keywords().size());
+    log.debug("관심사 키워드 수정 요청 - interestId={}, keywordCount={}",
+        interestId, dto.keywords() == null ? 0 : dto.keywords().size());
 
     Interest interest = findInterestOrElseThrow(interestId);
 
@@ -83,21 +84,27 @@ public class InterestService {
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
     }
 
+    // NPE 방지
+    if (dto.keywords().stream().anyMatch(Objects::isNull)) {
+      log.warn("관심사 키워드 수정 실패 - null 키워드 포함, interestId={}", interestId);
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
+    }
+
     List<String> keywords = dto.keywords().stream()
         .map(String::trim)
         .toList();
 
     // 공백 키워드
     if (keywords.stream().anyMatch(String::isBlank)) {
-      log.warn("관심사 키워드 수정 실패 - 공백 키워드 포함, interestId={}, keywords={}",
-          interestId, keywords);
+      log.warn("관심사 키워드 수정 실패 - 공백 키워드 포함, interestId={}, keywordsCount={}",
+          interestId, keywords.size());
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
     }
 
     // 중복 키워드
     if (keywords.stream().distinct().count() != keywords.size()) {
-      log.warn("관심사 키워드 수정 실패 - 중복 키워드 존재, interestId={}, keywords={}",
-          interestId, keywords);
+      log.warn("관심사 키워드 수정 실패 - 중복 키워드 존재, interestId={}, keywordsCount={}",
+          interestId, keywords.size());
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_DUPLICATED);
     }
 
@@ -106,8 +113,8 @@ public class InterestService {
 
     interest.updateKeywords(keywords);
 
-    log.debug("관심사 키워드 수정 성공 - interestId={}, updatedKeywords={}, subscribedByMe={}",
-        interestId, keywords, subscribedByMe);
+    log.debug("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
+        interestId, keywords.size(), subscribedByMe);
 
     return interestMapper.toDto(interest, subscribedByMe);
   }
