@@ -2,14 +2,17 @@ package com.team3.monew.controller.api;
 
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
+import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,5 +61,30 @@ public interface InterestApi {
           )
       )
       @RequestBody @Valid InterestRegisterRequest dto
+  );
+
+  @Operation(
+      summary = "관심사 키워드 수정",
+      description = "관심사의 키워드를 수정합니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "수정 성공",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = InterestDto.class)
+          )
+      )
+  })
+  @PatchMapping("/{interestId}")
+  ResponseEntity<InterestDto> update(
+      @Parameter(
+          description = "요청 사용자 ID",
+          required = true
+      )
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+      @PathVariable UUID interestId,
+      @RequestBody @Valid InterestUpdateRequest dto
   );
 }
