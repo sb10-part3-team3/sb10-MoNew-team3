@@ -4,6 +4,7 @@ import com.team3.monew.entity.base.BaseEntity;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.entity.enums.NotificationType;
 import jakarta.persistence.*;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -55,13 +56,18 @@ public class Notification extends BaseEntity {
 
   private Notification(User user, String content, NotificationResourceType resourceType,
       UUID resourceId, User actorUser) {
-    this.user = user;
-    this.content = content;
-    this.resourceType = resourceType;
-    this.resourceId = resourceId;
-    this.actorUser = actorUser;
+    //필수값
+    this.user = Objects.requireNonNull(user, "알림 수신 사용자는 필수입니다.");
+    this.content = Objects.requireNonNull(content, "알림 내용은 필수입니다.");
+    this.resourceType = Objects.requireNonNull(resourceType, "리소스 타입은 필수입니다.");
+    this.resourceId = Objects.requireNonNull(resourceId, "리소스 ID는 필수입니다.");
+    // actorUser는 댓글좋아요에서만 존재
+    if (resourceType == NotificationResourceType.COMMENT) {
+      this.actorUser = Objects.requireNonNull(actorUser, "좋아요 알람에서 좋아요를 누른 사용자는 필수입니다.");
+    } else {
+      this.actorUser = actorUser;
+    }
     this.isConfirmed = false;
-    this.confirmedAt = null;
   }
 
 }
