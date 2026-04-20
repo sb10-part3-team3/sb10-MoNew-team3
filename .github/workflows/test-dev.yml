@@ -12,6 +12,17 @@ on:
       - '**/.env.example'
       - '**/*.example'
       - '.gitignore'
+  push: # 브랜치 테스트 추가
+    branches:
+      - dev
+    paths-ignore:
+      - '**/README.md'
+      - '**/*.md'
+      - '**/*.mdx'
+      - 'docs/**'
+      - '**/.env.example'
+      - '**/*.example'
+      - '.gitignore'
 
 jobs:
   test:
@@ -47,7 +58,9 @@ jobs:
 
       - name: 테스트 커버리지 업로드
         uses: codecov/codecov-action@v4
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: >
+          github.event_name == 'push' ||
+          github.event.pull_request.head.repo.full_name == github.repository
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: build/reports/jacoco/test/jacocoTestReport.xml
