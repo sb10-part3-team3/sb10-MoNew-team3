@@ -64,7 +64,10 @@ public class Notification extends BaseEntity {
     if (resourceType == NotificationResourceType.COMMENT) {
       this.actorUser = Objects.requireNonNull(actorUser, "좋아요 알람에서 좋아요를 누른 사용자는 필수입니다.");
     } else {
-      this.actorUser = actorUser;
+      if (actorUser != null) {
+        throw new IllegalArgumentException("COMMENT 리소스가 아닌 경우 actorUser는 null 이어야 합니다.");
+      }
+      this.actorUser = null;
     }
     this.isConfirmed = false;
   }
