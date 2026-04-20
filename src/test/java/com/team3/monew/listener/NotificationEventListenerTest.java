@@ -56,7 +56,7 @@ class NotificationEventListenerTest {
     CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
 
     // 서비스에서 댓글을 찾지 못함
-    willThrow(new CommentNotFoundException())
+    willThrow(new CommentNotFoundException(UUID.randomUUID()))
         .given(notificationService)
         .registerLikeNotification(any(CommentLikedNotificationRequest.class));
 

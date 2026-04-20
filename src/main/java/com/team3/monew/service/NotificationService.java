@@ -32,7 +32,7 @@ public class NotificationService {
     log.debug("댓글 좋아요 알림 등록 시작: commentId={}, actorUserId={}", request.commentId(),
         request.actorUserId());
     Comment comment = commentRepository.findById(request.commentId())
-        .orElseThrow(() -> new CommentNotFoundException());
+        .orElseThrow(() -> new CommentNotFoundException(request.commentId()));
     log.debug("댓글 조회 성공: commentId={}", comment.getId());
     User user = comment.getUser();
     User actorUser = userRepository.findById(request.actorUserId())
