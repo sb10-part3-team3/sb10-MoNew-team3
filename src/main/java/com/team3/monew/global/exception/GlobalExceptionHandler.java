@@ -99,14 +99,6 @@ public class GlobalExceptionHandler {
     return ResponseEntity.badRequest().body(response);
   }
 
-  @ExceptionHandler(MissingRequestHeaderException.class)
-  public ResponseEntity<ErrorResponse> handle(
-      MissingRequestHeaderException e) {
-    ErrorResponse response = badRequestResponse();
-    logError(response, e);
-    return ResponseEntity.badRequest().body(response);
-  }
-
   private void logWarn(ErrorResponse response) {
     log.warn("[{}] {} details={}",
         response.code(),

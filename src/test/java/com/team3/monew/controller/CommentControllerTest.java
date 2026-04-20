@@ -311,8 +311,8 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("삭제된 댓글을 수정하면 400 Bad Request로 응답한다.")
-    void shouldReturnBadRequest_whenCommentIsDeleted() throws Exception {
+    @DisplayName("삭제된 댓글을 수정하면 404 Not Found로 응답한다.")
+    void shouldReturnNotFound_whenCommentIsDeleted() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
@@ -328,9 +328,9 @@ class CommentControllerTest {
               .header(REQUEST_USER_ID_HEADER, userId)
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isBadRequest())
+          .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.code").value("COMMENT_DELETED"))
-          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(jsonPath("$.status").value(404))
           .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
 
       then(commentService).should().updateComment(
