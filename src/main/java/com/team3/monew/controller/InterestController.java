@@ -3,8 +3,10 @@ package com.team3.monew.controller;
 import com.team3.monew.controller.api.InterestApi;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
+import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.service.InterestService;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,5 +27,16 @@ public class InterestController implements InterestApi {
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(response);
+  }
+
+  @Override
+  public ResponseEntity<InterestDto> update(
+      UUID userId,
+      UUID interestId,
+      @Valid @RequestBody InterestUpdateRequest dto
+  ) {
+    InterestDto response = interestService.updateKeyword(userId, interestId, dto);
+
+    return ResponseEntity.ok(response);
   }
 }
