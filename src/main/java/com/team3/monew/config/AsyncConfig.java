@@ -1,5 +1,6 @@
 package com.team3.monew.config;
 
+import java.util.Arrays;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -34,9 +35,20 @@ public class AsyncConfig implements AsyncConfigurer {
   public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
     return (ex, method, params) -> {
       log.error("비동기 처리 중 예외 발생 - 메서드: {}, 파라미터: {}",
-          method.getName(), params, ex);
+          method.getName(),
+          extractParamTypes(params),
+          ex);
       //추후 알림 추가 가능
     };
   }
 
+  private String extractParamTypes(Object[] params) {
+    if (params == null || params.length == 0) {
+      return "[]";
+    }
+    return Arrays.stream(params)
+        .map(p -> p == null ? "null" : p.getClass().getSimpleName())
+        .toList()
+        .toString();
+  }
 }
