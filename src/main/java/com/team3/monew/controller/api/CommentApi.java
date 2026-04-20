@@ -12,9 +12,12 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @Tag(name = "댓글 관리", description = "댓글 관리 API")
 public interface CommentApi {
+
+  String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";
 
   @Operation(summary = "댓글 등록", description = "새로운 댓글을 등록합니다.")
   @ApiResponses({
@@ -36,6 +39,7 @@ public interface CommentApi {
   })
   ResponseEntity<CommentDto> updateComment(
       @PathVariable("commentId") UUID commentId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
       @Valid @RequestBody CommentUpdateRequest commentUpdateRequest
   );
 }

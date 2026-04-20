@@ -36,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class CommentIntegrationTest {
 
+  private static final String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";
+
   @Autowired
   private MockMvc mockMvc;
 
@@ -134,13 +136,11 @@ class CommentIntegrationTest {
     NewsArticle article = saveArticle();
     User user = saveUser();
     Comment comment = saveComment(article, user, "댓글 내용입니다.");
-    CommentUpdateRequest request = new CommentUpdateRequest(
-        user.getId(),
-        "수정된 댓글 내용입니다."
-    );
+    CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
 
     // when & then
     mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+            .header(REQUEST_USER_ID_HEADER, user.getId())
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -170,13 +170,11 @@ class CommentIntegrationTest {
   void shouldReturnNotFound_whenCommentDoesNotExist() throws Exception {
     // given
     UUID commentId = UUID.randomUUID();
-    CommentUpdateRequest request = new CommentUpdateRequest(
-        UUID.randomUUID(),
-        "수정된 댓글 내용입니다."
-    );
+    CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
 
     // when & then
     mockMvc.perform(patch("/api/comments/{commentId}", commentId)
+            .header(REQUEST_USER_ID_HEADER, UUID.randomUUID())
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isNotFound())
@@ -193,13 +191,11 @@ class CommentIntegrationTest {
     User author = saveUser();
     User otherUser = saveUser();
     Comment comment = saveComment(article, author, "댓글 내용입니다.");
-    CommentUpdateRequest request = new CommentUpdateRequest(
-        otherUser.getId(),
-        "수정된 댓글 내용입니다."
-    );
+    CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
 
     // when & then
     mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+            .header(REQUEST_USER_ID_HEADER, otherUser.getId())
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isForbidden())

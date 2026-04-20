@@ -1,6 +1,8 @@
 package com.team3.monew.global.exception;
 
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.global.response.ErrorResponse;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,7 @@ import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -62,6 +65,20 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ErrorResponse> handle(MethodArgumentNotValidException e) {
     ErrorResponse response = ErrorResponse.of(e);
+    logWarn(response);
+    return ResponseEntity.status(response.status()).body(response);
+  }
+
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ErrorResponse> handle(MissingRequestHeaderException e) {
+    Map<String, Object> details = Map.of("header", e.getHeaderName());
+    ErrorResponse response = new ErrorResponse(
+        Instant.now(),
+        ErrorCode.INVALID_INPUT_VALUE.name(),
+        ErrorCode.INVALID_INPUT_VALUE.getMessage(),
+        details,
+        ErrorCode.INVALID_INPUT_VALUE.getStatus().value()
+    );
     logWarn(response);
     return ResponseEntity.status(response.status()).body(response);
   }

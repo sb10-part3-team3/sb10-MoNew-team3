@@ -77,7 +77,7 @@ class CommentServiceTest {
         content = "댓글 내용입니다.";
         updatedContent = "수정된 댓글 내용입니다.";
         request = new CommentRegisterRequest(articleId, userId, content);
-        updateRequest = new CommentUpdateRequest(userId, updatedContent);
+        updateRequest = new CommentUpdateRequest(updatedContent);
         article = NewsArticle.create(
                 mock(NewsSource.class),
                 "https://news.example.com/articles/1",
@@ -224,7 +224,7 @@ class CommentServiceTest {
             given(commentMapper.toDto(comment, false)).willReturn(expected);
 
             // when
-            CommentDto actual = commentService.updateComment(commentId, updateRequest);
+            CommentDto actual = commentService.updateComment(commentId, userId, updateRequest);
 
             // then
             assertThat(actual).isEqualTo(expected);
@@ -240,7 +240,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest))
+            assertThatThrownBy(() -> commentService.updateComment(commentId, userId, updateRequest))
                     .isInstanceOf(CommentNotFoundException.class);
 
             then(commentRepository).should().findById(commentId);
@@ -257,7 +257,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when & then
-            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest))
+            assertThatThrownBy(() -> commentService.updateComment(commentId, userId, updateRequest))
                     .isInstanceOf(DeletedCommentException.class);
 
             assertThat(comment.getContent()).isEqualTo(content);
@@ -270,13 +270,13 @@ class CommentServiceTest {
         void shouldThrowUnauthorizedCommentException_whenUserIsNotAuthor() {
             // given
             UUID otherUserId = UUID.randomUUID();
-            CommentUpdateRequest otherUserRequest = new CommentUpdateRequest(otherUserId, updatedContent);
+            CommentUpdateRequest otherUserRequest = new CommentUpdateRequest(updatedContent);
             Comment comment = Comment.create(article, user, content);
             assignId(comment, commentId);
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when & then
-            assertThatThrownBy(() -> commentService.updateComment(commentId, otherUserRequest))
+            assertThatThrownBy(() -> commentService.updateComment(commentId, otherUserId, otherUserRequest))
                     .isInstanceOf(UnauthorizedCommentException.class);
 
             assertThat(comment.getContent()).isEqualTo(content);
@@ -294,7 +294,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when & then
-            assertThatThrownBy(() -> commentService.updateComment(commentId, updateRequest))
+            assertThatThrownBy(() -> commentService.updateComment(commentId, userId, updateRequest))
                     .isInstanceOf(DeletedUserException.class);
 
             assertThat(comment.getContent()).isEqualTo(content);
