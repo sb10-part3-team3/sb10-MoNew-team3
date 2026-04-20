@@ -6,6 +6,8 @@ import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
+import com.team3.monew.exception.interest.InterestException;
+import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
@@ -159,5 +161,118 @@ class InterestServiceTest {
     then(interestRepository).should().findById(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
     then(interestMapper).should().toDto(interest, true);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사는 키워드를 수정할 수 없다")
+  void shouldFailToUpdateKeyword_whenInterestNotFound() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("수정", "키워드수정")
+    );
+
+    given(interestRepository.findById(interestId)).willReturn(java.util.Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+        .isInstanceOf(InterestNotFoundException.class);
+
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(interestMapper).should(never()).toDto(any(), any(Boolean.class));
+  }
+
+  @Test
+  @DisplayName("키워드 목록이 null이면 관심사 키워드 수정에 실패한다")
+  void shouldFailToUpdateKeyword_whenKeywordsIsNull() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(null);
+
+    Interest interest = Interest.create("주식");
+    interest.addKeyword("기존키워드");
+
+    given(interestRepository.findById(interestId)).willReturn(java.util.Optional.of(interest));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+        .isInstanceOf(InterestException.class);
+
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(interestMapper).should(never()).toDto(any(), any(Boolean.class));
+  }
+
+  @Test
+  @DisplayName("키워드 목록이 비어 있으면 관심사 키워드 수정에 실패한다")
+  void shouldFailToUpdateKeyword_whenKeywordsIsEmpty() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(List.of());
+
+    Interest interest = Interest.create("주식");
+    interest.addKeyword("기존키워드");
+
+    given(interestRepository.findById(interestId)).willReturn(java.util.Optional.of(interest));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+        .isInstanceOf(InterestException.class);
+
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(interestMapper).should(never()).toDto(any(), any(Boolean.class));
+  }
+
+  @Test
+  @DisplayName("공백 문자열이 포함된 키워드가 있으면 관심사 키워드 수정에 실패한다")
+  void shouldFailToUpdateKeyword_whenKeywordContainsBlank() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("정상키워드", "   ")
+    );
+
+    Interest interest = Interest.create("주식");
+    interest.addKeyword("기존키워드");
+
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+        .isInstanceOf(InterestException.class);
+
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(interestMapper).should(never()).toDto(any(), any(Boolean.class));
+  }
+
+  @Test
+  @DisplayName("중복된 키워드가 있으면 관심사 키워드 수정에 실패한다")
+  void shouldFailToUpdateKeyword_whenKeywordsDuplicated() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("경제", "경제")
+    );
+
+    Interest interest = Interest.create("주식");
+    interest.addKeyword("기존키워드");
+
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+        .isInstanceOf(InterestException.class);
+
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(interestMapper).should(never()).toDto(any(), any(Boolean.class));
   }
 }
