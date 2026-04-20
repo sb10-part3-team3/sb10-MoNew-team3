@@ -35,7 +35,6 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Transactional
 public class NotificationIntegrationTest {
 
   @Autowired
@@ -63,6 +62,7 @@ public class NotificationIntegrationTest {
 
   @BeforeEach
   void setUp() {
+    //비동기이기 때문에 트랜잭셔널 별도임으로 개별 삭제
     notificationRepository.deleteAll();
     commentRepository.deleteAll();
     newsArticleRepository.deleteAll();

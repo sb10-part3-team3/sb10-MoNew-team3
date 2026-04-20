@@ -14,6 +14,7 @@ import com.team3.monew.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -26,6 +27,7 @@ public class NotificationService {
   private final UserRepository userRepository;
   private final CommentRepository commentRepository;
 
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void registerLikeNotification(CommentLikedNotificationRequest request) {
     log.debug("댓글 좋아요 알림 등록 시작: commentId={}, actorUserId={}", request.commentId(),
         request.actorUserId());
