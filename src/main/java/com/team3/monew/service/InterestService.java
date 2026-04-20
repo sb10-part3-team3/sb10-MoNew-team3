@@ -2,11 +2,21 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
+import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.entity.Interest;
+import com.team3.monew.entity.InterestKeyword;
+import com.team3.monew.entity.Subscription;
+import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
+import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.InterestMapper;
+import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
+import com.team3.monew.repository.SubscriptionRepository;
+import com.team3.monew.repository.UserRepository;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,10 +33,11 @@ import java.util.UUID;
 public class InterestService {
 
   private final InterestRepository interestRepository;
+  private final SubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
 
   public InterestDto create(InterestRegisterRequest dto) {
-    log.info("관심사 등록 요청 - name={}, keywordCount={}",
+    log.debug("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
 
     if (interestRepository.existsByName(dto.name())) {
@@ -55,10 +66,61 @@ public class InterestService {
       throw new InterestDuplicateNameException();
     }
 
-    log.info("관심사 등록 성공 - interestId={}, name={}",
+    log.debug("관심사 등록 성공 - interestId={}, name={}",
         savedInterest.getId(), savedInterest.getName());
 
     return interestMapper.toDto(savedInterest, false);
+  }
+
+  public InterestDto updateKeyword(UUID userId, UUID interestId, InterestUpdateRequest dto) {
+    log.debug("관심사 키워드 수정 요청 - interestId={}, keywordCount={}",
+        interestId, dto.keywords() == null ? 0 : dto.keywords().size());
+
+    Interest interest = findInterestOrElseThrow(interestId);
+
+    // 빈 리스트
+    if (dto.keywords() == null || dto.keywords().isEmpty()) {
+      log.warn("관심사 키워드 수정 실패 - 키워드 리스트 비어있음, interestId={}", interestId);
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
+    }
+
+    // NPE 방지
+    if (dto.keywords().stream().anyMatch(Objects::isNull)) {
+      log.warn("관심사 키워드 수정 실패 - null 키워드 포함, interestId={}", interestId);
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
+    }
+
+    List<String> keywords = dto.keywords().stream()
+        .map(String::trim)
+        .toList();
+
+    // 공백 키워드
+    if (keywords.stream().anyMatch(String::isBlank)) {
+      log.warn("관심사 키워드 수정 실패 - 공백 키워드 포함, interestId={}, keywordsCount={}",
+          interestId, keywords.size());
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
+    }
+
+    // 중복 키워드
+    if (keywords.stream().distinct().count() != keywords.size()) {
+      log.warn("관심사 키워드 수정 실패 - 중복 키워드 존재, interestId={}, keywordsCount={}",
+          interestId, keywords.size());
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_DUPLICATED);
+    }
+
+    boolean subscribedByMe =
+        subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
+
+    // 기존 키워드와 dto의 키워드중 중복되는게 있을 경우 지워지지 않는 경우를 대비
+    interest.getKeywords().clear();
+    interestRepository.flush();
+
+    interest.updateKeywords(keywords);
+
+    log.debug("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
+        interestId, keywords.size(), subscribedByMe);
+
+    return interestMapper.toDto(interest, subscribedByMe);
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {

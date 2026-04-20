@@ -3,6 +3,7 @@ package com.team3.monew.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
+import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.service.InterestService;
 import org.junit.jupiter.api.DisplayName;
@@ -18,7 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -94,6 +97,99 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(post("/api/interests")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사 키워드를 수정할 수 있다")
+  void shouldUpdateInterestKeywords_whenValidRequest() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("나스닥", "애플")
+    );
+
+    InterestDto response = new InterestDto(
+        interestId,
+        "주식",
+        List.of("나스닥", "애플"),
+        0,
+        true
+    );
+
+    given(interestService.updateKeyword(
+        eq(userId),
+        eq(interestId),
+        any(InterestUpdateRequest.class)
+    )).willReturn(response);
+
+    // when & then
+    mockMvc.perform(patch("/api/interests/{interestId}", interestId)
+            .header("Monew-Request-User-Id", userId.toString())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+        .andExpect(jsonPath("$.id").value(interestId.toString()))
+        .andExpect(jsonPath("$.name").value("주식"))
+        .andExpect(jsonPath("$.keywords[0]").value("나스닥"))
+        .andExpect(jsonPath("$.keywords[1]").value("애플"))
+        .andExpect(jsonPath("$.subscriberCount").value(0))
+        .andExpect(jsonPath("$.subscribedByMe").value(true));
+  }
+
+  @Test
+  @DisplayName("관심사 등록 요청 본문이 없으면 실패한다")
+  void shouldFailCreate_whenRequestBodyMissing() throws Exception {
+    mockMvc.perform(post("/api/interests")
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사 수정 요청 본문이 없으면 실패한다")
+  void shouldFailUpdate_whenRequestBodyMissing() throws Exception {
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    mockMvc.perform(patch("/api/interests/{interestId}", interestId)
+            .header("Monew-Request-User-Id", userId.toString())
+            .contentType(MediaType.APPLICATION_JSON))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사 수정 요청 시 사용자 헤더가 없으면 실패한다")
+  void shouldFailUpdate_whenUserIdHeaderMissing() throws Exception {
+    // given
+    UUID interestId = UUID.randomUUID();
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("나스닥", "애플")
+    );
+
+    // when & then
+    mockMvc.perform(patch("/api/interests/{interestId}", interestId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사 수정 요청 시 헤더의 UUID 형식이 올바르지 않으면 실패한다")
+  void shouldFailUpdate_whenUserIdHeaderInvalidFormat() throws Exception {
+    // given
+    UUID interestId = UUID.randomUUID();
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("나스닥", "애플")
+    );
+
+    // when & then
+    mockMvc.perform(patch("/api/interests/{interestId}", interestId)
+            .header("Monew-Request-User-Id", "not-uuid")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());

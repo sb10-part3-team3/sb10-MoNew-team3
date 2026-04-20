@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -88,6 +89,22 @@ public class GlobalExceptionHandler {
     ErrorResponse response = ErrorResponse.of(e);
     logError(response, e);
     return ResponseEntity.status(response.status()).body(response);
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponse> handle(
+      HttpMessageNotReadableException e) {
+    ErrorResponse response = badRequestResponse();
+    logError(response, e);
+    return ResponseEntity.badRequest().body(response);
+  }
+
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ErrorResponse> handle(
+      MissingRequestHeaderException e) {
+    ErrorResponse response = badRequestResponse();
+    logError(response, e);
+    return ResponseEntity.badRequest().body(response);
   }
 
   private void logWarn(ErrorResponse response) {
@@ -186,5 +203,15 @@ public class GlobalExceptionHandler {
       return value;
     }
     return value.substring(0, maxLength) + "...(truncated)";
+  }
+
+  private ErrorResponse badRequestResponse() {
+    return new ErrorResponse(
+        java.time.Instant.now(),
+        com.team3.monew.global.enums.ErrorCode.INVALID_INPUT_VALUE.name(),
+        com.team3.monew.global.enums.ErrorCode.INVALID_INPUT_VALUE.getMessage(),
+        Map.of(),
+        400
+    );
   }
 }
