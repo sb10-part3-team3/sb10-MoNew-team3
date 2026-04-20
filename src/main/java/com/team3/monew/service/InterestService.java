@@ -2,11 +2,20 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
+import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.entity.Interest;
+import com.team3.monew.entity.InterestKeyword;
+import com.team3.monew.entity.Subscription;
+import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
+import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.InterestMapper;
+import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
+import com.team3.monew.repository.SubscriptionRepository;
+import com.team3.monew.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +32,7 @@ import java.util.UUID;
 public class InterestService {
 
   private final InterestRepository interestRepository;
+  private final SubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
 
   public InterestDto create(InterestRegisterRequest dto) {
@@ -59,6 +69,35 @@ public class InterestService {
         savedInterest.getId(), savedInterest.getName());
 
     return interestMapper.toDto(savedInterest, false);
+  }
+
+  public InterestDto updateKeyword(UUID userId, UUID interestId, InterestUpdateRequest dto) {
+    Interest interest = findInterestOrElseThrow(interestId);
+
+    // 빈 리스트가 왔을 경우 예외처리
+    if (dto.keywords() == null || dto.keywords().isEmpty()) {
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
+    }
+
+    List<String> keywords = dto.keywords().stream()
+        .map(String::trim)
+        .toList();
+
+    if (keywords.stream().anyMatch(String::isBlank)) {
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
+    }
+
+    // 중복 키워드가 있을 경우 예외처리
+    if (keywords.stream().distinct().count() != keywords.size()) {
+      throw new InterestException(ErrorCode.INTEREST_KEYWORD_DUPLICATED);
+    }
+
+    boolean subscribedByMe =
+        subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
+
+    interest.updateKeywords(dto.keywords());
+
+    return interestMapper.toDto(interest, subscribedByMe);
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {

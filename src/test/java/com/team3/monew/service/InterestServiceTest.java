@@ -2,10 +2,14 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
+import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.entity.Interest;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
+import com.team3.monew.repository.SubscriptionRepository;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -24,6 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
 
+@Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class InterestServiceTest {
 
@@ -31,12 +36,14 @@ class InterestServiceTest {
   private InterestRepository interestRepository;
 
   @Mock
+  private SubscriptionRepository subscriptionRepository;
+
+  @Mock
   private InterestMapper interestMapper;
 
   @InjectMocks
   private InterestService interestService;
 
-  @Tag("unit")
   @Test
   @DisplayName("관심사를 등록할 수 있다")
   void shouldRegisterInterest_whenCreateRequest() {
@@ -71,7 +78,6 @@ class InterestServiceTest {
     assertThat(result.keywords()).containsExactlyInAnyOrder("코스피", "삼성전자");
   }
 
-  @Tag("unit")
   @Test
   @DisplayName("중복된 관심사 이름은 등록에 실패한다")
   void shouldFailToRegister_whenDuplicateNameExists() {
@@ -90,7 +96,6 @@ class InterestServiceTest {
     then(interestRepository).should(never()).saveAndFlush(any());
   }
 
-  @Tag("unit")
   @Test
   @DisplayName("관심사 이름의 유사도가 80% 이상이면 등록에 실패한다")
   void shouldFailToRegisterInterest_whenNameSimilar80percentOver() {
@@ -110,5 +115,49 @@ class InterestServiceTest {
         .isInstanceOf(InterestDuplicateNameException.class);
 
     then(interestRepository).should(never()).saveAndFlush(any());
+  }
+
+  @Test
+  @DisplayName("관심사 키워드를 수정할 수 있다")
+  void shouldUpdateInterestKeyword_whenUpdateRequest() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    InterestUpdateRequest request = new InterestUpdateRequest(
+        List.of("수정", "키워드수정")
+    );
+
+    Interest interest = Interest.create("주식");
+    interest.addKeyword("기존키워드");
+    interest.addKeyword("기존키워드2");
+
+    InterestDto response = new InterestDto(
+        interestId,
+        "주식",
+        List.of("수정", "키워드수정"),
+        0,
+        true
+    );
+
+    given(interestRepository.findById(interestId)).willReturn((Optional.of(interest)));
+    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(true);
+    given(interestMapper.toDto(interest, true)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.updateKeyword(userId, interestId, request);
+
+    // then
+    assertThat(result.name()).isEqualTo("주식");
+    assertThat(result.keywords()).containsExactly("수정", "키워드수정");
+    assertThat(result.subscribedByMe()).isTrue();
+
+    assertThat(interest.getKeywords())
+        .extracting(InterestKeyword::getKeyword)
+        .containsExactly("수정", "키워드수정");
+
+    then(interestRepository).should().findById(interestId);
+    then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
+    then(interestMapper).should().toDto(interest, true);
   }
 }
