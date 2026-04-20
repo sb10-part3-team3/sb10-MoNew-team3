@@ -97,7 +97,7 @@ class NotificationServiceTest {
   }
 
   @Test
-  @DisplayName("좋아요를 누른 사용자 찾을 수 없을 때 좋아요 알림 등록에 실패합니다.")
+  @DisplayName("좋아요를 누른 사용자를 찾을 수 없을 때 좋아요 알림 등록에 실패합니다.")
   void shouldThrowException_whenActorUserNotFound() {
     // given
     UUID commentId = resourceId;
@@ -126,23 +126,6 @@ class NotificationServiceTest {
 
     // when & then
     assertThrows(CommentNotFoundException.class,
-        () -> notificationService.registerLikeNotification(request));
-  }
-
-  @Test
-  @DisplayName("좋아요를 받은 댓글의 작성자를 찾을 수 없을 때 좋아요 알림 등록에 실패합니다.")
-  void shouldThrowException_whenCommentWriterNotFound() {
-    // given
-    UUID commentId = resourceId;
-    NewsArticle article = Mockito.mock(NewsArticle.class);
-    Comment comment = Comment.create(article, null, "test");
-    CommentLikedNotificationRequest request = new CommentLikedNotificationRequest(actorUserId,
-        commentId);
-
-    given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
-
-    // when & then
-    assertThrows(UserNotFoundException.class,
         () -> notificationService.registerLikeNotification(request));
   }
 }

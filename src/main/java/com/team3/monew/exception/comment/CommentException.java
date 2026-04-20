@@ -7,7 +7,7 @@ import java.util.Map;
 public class CommentException extends BusinessException {
 
   public CommentException(ErrorCode errorCode) {
-    super(errorCode, Map.of());
+    super(errorCode);
   }
 
   public CommentException(ErrorCode errorCode, Map<String, Object> details) {

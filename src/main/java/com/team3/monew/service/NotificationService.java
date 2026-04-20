@@ -5,7 +5,6 @@ import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
-import com.team3.monew.exception.comment.CommentException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.repository.CommentRepository;
@@ -34,12 +33,8 @@ public class NotificationService {
         .orElseThrow(() -> new CommentNotFoundException());
     log.debug("댓글 조회 성공: commentId={}", comment.getId());
     User user = comment.getUser();
-    if (user == null) {
-      throw new UserNotFoundException();
-    }
-    log.debug("댓글 작성자 조회 성공: writerId={}", user.getId());
     User actorUser = userRepository.findById(request.actorUserId())
-        .orElseThrow(() -> new UserNotFoundException());
+        .orElseThrow(() -> new UserNotFoundException(request.actorUserId()));
     log.debug("좋아요 생성자 조회 성공: actorUserId={}", actorUser.getId());
     String content = generateCommentLikedContent(actorUser.getNickname());
     Notification notification = Notification.create(user, content, NotificationResourceType.COMMENT,
