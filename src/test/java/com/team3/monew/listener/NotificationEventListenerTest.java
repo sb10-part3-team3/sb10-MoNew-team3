@@ -32,10 +32,9 @@ class NotificationEventListenerTest {
     // given
     UUID actorUserId = UUID.randomUUID();
     UUID commentId = UUID.randomUUID();
-    UUID writerId = UUID.randomUUID();
     CommentLikedNotificationRequest request = new CommentLikedNotificationRequest(actorUserId,
-        commentId, writerId);
-    CommentLikedEvent event = new CommentLikedEvent(actorUserId, commentId, writerId);
+        commentId);
+    CommentLikedEvent event = new CommentLikedEvent(actorUserId, commentId);
 
     // when
     notificationEventListener.handleCommentLikedEvent(event);

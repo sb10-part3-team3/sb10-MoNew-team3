@@ -22,8 +22,7 @@ public class NotificationEventListener {
     notificationService.registerLikeNotification(
         new CommentLikedNotificationRequest(
             event.actorUserId(),
-            event.commentId(),
-            event.writerId()
+            event.commentId()
         )
     );
   }

@@ -4,8 +4,7 @@ import java.util.UUID;
 
 public record CommentLikedNotificationRequest(
     UUID actorUserId,
-    UUID commentId,
-    UUID writerId
+    UUID commentId
 ) {
 
 }
