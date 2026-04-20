@@ -18,7 +18,7 @@ public class AsyncConfig implements AsyncConfigurer {
 
   //좋아요 알림처럼 실시간으로 이벤트가 발행되는 스레드풀
   @Bean(name = "realTimeNotificationTaskExecutor")
-  public TaskExecutor taskExecutor() {
+  public TaskExecutor createRealTimeNotificationTaskExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     executor.setCorePoolSize(3); //기본 스레드 수
     executor.setMaxPoolSize(10);
