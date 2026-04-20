@@ -61,7 +61,7 @@ public class CommentService {
   }
 
   @Transactional
-  public CommentDto updateComment(UUID commentId, CommentUpdateRequest request, UUID userId) {
+  public CommentDto updateComment(UUID commentId, CommentUpdateRequest request) {
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
 
@@ -69,9 +69,9 @@ public class CommentService {
       throw new DeletedCommentException(commentId);
     }
     if (comment.getUser().isDeleted()) {
-      throw new DeletedUserException(userId);
+      throw new DeletedUserException(request.userId());
     }
-    if (!comment.getUser().getId().equals(userId)) {
+    if (!comment.getUser().getId().equals(request.userId())) {
       throw new UnauthorizedCommentException(commentId);
     }
 

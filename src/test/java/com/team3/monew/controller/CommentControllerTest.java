@@ -23,6 +23,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -170,7 +171,7 @@ class CommentControllerTest {
       UUID articleId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
       String content = "수정된 댓글 내용입니다.";
-      CommentUpdateRequest request = new CommentUpdateRequest(content);
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, content);
       CommentDto response = new CommentDto(
           commentId,
           articleId,
@@ -184,13 +185,11 @@ class CommentControllerTest {
 
       given(commentService.updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       )).willReturn(response);
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isOk())
@@ -205,10 +204,34 @@ class CommentControllerTest {
 
       then(commentService).should().updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          argThat(actual ->
+              actual.userId().equals(userId)
+                  && actual.content().equals(content)
+          )
       );
       then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("userId가 없으면 댓글 수정에 실패하고 400 Bad Request로 응답한다.")
+    void shouldReturnBadRequest_whenUserIdIsNull() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      CommentUpdateRequest request = new CommentUpdateRequest(
+          null,
+          "수정된 댓글 내용입니다."
+      );
+
+      // when & then
+      mockMvc.perform(patch("/api/comments/{commentId}", commentId)
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(objectMapper.writeValueAsString(request)))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(jsonPath("$.details.userId").exists());
+
+      then(commentService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -217,11 +240,10 @@ class CommentControllerTest {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("");
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, "");
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest())
@@ -238,11 +260,10 @@ class CommentControllerTest {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("a".repeat(501));
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, "a".repeat(501));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest())
@@ -259,16 +280,14 @@ class CommentControllerTest {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, "수정된 댓글 내용입니다.");
       given(commentService.updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       )).willThrow(new CommentNotFoundException(commentId));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isNotFound())
@@ -278,8 +297,7 @@ class CommentControllerTest {
 
       then(commentService).should().updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       );
       then(commentService).shouldHaveNoMoreInteractions();
     }
@@ -290,16 +308,14 @@ class CommentControllerTest {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, "수정된 댓글 내용입니다.");
       given(commentService.updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       )).willThrow(new DeletedCommentException(commentId));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isBadRequest())
@@ -309,8 +325,7 @@ class CommentControllerTest {
 
       then(commentService).should().updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       );
       then(commentService).shouldHaveNoMoreInteractions();
     }
@@ -321,16 +336,14 @@ class CommentControllerTest {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, "수정된 댓글 내용입니다.");
       given(commentService.updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       )).willThrow(new UnauthorizedCommentException(commentId));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isForbidden())
@@ -340,8 +353,7 @@ class CommentControllerTest {
 
       then(commentService).should().updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       );
       then(commentService).shouldHaveNoMoreInteractions();
     }
@@ -352,16 +364,14 @@ class CommentControllerTest {
       // given
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
+      CommentUpdateRequest request = new CommentUpdateRequest(userId, "수정된 댓글 내용입니다.");
       given(commentService.updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       )).willThrow(new RuntimeException("unexpected error"));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .principal(() -> userId.toString())
               .contentType(MediaType.APPLICATION_JSON)
               .content(objectMapper.writeValueAsString(request)))
           .andExpect(status().isInternalServerError())
@@ -370,8 +380,7 @@ class CommentControllerTest {
 
       then(commentService).should().updateComment(
           eq(commentId),
-          any(CommentUpdateRequest.class),
-          eq(userId)
+          any(CommentUpdateRequest.class)
       );
       then(commentService).shouldHaveNoMoreInteractions();
     }
