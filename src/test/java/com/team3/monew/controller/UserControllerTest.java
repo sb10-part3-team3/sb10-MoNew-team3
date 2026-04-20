@@ -166,9 +166,6 @@ class UserControllerTest {
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
-        // 커스텀 응답 헤더 검증
-        .andExpect(header().exists("monew-request-id"))
-        .andExpect(header().string("monew-request-id", response.id().toString()))
         .andExpect(jsonPath("$.id").value(response.id().toString()))
         .andExpect(jsonPath("$.email").value("user@example.com"))
         .andExpect(jsonPath("$.nickname").value("nickname"));

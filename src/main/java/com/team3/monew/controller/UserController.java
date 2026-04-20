@@ -33,8 +33,6 @@ public class UserController implements UserApi {
       @Valid @RequestBody UserLoginRequest userLoginRequest
   ) {
     UserDto userDto = userService.loginUser(userLoginRequest);
-    return ResponseEntity.ok()
-        .header("monew-request-id", userDto.id().toString())
-        .body(userDto);
+    return ResponseEntity.ok(userDto);
   }
 }

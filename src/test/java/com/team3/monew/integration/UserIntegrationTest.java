@@ -99,7 +99,7 @@ class UserIntegrationTest {
   }
 
   @Test
-  @DisplayName("유효한 로그인 요청이면 200과 사용자 정보 및 인증 헤더를 반환한다")
+  @DisplayName("유효한 로그인 요청이면 200과 사용자 정보를 반환한다.")
   void shouldLoginUser_whenRequestIsValid() throws Exception {
     // given
     UserRegisterRequest registerRequest = new UserRegisterRequest(
@@ -123,7 +123,6 @@ class UserIntegrationTest {
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(loginRequest)))
         .andExpect(status().isOk())
-        .andExpect(header().exists("monew-request-id"))
         .andExpect(jsonPath("$.email").value("login-success@example.com"))
         .andExpect(jsonPath("$.nickname").value("nickname"));
   }
