@@ -82,7 +82,6 @@ public class CommentService {
     comment.updateContent(request.content());
     CommentDto commentDto = commentMapper.toDto(comment, false);
     log.info("댓글 수정 완료: commentId={}, requestUserId={}", commentId, requestUserId);
-    log.debug("댓글 수정 서비스 종료: commentId={}, requestUserId={}", commentId, requestUserId);
     return commentDto;
   }
 
