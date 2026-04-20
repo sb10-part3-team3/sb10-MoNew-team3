@@ -222,8 +222,11 @@ class UserServiceTest {
     UserDto result = userService.updateUser(userId, request);
 
     // then
+    assertThat(user.getNickname()).isEqualTo("newname");
     assertThat(result).isEqualTo(userDto);
+
     verify(userRepository).findById(userId);
+    verify(userRepository).save(user);
     verify(userMapper).toDto(user);
   }
 }
