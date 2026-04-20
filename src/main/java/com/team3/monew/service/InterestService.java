@@ -36,7 +36,7 @@ public class InterestService {
   private final InterestMapper interestMapper;
 
   public InterestDto create(InterestRegisterRequest dto) {
-    log.info("관심사 등록 요청 - name={}, keywordCount={}",
+    log.debug("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
 
     if (interestRepository.existsByName(dto.name())) {
@@ -65,17 +65,21 @@ public class InterestService {
       throw new InterestDuplicateNameException();
     }
 
-    log.info("관심사 등록 성공 - interestId={}, name={}",
+    log.debug("관심사 등록 성공 - interestId={}, name={}",
         savedInterest.getId(), savedInterest.getName());
 
     return interestMapper.toDto(savedInterest, false);
   }
 
   public InterestDto updateKeyword(UUID userId, UUID interestId, InterestUpdateRequest dto) {
+    log.debug("관심사 키워드 수정 요청 - interestId={}, userId={}, keywordCount={}",
+        interestId, userId, dto.keywords() == null ? 0 : dto.keywords().size());
+
     Interest interest = findInterestOrElseThrow(interestId);
 
-    // 빈 리스트가 왔을 경우 예외처리
+    // 빈 리스트
     if (dto.keywords() == null || dto.keywords().isEmpty()) {
+      log.warn("관심사 키워드 수정 실패 - 키워드 리스트 비어있음, interestId={}", interestId);
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
     }
 
@@ -83,19 +87,27 @@ public class InterestService {
         .map(String::trim)
         .toList();
 
+    // 공백 키워드
     if (keywords.stream().anyMatch(String::isBlank)) {
+      log.warn("관심사 키워드 수정 실패 - 공백 키워드 포함, interestId={}, keywords={}",
+          interestId, keywords);
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_LIST_IS_BLANK);
     }
 
-    // 중복 키워드가 있을 경우 예외처리
+    // 중복 키워드
     if (keywords.stream().distinct().count() != keywords.size()) {
+      log.warn("관심사 키워드 수정 실패 - 중복 키워드 존재, interestId={}, keywords={}",
+          interestId, keywords);
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_DUPLICATED);
     }
 
     boolean subscribedByMe =
         subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
 
-    interest.updateKeywords(dto.keywords());
+    interest.updateKeywords(keywords);
+
+    log.debug("관심사 키워드 수정 성공 - interestId={}, updatedKeywords={}, subscribedByMe={}",
+        interestId, keywords, subscribedByMe);
 
     return interestMapper.toDto(interest, subscribedByMe);
   }
