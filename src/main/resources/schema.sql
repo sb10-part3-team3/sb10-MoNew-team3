@@ -12,11 +12,6 @@ CREATE TYPE notification_resource_types AS ENUM (
     'COMMENT'
 );
 
-CREATE TYPE notification_types AS ENUM (
-    'NEW_ARTICLE',
-    'COMMENT_LIKE'
-);
-
 CREATE TYPE backup_job_types AS ENUM (
     'ARTICLE_DAILY_BACKUP',
     'ARTICLE_RESTORE'
@@ -225,7 +220,6 @@ CREATE TABLE notifications (
                                id UUID PRIMARY KEY,
                                user_id UUID NOT NULL,
 
-                               notification_type notification_types NOT NULL,
                                content VARCHAR(500) NOT NULL,
 
                                resource_type notification_resource_types NOT NULL,
