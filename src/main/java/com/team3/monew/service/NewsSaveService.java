@@ -1,11 +1,11 @@
 package com.team3.monew.service;
 
+import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
-import com.team3.monew.service.NewsParseService.ParsedNewsArticle;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +26,7 @@ public class NewsSaveService {
   @Transactional
   public List<ParsedNewsArticle> save(List<ParsedNewsArticle> data) {
 
+    log.debug("뉴스 기사 저장 시작");
     // 새로운 뉴스 Link
     List<String> newNewsArticleLinks = data.stream()
         .map(ParsedNewsArticle::link)
@@ -59,6 +60,7 @@ public class NewsSaveService {
     // Repository에 데이터 저장
     newsArticleRepository.saveAll(articleToSave);
 
+    log.info("뉴스 기사 저장 완료");
     // 저장된 뉴스의 원본 반환
     return newNewsArticles;
   }

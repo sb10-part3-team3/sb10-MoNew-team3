@@ -24,6 +24,12 @@ public class KeywordMatchService {
       return;
     }
 
+    // 키워드가 없으면 매칭 불가능하게 설정
+    if (keywords.isEmpty()) {
+      compiledPattern = null;
+      return;
+    }
+
     currentKeywords = new HashSet<>(keywords);
 
     String pattern = keywords.stream()

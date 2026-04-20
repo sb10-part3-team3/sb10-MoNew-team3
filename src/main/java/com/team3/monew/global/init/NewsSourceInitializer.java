@@ -3,7 +3,7 @@ package com.team3.monew.global.init;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.NewsSourceRepository;
-import com.team3.monew.service.NewsSyncService;
+import com.team3.monew.service.NewsCollectService;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,7 +17,7 @@ public class NewsSourceInitializer implements CommandLineRunner {
 
   private final NewsSourceRepository newsSourceRepository;
   // test용
-  private final NewsSyncService syncService;
+  private final NewsCollectService syncService;
 
   @Override
   public void run(String... args) throws Exception {
@@ -42,7 +42,5 @@ public class NewsSourceInitializer implements CommandLineRunner {
     if (!newSources.isEmpty()) {
       newsSourceRepository.saveAll(newSources);
     }
-
-    syncService.executeNewsCollectionWorkFlow();
   }
 }
