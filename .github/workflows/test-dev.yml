@@ -12,6 +12,17 @@ on:
       - '**/.env.example'
       - '**/*.example'
       - '.gitignore'
+  push: # 브랜치 테스트 추가
+    branches:
+      - dev
+    paths-ignore:
+      - '**/README.md'
+      - '**/*.md'
+      - '**/*.mdx'
+      - 'docs/**'
+      - '**/.env.example'
+      - '**/*.example'
+      - '.gitignore'
 
 jobs:
   test:
@@ -36,8 +47,8 @@ jobs:
       - name: 실행권한 부여
         run: chmod +x gradlew
 
-      - name: 테스트
-        run: ./gradlew test
+      - name: 테스트 (AWS 연결 제외)
+        run: ./gradlew test -Djunit.platform.exclude.tags=aws
 
       - name: 테스트 결과 리포트 생성
         uses: EnricoMi/publish-unit-test-result-action@v2
@@ -47,7 +58,9 @@ jobs:
 
       - name: 테스트 커버리지 업로드
         uses: codecov/codecov-action@v4
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: >
+          github.event_name == 'push' ||
+          github.event.pull_request.head.repo.full_name == github.repository
         with:
           token: ${{secrets.CODECOV_TOKEN}}
           files: build/reports/jacoco/test/jacocoTestReport.xml

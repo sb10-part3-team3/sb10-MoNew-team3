@@ -2,8 +2,8 @@ coverage:
   status:
     project:
       default:
-        target: auto  # 현재 커버리지 기준, 이후 기준 70% 추가 예정
-        threshold: 1%
+        target: 70 # 이후 기준 80% 추가 예정
+        threshold: 0%
         informational: false # 조건 불만족시 실패
     patch:
       default:
