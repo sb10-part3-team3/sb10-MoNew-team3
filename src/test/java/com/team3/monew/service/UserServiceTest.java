@@ -8,12 +8,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.team3.monew.dto.user.UserDto;
+import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.entity.User;
+import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -89,5 +92,70 @@ class UserServiceTest {
 
     verify(userMapper).toDto(savedUser);
     verify(passwordEncoder).encode("password1");
+  }
+
+  @Test
+  @DisplayName("잘못된 비밀번호로 로그인 시 AuthException을 던진다")
+  void shouldThrowAuthException_whenInvalidPassword() {
+    // given
+    String email = "email1@naver.com";
+    String rawPassword = "rawPassword";
+    String encodedPassword = "encoded-password";
+
+    User user = User.create(email, "username1", encodedPassword);
+    UserLoginRequest request = new UserLoginRequest(email, rawPassword);
+
+    given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+    given(passwordEncoder.matches(rawPassword, encodedPassword)).willReturn(false);
+
+    // when & then
+    assertThatThrownBy(() -> userService.loginUser(request))
+        .isInstanceOf(AuthException.class);
+
+    verify(userRepository).findByEmail(email);
+    verify(passwordEncoder).matches(rawPassword, encodedPassword);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 이메일로 로그인 시 인증 예외를 던진다")
+  void shouldThrowAuthException_whenNotFoundEmail() {
+    // given
+    String email = "randomEmail@naver.com";
+    UserLoginRequest userLoginRequest = new UserLoginRequest(email, "password1");
+    given(userRepository.findByEmail(email)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> userService.loginUser(userLoginRequest))
+        .isInstanceOf(AuthException.class);
+
+    verify(userRepository).findByEmail(email);
+    verify(passwordEncoder, never()).matches(any(), any());
+    verify(userMapper, never()).toDto(any());
+  }
+
+  @Test
+  @DisplayName("유효한 요청 정보로 로그인 시 dto 반환한다")
+  void shouldLoginUser_whenValidRequest() {
+    // given
+    String email = "email1@naver.com";
+    String rawPassword = "rawPassword";
+    String encodedPassword = "encoded-password";
+
+    User user = User.create(email, "username1", encodedPassword);
+    UserDto userDto = new UserDto(UUID.randomUUID(), email, "username1", Instant.now());
+    UserLoginRequest request = new UserLoginRequest(email, rawPassword);
+
+    given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+    given(passwordEncoder.matches(rawPassword, encodedPassword)).willReturn(true);
+    given(userMapper.toDto(user)).willReturn(userDto);
+
+    // when
+    UserDto result = userService.loginUser(request);
+
+    // then
+    assertThat(result).isEqualTo(userDto);
+    verify(userRepository).findByEmail(email);
+    verify(passwordEncoder).matches(rawPassword, encodedPassword);
+    verify(userMapper).toDto(user);
   }
 }
