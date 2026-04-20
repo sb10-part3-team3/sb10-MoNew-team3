@@ -2,7 +2,6 @@ package com.team3.monew.entity;
 
 import com.team3.monew.entity.base.BaseEntity;
 import com.team3.monew.entity.enums.NotificationResourceType;
-import com.team3.monew.entity.enums.NotificationType;
 import jakarta.persistence.*;
 import java.util.Objects;
 import lombok.AccessLevel;
