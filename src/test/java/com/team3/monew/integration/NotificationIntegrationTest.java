@@ -2,9 +2,6 @@ package com.team3.monew.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.timeout;
 
 import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
 import com.team3.monew.entity.Comment;
