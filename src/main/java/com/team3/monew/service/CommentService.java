@@ -6,6 +6,7 @@ import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
@@ -16,6 +17,7 @@ import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
+import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ public class CommentService {
   private final CommentRepository commentRepository;
   private final CommentMapper commentMapper;
   private final NewsArticleRepository newsArticleRepository;
+  private final NotificationRepository notificationRepository;
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
@@ -84,6 +87,40 @@ public class CommentService {
     log.info("댓글 수정 완료: commentId={}, requestUserId={}", commentId, requestUserId);
     log.debug("댓글 수정 서비스 종료: commentId={}, requestUserId={}", commentId, requestUserId);
     return commentDto;
+  }
+
+  @Transactional
+  public void deleteComment(UUID commentId) {
+    log.debug("댓글 논리 삭제 요청 처리 시작: commentId={}", commentId);
+
+    Comment comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new CommentNotFoundException(commentId));
+
+    if (comment.isDeleted()) {
+      throw new DeletedCommentException(commentId);
+    }
+
+    comment.markDeleted();
+    newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
+    log.info("댓글 논리 삭제 완료: commentId={}", commentId);
+  }
+
+  @Transactional
+  public void hardDeleteComment(UUID commentId) {
+    log.debug("댓글 물리 삭제 요청 처리 시작: commentId={}", commentId);
+
+    Comment comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new CommentNotFoundException(commentId));
+
+    if (!comment.isDeleted()) {
+      newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
+    }
+    notificationRepository.deleteByResourceTypeAndResourceId(
+        NotificationResourceType.COMMENT,
+        commentId
+    );
+    commentRepository.delete(comment);
+    log.info("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
   private NewsArticle findActiveArticle(UUID articleId) {

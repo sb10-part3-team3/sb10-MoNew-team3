@@ -22,4 +22,12 @@ public abstract class SoftDeleteEntity extends BaseEntity {
     public boolean isDeleted() {
         return deleteStatus == DeleteStatus.DELETED;
     }
+
+    public void markDeleted() {
+        if (isDeleted()) {
+            return;
+        }
+        deleteStatus = DeleteStatus.DELETED;
+        deletedAt = Instant.now();
+    }
 }
