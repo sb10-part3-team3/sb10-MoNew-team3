@@ -27,6 +27,8 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -399,6 +401,104 @@ class CommentControllerTest {
           eq(userId),
           any(CommentUpdateRequest.class)
       );
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+  }
+
+  @Nested
+  @DisplayName("delete comment API")
+  class DeleteComment {
+
+    @Test
+    @DisplayName("returns 204 No Content when logical delete succeeds")
+    void shouldDeleteComment_whenRequestIsValid() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+          .andExpect(status().isNoContent());
+
+      then(commentService).should().deleteComment(commentId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("returns 404 Not Found when logical delete target does not exist")
+    void shouldReturnNotFound_whenDeleteCommentDoesNotExist() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      willThrow(new CommentNotFoundException(commentId))
+          .given(commentService)
+          .deleteComment(commentId);
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+
+      then(commentService).should().deleteComment(commentId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("returns 404 Not Found when logical delete target is already deleted")
+    void shouldReturnNotFound_whenDeleteCommentIsAlreadyDeleted() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      willThrow(new DeletedCommentException(commentId))
+          .given(commentService)
+          .deleteComment(commentId);
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_DELETED"))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+
+      then(commentService).should().deleteComment(commentId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+  }
+
+  @Nested
+  @DisplayName("hard delete comment API")
+  class HardDeleteComment {
+
+    @Test
+    @DisplayName("returns 204 No Content when hard delete succeeds")
+    void shouldHardDeleteComment_whenRequestIsValid() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}/hard", commentId))
+          .andExpect(status().isNoContent());
+
+      then(commentService).should().hardDeleteComment(commentId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("returns 404 Not Found when hard delete target does not exist")
+    void shouldReturnNotFound_whenHardDeleteCommentDoesNotExist() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      willThrow(new CommentNotFoundException(commentId))
+          .given(commentService)
+          .hardDeleteComment(commentId);
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}/hard", commentId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+
+      then(commentService).should().hardDeleteComment(commentId);
       then(commentService).shouldHaveNoMoreInteractions();
     }
   }
