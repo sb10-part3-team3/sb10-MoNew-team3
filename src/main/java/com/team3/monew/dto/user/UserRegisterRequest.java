@@ -9,18 +9,18 @@ public record UserRegisterRequest(
 
     @NotBlank
     @Email
-    @Size(max = 255)
+    @Size(max = 255, message = "이메일은 255자 이하로 입력해주세요")
     String email,
 
     @NotBlank
-    @Size(min = 2, max = 100)
+    @Size(min = 2, max = 10, message = "닉네임은 2자이상 10자 이하로 입력해주세요")
     String nickname,
 
     @NotBlank
-    @Size(min = 8, max = 20)
+    @Size(min = 6, max = 20, message = "비밀번호는 영문과 숫자, 특수문자를 포함해 6자 이상 입력해 주세요")
     @Pattern(
-        message = "비밀번호는 영문자와 숫자를 포함해야 하며, 사용할 수 있는 특수문자는 !@#$%^&*()_+ 입니다.",
-        regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+]+$"
+        message = "비밀번호는 영문과 숫자, 특수문자를 포함해 6자 이상 입력해 주세요",
+        regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[!@#$%^&*()_+])[A-Za-z\\d!@#$%^&*()_+]+$"
     )
     String password
 ) {
