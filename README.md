@@ -1,3 +1,5 @@
+# Team3
+
 ## 📊Test Coverage
 
-[![codecov](https://codecov.io/github/Minbro-Kim/10-sprint-mission/graph/badge.svg?token=B0WE4JVIIN&branch=dev)](https://codecov.io/github/Minbro-Kim/10-sprint-mission/tree/dev)
+[![codecov](https://codecov.io/github/sb10-part3-team3/sb10-MoNew-team3/branch/dev/graph/badge.svg?token=HH8VH1APA9)](https://codecov.io/github/sb10-part3-team3/sb10-MoNew-team3)
