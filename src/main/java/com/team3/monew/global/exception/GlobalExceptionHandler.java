@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ErrorResponse> handle(
       HttpMessageNotReadableException e) {
-    ErrorResponse response = ErrorResponse.of(e);
+    ErrorResponse response = badRequestResponse();
     logError(response, e);
     return ResponseEntity.badRequest().body(response);
   }
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MissingRequestHeaderException.class)
   public ResponseEntity<ErrorResponse> handle(
       MissingRequestHeaderException e) {
-    ErrorResponse response = ErrorResponse.of(e);
+    ErrorResponse response = badRequestResponse();
     logError(response, e);
     return ResponseEntity.badRequest().body(response);
   }
@@ -187,5 +187,15 @@ public class GlobalExceptionHandler {
       return value;
     }
     return value.substring(0, maxLength) + "...(truncated)";
+  }
+
+  private ErrorResponse badRequestResponse() {
+    return new ErrorResponse(
+        java.time.Instant.now(),
+        com.team3.monew.global.enums.ErrorCode.INVALID_INPUT_VALUE.name(),
+        com.team3.monew.global.enums.ErrorCode.INVALID_INPUT_VALUE.getMessage(),
+        Map.of(),
+        400
+    );
   }
 }
