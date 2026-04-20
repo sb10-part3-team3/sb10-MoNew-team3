@@ -65,4 +65,5 @@ public class NewsArticle extends SoftDeleteEntity {
 
         return article;
     }
+
 }
