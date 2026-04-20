@@ -2,6 +2,7 @@ package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.UserApi;
 import com.team3.monew.dto.user.UserDto;
+import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.service.UserService;
 import jakarta.validation.Valid;
@@ -25,5 +26,13 @@ public class UserController implements UserApi {
       @Valid @RequestBody UserRegisterRequest userRegisterRequest
   ) {
     return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerUser(userRegisterRequest));
+  }
+
+  @PostMapping("/login")
+  public ResponseEntity<UserDto> loginUser(
+      @Valid @RequestBody UserLoginRequest userLoginRequest
+  ) {
+    UserDto userDto = userService.loginUser(userLoginRequest);
+    return ResponseEntity.ok(userDto);
   }
 }

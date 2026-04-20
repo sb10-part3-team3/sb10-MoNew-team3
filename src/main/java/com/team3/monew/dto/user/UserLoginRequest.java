@@ -5,16 +5,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record UserRegisterRequest(
-
+public record UserLoginRequest(
     @NotBlank
     @Email
     @Size(max = 255, message = "이메일은 255자 이하로 입력해주세요")
     String email,
-
-    @NotBlank
-    @Size(min = 2, max = 10, message = "닉네임은 2자이상 10자 이하로 입력해주세요")
-    String nickname,
 
     @NotBlank
     @Size(min = 6, max = 20, message = "비밀번호는 영문과 숫자, 특수문자를 포함해 6자 이상 입력해 주세요")

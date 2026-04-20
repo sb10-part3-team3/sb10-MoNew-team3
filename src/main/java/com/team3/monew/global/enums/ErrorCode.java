@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorCode {
+  INVALID_CREDENTIAL(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 일치하지 않습니다."),
   INVALID_PASSWORD(HttpStatus.BAD_REQUEST, "올바르지 않은 비밀번호 형식입니다."),
   EMAIL_DUPLICATION(HttpStatus.CONFLICT, "해당 이메일이 이미 존재합니다."),
   ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "기사를 찾을 수 없습니다."),
