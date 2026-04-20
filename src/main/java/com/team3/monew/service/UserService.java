@@ -37,8 +37,9 @@ public class UserService {
 
     // 동시성 문제로 DB레벨 중복 예외 발생 시 예외 전환
     try {
-      log.debug("사용자 등록 성공: userId={}, email={}", user.getId(), user.getEmail());
-      return userMapper.toDto(userRepository.save(user));
+      User savedUser = userRepository.save(user);
+      log.debug("사용자 등록 성공: userId={}, email={}", savedUser.getId(), savedUser.getEmail());
+      return userMapper.toDto(savedUser);
     } catch (DataIntegrityViolationException e) {
       throw new DuplicateEmailException();
     }
