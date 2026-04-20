@@ -2,12 +2,15 @@ package com.team3.monew.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
+import com.team3.monew.dto.comment.CommentUpdateRequest;
+import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
@@ -124,6 +127,99 @@ class CommentIntegrationTest {
         .andExpect(jsonPath("$.details.content").exists());
   }
 
+  @Test
+  @DisplayName("유효한 요청이면 댓글 수정에 성공하고 댓글 내용을 변경한다.")
+  void shouldUpdateComment_whenRequestIsValid() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User user = saveUser();
+    Comment comment = saveComment(article, user, "댓글 내용입니다.");
+    CommentUpdateRequest request = new CommentUpdateRequest(
+        user.getId(),
+        "수정된 댓글 내용입니다."
+    );
+
+    // when & then
+    mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(comment.getId().toString()))
+        .andExpect(jsonPath("$.articleId").value(article.getId().toString()))
+        .andExpect(jsonPath("$.userId").value(user.getId().toString()))
+        .andExpect(jsonPath("$.userNickname").value(user.getNickname()))
+        .andExpect(jsonPath("$.content").value("수정된 댓글 내용입니다."))
+        .andExpect(jsonPath("$.likeCount").value(0))
+        .andExpect(jsonPath("$.likedByMe").value(false));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    String savedContent = entityManager.createQuery(
+            "select c.content from Comment c where c.id = :commentId",
+            String.class
+        )
+        .setParameter("commentId", comment.getId())
+        .getSingleResult();
+
+    assertThat(savedContent).isEqualTo("수정된 댓글 내용입니다.");
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 댓글을 수정하면 404 Not Found로 응답한다.")
+  void shouldReturnNotFound_whenCommentDoesNotExist() throws Exception {
+    // given
+    UUID commentId = UUID.randomUUID();
+    CommentUpdateRequest request = new CommentUpdateRequest(
+        UUID.randomUUID(),
+        "수정된 댓글 내용입니다."
+    );
+
+    // when & then
+    mockMvc.perform(patch("/api/comments/{commentId}", commentId)
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
+        .andExpect(jsonPath("$.status").value(404))
+        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+  }
+
+  @Test
+  @DisplayName("작성자가 아닌 사용자가 댓글을 수정하면 403 Forbidden으로 응답하고 댓글 내용을 변경하지 않는다.")
+  void shouldReturnForbidden_whenUserIsNotAuthor() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User author = saveUser();
+    User otherUser = saveUser();
+    Comment comment = saveComment(article, author, "댓글 내용입니다.");
+    CommentUpdateRequest request = new CommentUpdateRequest(
+        otherUser.getId(),
+        "수정된 댓글 내용입니다."
+    );
+
+    // when & then
+    mockMvc.perform(patch("/api/comments/{commentId}", comment.getId())
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("COMMENT_UPDATE_FORBIDDEN"))
+        .andExpect(jsonPath("$.status").value(403))
+        .andExpect(jsonPath("$.details.commentId").value(comment.getId().toString()));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    String savedContent = entityManager.createQuery(
+            "select c.content from Comment c where c.id = :commentId",
+            String.class
+        )
+        .setParameter("commentId", comment.getId())
+        .getSingleResult();
+
+    assertThat(savedContent).isEqualTo("댓글 내용입니다.");
+  }
+
   private NewsArticle saveArticle() {
     UUID id = UUID.randomUUID();
     NewsSource source = NewsSource.create(
@@ -158,5 +254,16 @@ class CommentIntegrationTest {
     entityManager.flush();
     entityManager.clear();
     return user;
+  }
+
+  private Comment saveComment(NewsArticle article, User user, String content) {
+    NewsArticle articleReference = entityManager.getReference(NewsArticle.class, article.getId());
+    User userReference = entityManager.getReference(User.class, user.getId());
+    Comment comment = Comment.create(articleReference, userReference, content);
+
+    entityManager.persist(comment);
+    entityManager.flush();
+    entityManager.clear();
+    return comment;
   }
 }
