@@ -36,8 +36,8 @@ jobs:
       - name: 실행권한 부여
         run: chmod +x gradlew
 
-      - name: 테스트
-        run: ./gradlew test
+      - name: 테스트 (AWS 연결 제외)
+        run: ./gradlew test -Djunit.platform.exclude.tags=aws
 
       - name: 테스트 결과 리포트 생성
         uses: EnricoMi/publish-unit-test-result-action@v2
