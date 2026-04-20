@@ -67,9 +67,10 @@ public class NotificationIntegrationTest {
   @BeforeEach
   void setUp() {
     notificationRepository.deleteAll();
-    userRepository.deleteAll();
     commentRepository.deleteAll();
     newsArticleRepository.deleteAll();
+    newsSourceRepository.deleteAll();
+    userRepository.deleteAll();
 
     writer = userRepository.save(User.create("writer@test.com", "writer", "pwd"));
     actor = userRepository.save(User.create("actor@test.com", "actor", "pwd"));
