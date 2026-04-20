@@ -1,6 +1,8 @@
 package com.team3.monew.global.exception;
 
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.global.response.ErrorResponse;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,20 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(response.status()).body(response);
   }
 
+  @ExceptionHandler(MissingRequestHeaderException.class)
+  public ResponseEntity<ErrorResponse> handle(MissingRequestHeaderException e) {
+    Map<String, Object> details = Map.of("header", e.getHeaderName());
+    ErrorResponse response = new ErrorResponse(
+        Instant.now(),
+        ErrorCode.INVALID_INPUT_VALUE.name(),
+        ErrorCode.INVALID_INPUT_VALUE.getMessage(),
+        details,
+        ErrorCode.INVALID_INPUT_VALUE.getStatus().value()
+    );
+    logWarn(response);
+    return ResponseEntity.status(response.status()).body(response);
+  }
+
   @ExceptionHandler(Exception.class)
   public ResponseEntity<ErrorResponse> handle(Exception e) {
     ErrorResponse response = ErrorResponse.of(e);
@@ -78,14 +94,6 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(HttpMessageNotReadableException.class)
   public ResponseEntity<ErrorResponse> handle(
       HttpMessageNotReadableException e) {
-    ErrorResponse response = badRequestResponse();
-    logError(response, e);
-    return ResponseEntity.badRequest().body(response);
-  }
-
-  @ExceptionHandler(MissingRequestHeaderException.class)
-  public ResponseEntity<ErrorResponse> handle(
-      MissingRequestHeaderException e) {
     ErrorResponse response = badRequestResponse();
     logError(response, e);
     return ResponseEntity.badRequest().body(response);

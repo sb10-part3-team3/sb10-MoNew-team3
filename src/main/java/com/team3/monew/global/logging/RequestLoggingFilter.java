@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -79,15 +78,8 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
         return UNKNOWN_CLIENT_IP;
     }
 
-    // 인증 정보가 있으면 우선 사용하고, 없으면 요청 헤더에서 사용자 ID를 추출한다.
+    // 요청 헤더에서 로그에 남길 사용자 ID를 추출한다.
     private String extractUserId(HttpServletRequest request) {
-        // 인증 컨텍스트에서 얻은 사용자 정보가 있으면 헤더보다 우선한다.
-        Principal principal = request.getUserPrincipal();
-        String authenticatedUserId = principal == null ? null : sanitizeForMdc(principal.getName());
-        if (authenticatedUserId != null && !authenticatedUserId.isBlank()) {
-            return authenticatedUserId;
-        }
-
         return sanitizeForMdc(request.getHeader(REQUEST_USER_ID_HEADER));
     }
 

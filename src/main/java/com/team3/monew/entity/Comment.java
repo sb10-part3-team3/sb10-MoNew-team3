@@ -41,4 +41,8 @@ public class Comment extends SoftDeleteEntity {
 
         return comment;
     }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
 }
