@@ -23,7 +23,9 @@ public class NotificationEventListener {
   @Async("realTimeNotificationTaskExecutor") //알림용 스레드풀 사용
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Retryable(
-      retryFor = {RuntimeException.class}, // 일시적 오류 시 재시도
+      retryFor = {
+          org.springframework.dao.TransientDataAccessException.class,
+          org.springframework.dao.CannotAcquireLockException.class}, // 일시적 DB 오류만 재시도
       maxAttempts = 3,
       backoff = @Backoff(delay = 1000)      // 1초 간격으로
   )
