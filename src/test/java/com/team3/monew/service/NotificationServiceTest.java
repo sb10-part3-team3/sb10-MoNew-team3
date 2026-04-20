@@ -112,6 +112,7 @@ class NotificationServiceTest {
     // when & then
     assertThrows(UserNotFoundException.class,
         () -> notificationService.registerLikeNotification(request));
+    then(notificationRepository).shouldHaveNoInteractions();
   }
 
   @Test
@@ -127,5 +128,6 @@ class NotificationServiceTest {
     // when & then
     assertThrows(CommentNotFoundException.class,
         () -> notificationService.registerLikeNotification(request));
+    then(notificationRepository).shouldHaveNoInteractions();
   }
 }
