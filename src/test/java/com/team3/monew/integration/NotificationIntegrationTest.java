@@ -10,6 +10,7 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.repository.CommentRepository;
@@ -92,9 +93,13 @@ public class NotificationIntegrationTest {
     List<Notification> results = notificationRepository.findAll();
     assertThat(results).hasSize(1);
     Notification saved = results.get(0);
+    assertThat(saved.getResourceType()).isEqualTo(NotificationResourceType.COMMENT);
     assertThat(saved.getContent()).contains(actor.getNickname());
     assertThat(saved.getUser().getId()).isEqualTo(writer.getId());
     assertThat(saved.getResourceId()).isEqualTo(comment.getId());
+    assertThat(saved.getActorUser().getId()).isEqualTo(actor.getId());
+    assertThat(saved.isConfirmed()).isFalse();
+    assertThat(saved.getConfirmedAt()).isNull();
   }
 
   @Test
