@@ -208,7 +208,7 @@ public class NotificationEventListenerIntegrationTest {
       listenerThreadName.set(Thread.currentThread().getName());
       return null;
     }).given(subscriptionRepository)
-        .findAllProjectedByInterestIdIn(interestArticleSummaryMap.keySet());
+        .findAllProjectedByInterestIdIn(eq(interestArticleSummaryMap.keySet()));
 
     // when
     transactionTemplate.execute(status -> {
