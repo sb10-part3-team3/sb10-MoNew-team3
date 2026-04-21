@@ -406,11 +406,11 @@ class CommentControllerTest {
   }
 
   @Nested
-  @DisplayName("delete comment API")
+  @DisplayName("댓글 삭제 API를 검증한다.")
   class DeleteComment {
 
     @Test
-    @DisplayName("returns 204 No Content when logical delete succeeds")
+    @DisplayName("유효한 요청을 받으면 댓글을 삭제하고 204 No Content로 응답한다.")
     void shouldDeleteComment_whenRequestIsValid() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
@@ -424,7 +424,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("returns 404 Not Found when logical delete target does not exist")
+    @DisplayName("존재하지 않는 댓글을 삭제하면 404 Not Found로 응답한다.")
     void shouldReturnNotFound_whenDeleteCommentDoesNotExist() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
@@ -444,7 +444,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("returns 404 Not Found when logical delete target is already deleted")
+    @DisplayName("이미 삭제된 댓글을 삭제하면 404 Not Found로 응답한다.")
     void shouldReturnNotFound_whenDeleteCommentIsAlreadyDeleted() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
@@ -465,11 +465,11 @@ class CommentControllerTest {
   }
 
   @Nested
-  @DisplayName("hard delete comment API")
+  @DisplayName("댓글 물리 삭제 API를 검증한다.")
   class HardDeleteComment {
 
     @Test
-    @DisplayName("returns 204 No Content when hard delete succeeds")
+    @DisplayName("유효한 요청을 받으면 댓글을 물리 삭제하고 204 No Content로 응답한다.")
     void shouldHardDeleteComment_whenRequestIsValid() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
@@ -483,7 +483,7 @@ class CommentControllerTest {
     }
 
     @Test
-    @DisplayName("returns 404 Not Found when hard delete target does not exist")
+    @DisplayName("존재하지 않는 댓글을 물리 삭제하면 404 Not Found로 응답한다.")
     void shouldReturnNotFound_whenHardDeleteCommentDoesNotExist() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();

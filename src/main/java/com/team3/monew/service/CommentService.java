@@ -15,6 +15,7 @@ import com.team3.monew.exception.comment.UnauthorizedCommentException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
+import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NotificationRepository;
@@ -33,6 +34,7 @@ public class CommentService {
 
   private final UserRepository userRepository;
   private final CommentRepository commentRepository;
+  private final CommentLikeRepository commentLikeRepository;
   private final CommentMapper commentMapper;
   private final NewsArticleRepository newsArticleRepository;
   private final NotificationRepository notificationRepository;
@@ -115,6 +117,7 @@ public class CommentService {
     if (!comment.isDeleted()) {
       newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
     }
+    commentLikeRepository.deleteByCommentId(commentId);
     notificationRepository.deleteByResourceTypeAndResourceId(
         NotificationResourceType.COMMENT,
         commentId

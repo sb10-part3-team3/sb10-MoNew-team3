@@ -17,6 +17,7 @@ import com.team3.monew.exception.comment.UnauthorizedCommentException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
+import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NotificationRepository;
@@ -51,6 +52,9 @@ class CommentServiceTest {
 
     @Mock
     private CommentRepository commentRepository;
+
+    @Mock
+    private CommentLikeRepository commentLikeRepository;
 
     @Mock
     private CommentMapper commentMapper;
@@ -309,11 +313,11 @@ class CommentServiceTest {
     }
 
     @Nested
-    @DisplayName("delete comment")
+    @DisplayName("댓글 삭제 기능을 검증한다.")
     class DeleteComment {
 
         @Test
-        @DisplayName("marks comment deleted and decreases article comment count")
+        @DisplayName("존재하는 댓글을 삭제하면 댓글이 삭제 상태로 변경되고 기사 댓글 수가 감소한다.")
         void shouldDeleteComment_whenCommentExists() {
             // given
             Comment comment = Comment.create(article, user, content);
@@ -330,7 +334,7 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("throws CommentNotFoundException when comment does not exist")
+        @DisplayName("존재하지 않는 댓글을 삭제하면 댓글 없음 예외가 발생한다.")
         void shouldThrowCommentNotFoundException_whenDeleteCommentDoesNotExist() {
             // given
             given(commentRepository.findById(commentId)).willReturn(Optional.empty());
@@ -344,7 +348,7 @@ class CommentServiceTest {
         }
 
         @Test
-        @DisplayName("throws DeletedCommentException when comment is already deleted")
+        @DisplayName("이미 삭제된 댓글을 삭제하면 삭제된 댓글 예외가 발생한다.")
         void shouldThrowDeletedCommentException_whenDeleteCommentIsAlreadyDeleted() {
             // given
             Comment comment = Comment.create(article, user, content);
@@ -362,11 +366,11 @@ class CommentServiceTest {
     }
 
     @Nested
-    @DisplayName("hard delete comment")
+    @DisplayName("댓글 물리 삭제 기능을 검증한다.")
     class HardDeleteComment {
 
         @Test
-        @DisplayName("deletes active comment, related notifications, and decreases article comment count")
+        @DisplayName("활성 댓글을 물리 삭제하면 관련 데이터가 삭제되고 기사 댓글 수가 감소한다.")
         void shouldHardDeleteCommentAndDecreaseCommentCount_whenActiveCommentExists() {
             // given
             Comment comment = Comment.create(article, user, content);
@@ -378,13 +382,14 @@ class CommentServiceTest {
 
             // then
             then(newsArticleRepository).should().decrementCommentCountById(articleId);
+            then(commentLikeRepository).should().deleteByCommentId(commentId);
             then(notificationRepository).should()
                     .deleteByResourceTypeAndResourceId(NotificationResourceType.COMMENT, commentId);
             then(commentRepository).should().delete(comment);
         }
 
         @Test
-        @DisplayName("deletes already deleted comment and related notifications without decreasing comment count")
+        @DisplayName("이미 삭제된 댓글을 물리 삭제하면 기사 댓글 수 감소 없이 관련 데이터만 삭제한다.")
         void shouldHardDeleteCommentWithoutDecreasingCommentCount_whenDeletedCommentExists() {
             // given
             Comment comment = Comment.create(article, user, content);
@@ -397,13 +402,14 @@ class CommentServiceTest {
 
             // then
             then(newsArticleRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).should().deleteByCommentId(commentId);
             then(notificationRepository).should()
                     .deleteByResourceTypeAndResourceId(NotificationResourceType.COMMENT, commentId);
             then(commentRepository).should().delete(comment);
         }
 
         @Test
-        @DisplayName("throws CommentNotFoundException when comment does not exist")
+        @DisplayName("존재하지 않는 댓글을 물리 삭제하면 댓글 없음 예외가 발생한다.")
         void shouldThrowCommentNotFoundException_whenHardDeleteCommentDoesNotExist() {
             // given
             given(commentRepository.findById(commentId)).willReturn(Optional.empty());
@@ -413,6 +419,7 @@ class CommentServiceTest {
                     .isInstanceOf(CommentNotFoundException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
             then(notificationRepository).shouldHaveNoInteractions();
         }
     }
