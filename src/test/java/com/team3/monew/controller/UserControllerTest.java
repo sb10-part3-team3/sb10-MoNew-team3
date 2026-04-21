@@ -3,8 +3,8 @@ package com.team3.monew.controller;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
+import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
@@ -239,5 +240,61 @@ class UserControllerTest {
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("유효한 요청으로 사용자 수정 시 200 OK와 UserDto를 반환한다")
+  void shouldReturnUserDto_whenValidRequest() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant createdAt = Instant.now();
+
+    UserUpdateRequest request = new UserUpdateRequest("newname");
+    UserDto response = new UserDto(
+        userId,
+        "email1@naver.com",
+        "newname",
+        createdAt
+    );
+
+    given(userService.updateUser(any(UUID.class), any(UserUpdateRequest.class)))
+        .willReturn(response);
+
+    // when & then
+    mockMvc.perform(patch("/api/users/{userId}", userId)
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(userId.toString()))
+        .andExpect(jsonPath("$.email").value("email1@naver.com"))
+        .andExpect(jsonPath("$.nickname").value("newname"))
+        .andExpect(jsonPath("$.createdAt").value(createdAt.toString()));
+  }
+
+  @Test
+  @DisplayName("닉네임이 10자를 초과하면 400 Bad Request를 반환한다")
+  void shouldReturnBadRequest_whenNicknameTooLong() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UserUpdateRequest request = new UserUpdateRequest("newUsername"); // 11자
+
+    // when & then
+    mockMvc.perform(patch("/api/users/{userId}", userId)
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("잘못된 UUID 형식의 path variable이면 400 Bad Request를 반환한다")
+  void shouldReturnBadRequest_whenInvalidPathVariableUuid() throws Exception {
+    // given
+    UserUpdateRequest request = new UserUpdateRequest("newname");
+
+    // when & then
+    mockMvc.perform(patch("/api/users/{userId}", "invalid-uuid")
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
   }
 }

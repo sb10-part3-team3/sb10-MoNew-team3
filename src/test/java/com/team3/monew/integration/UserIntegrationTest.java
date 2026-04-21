@@ -1,15 +1,18 @@
 package com.team3.monew.integration;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
+import com.team3.monew.dto.user.UserUpdateRequest;
+import com.team3.monew.entity.User;
 import com.team3.monew.repository.UserRepository;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -184,5 +187,38 @@ class UserIntegrationTest {
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(loginRequest)))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  @DisplayName("유효한 요청이면 사용자 수정에 성공한다")
+  void shouldUpdateUser_whenRequestIsValid() throws Exception {
+    // given
+    User savedUser = userRepository.save(
+        User.create("update-success@example.com", "oldNick", "password123!")
+    );
+
+    UserUpdateRequest request = new UserUpdateRequest("newNick");
+
+    // when & then
+    mockMvc.perform(patch("/api/users/{userId}", savedUser.getId())
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.email").value("update-success@example.com"))
+        .andExpect(jsonPath("$.nickname").value("newNick"));
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자면 404를 반환한다")
+  void shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
+    // given
+    UUID invalidUserId = UUID.randomUUID();
+    UserUpdateRequest request = new UserUpdateRequest("newNick");
+
+    // when & then
+    mockMvc.perform(patch("/api/users/{userId}", invalidUserId)
+            .contentType(APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isNotFound());
   }
 }

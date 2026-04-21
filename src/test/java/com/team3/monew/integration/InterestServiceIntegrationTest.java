@@ -3,11 +3,17 @@ package com.team3.monew.integration;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
+import com.team3.monew.entity.Subscription;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
+import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.repository.ArticleInterestRepository;
+import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
+import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.service.InterestService;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -32,6 +38,8 @@ public class InterestServiceIntegrationTest {
   private InterestService interestService;
   @Autowired
   private InterestRepository interestRepository;
+  @Autowired
+  private InterestKeywordRepository interestKeywordRepository;
 
   @Test
   @DisplayName("관심사를 등록하면 키워드와 함께 저장된다")
@@ -43,7 +51,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    InterestDto savedInterest = interestService.create(request);
+    InterestDto savedInterest = interestService.createInterest(request);
 
     // then
     Optional<Interest> found = interestRepository.findById(savedInterest.id());
@@ -69,10 +77,10 @@ public class InterestServiceIntegrationTest {
         List.of("asdf")
     );
 
-    interestService.create(request1);
+    interestService.createInterest(request1);
 
     // when & then
-    assertThatThrownBy(() -> interestService.create(request2))
+    assertThatThrownBy(() -> interestService.createInterest(request2))
         .isInstanceOf(InterestDuplicateNameException.class);
   }
 
@@ -90,10 +98,10 @@ public class InterestServiceIntegrationTest {
         List.of("keyword")
     );
 
-    interestService.create(request);
+    interestService.createInterest(request);
 
     // when & then
-    assertThatThrownBy(() -> interestService.create(request2))
+    assertThatThrownBy(() -> interestService.createInterest(request2))
         .isInstanceOf(InterestDuplicateNameException.class);
   }
 
@@ -106,7 +114,7 @@ public class InterestServiceIntegrationTest {
         List.of("코스피", "삼성전자")
     );
 
-    InterestDto saved = interestService.create(createRequest);
+    InterestDto saved = interestService.createInterest(createRequest);
 
     // when
     interestService.updateKeyword(
@@ -132,7 +140,7 @@ public class InterestServiceIntegrationTest {
         List.of("금리", "환율")
     );
 
-    InterestDto saved = interestService.create(request);
+    InterestDto saved = interestService.createInterest(request);
 
     // when
     interestService.updateKeyword(
@@ -158,7 +166,7 @@ public class InterestServiceIntegrationTest {
         List.of("아파트")
     );
 
-    InterestDto saved = interestService.create(request);
+    InterestDto saved = interestService.createInterest(request);
 
     // when & then
     assertThatThrownBy(() ->
@@ -179,7 +187,7 @@ public class InterestServiceIntegrationTest {
         List.of("비트코인")
     );
 
-    InterestDto saved = interestService.create(request);
+    InterestDto saved = interestService.createInterest(request);
 
     // when & then
     assertThatThrownBy(() ->
@@ -200,7 +208,7 @@ public class InterestServiceIntegrationTest {
         List.of("개발")
     );
 
-    InterestDto saved = interestService.create(request);
+    InterestDto saved = interestService.createInterest(request);
 
     // when & then
     assertThatThrownBy(() ->
@@ -221,7 +229,7 @@ public class InterestServiceIntegrationTest {
         List.of("정치")
     );
 
-    InterestDto saved = interestService.create(request);
+    InterestDto saved = interestService.createInterest(request);
 
     // when & then
     assertThatThrownBy(() ->
@@ -231,5 +239,53 @@ public class InterestServiceIntegrationTest {
             new InterestUpdateRequest(List.of("경제", "경제"))
         )
     ).isInstanceOf(InterestException.class);
+  }
+
+  @Test
+  @DisplayName("관심사를 삭제할 수 있다")
+  void shouldDeleteInterest_whenDeleteRequest() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "삭제용",
+        List.of("키워드", "삭제될 키워드")
+    );
+
+    InterestDto saved = interestService.createInterest(request);
+
+    // when
+    interestService.deleteInterest(saved.id());
+
+    // then
+    assertThat(interestRepository.findById(saved.id())).isEmpty();
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사를 삭제하면 예외가 발생한다")
+  void shouldThrowException_whenInterestNotFound() {
+    // given
+    UUID invalidId = UUID.randomUUID();
+
+    // when & then
+    assertThatThrownBy(() -> interestService.deleteInterest(invalidId))
+        .isInstanceOf(InterestNotFoundException.class);
+  }
+
+  @Test
+  @DisplayName("관심사를 삭제하면 연관 키워드도 함께 삭제된다")
+  void shouldDeleteInterestWithKeywords_whenDeleteRequest() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "삭제용",
+        List.of("키워드", "삭제될 키워드")
+    );
+
+    InterestDto saved = interestService.createInterest(request);
+
+    // when
+    interestService.deleteInterest(saved.id());
+
+    // then
+    assertThat(interestRepository.findById(saved.id())).isEmpty();
+    assertThat(interestKeywordRepository.findAllByInterestId(saved.id())).isEmpty();
   }
 }

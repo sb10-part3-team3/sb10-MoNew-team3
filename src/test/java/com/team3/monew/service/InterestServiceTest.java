@@ -73,7 +73,7 @@ class InterestServiceTest {
     given(interestMapper.toDto(savedInterest, false)).willReturn(response);
 
     // when
-    InterestDto result = interestService.create(request);
+    InterestDto result = interestService.createInterest(request);
 
     // then
     assertThat(result.name()).isEqualTo("주식");
@@ -92,7 +92,7 @@ class InterestServiceTest {
     given(interestRepository.existsByName("테스트")).willReturn(true);
 
     // when & then
-    assertThatThrownBy(() -> interestService.create(request))
+    assertThatThrownBy(() -> interestService.createInterest(request))
         .isInstanceOf(InterestDuplicateNameException.class);
 
     then(interestRepository).should(never()).saveAndFlush(any());
@@ -113,7 +113,7 @@ class InterestServiceTest {
     given(interestRepository.existsByName("applf")).willReturn(false);
 
     // when & then
-    assertThatThrownBy(() -> interestService.create(request))
+    assertThatThrownBy(() -> interestService.createInterest(request))
         .isInstanceOf(InterestDuplicateNameException.class);
 
     then(interestRepository).should(never()).saveAndFlush(any());
@@ -274,5 +274,35 @@ class InterestServiceTest {
 
     then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
     then(interestMapper).should(never()).toDto(any(), any(Boolean.class));
+  }
+
+  @Test
+  @DisplayName("관심사를 삭제할 수 있다")
+  void shouldDeleteInterest_whenDeleteRequest() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    Interest interest = Interest.create("주식");
+
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+
+    // when
+    interestService.deleteInterest(interestId);
+
+    // then
+    then(interestRepository).should().delete(interest);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사를 삭제하면 예외가 발생한다")
+  void shouldThrowException_whenInterestNotFound() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.deleteInterest(interestId))
+        .isInstanceOf(InterestNotFoundException.class);
+
+    then(interestRepository).should(never()).delete(any());
   }
 }
