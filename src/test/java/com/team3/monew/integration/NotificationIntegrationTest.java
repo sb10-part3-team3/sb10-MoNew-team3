@@ -160,7 +160,7 @@ public class NotificationIntegrationTest {
       interestRepository.deleteAll();
       userRepository.deleteAll();
 
-      subscriber1 = User.create("sub1@ntest.com", "sub1", "pwd");
+      subscriber1 = User.create("sub1@test.com", "sub1", "pwd");
       subscriber2 = User.create("sub2@test.com", "sub2", "pwd");
       subscriber3 = User.create("sub3@test.com", "sub3", "pwd");
       interest1 = Interest.create("interest1");
