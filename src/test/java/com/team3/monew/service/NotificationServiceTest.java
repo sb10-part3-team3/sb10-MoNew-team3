@@ -1,10 +1,14 @@
 package com.team3.monew.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 
-import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.InterestNotificationRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.Notification;
@@ -15,6 +19,7 @@ import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,4 +134,48 @@ class NotificationServiceTest {
         () -> notificationService.registerLikeNotification(request));
     then(notificationRepository).shouldHaveNoInteractions();
   }
+
+  @Test
+  @DisplayName("알림 요청(구독자 아이디, 관심사 아이디, 관심사 이름, 새로 등록된 뉴스 개수)목록으로 뉴스 알림 목록 등록에 성공합니다.")
+  void shouldRegisterInterestNotifications() {
+    // given
+    UUID resourceId2 = UUID.randomUUID();
+    InterestNotificationRequest request1 = new InterestNotificationRequest(resourceId, "test1", 5,
+        List.of(userId, actorUserId));
+    InterestNotificationRequest request2 = new InterestNotificationRequest(resourceId2, "test2", 2,
+        List.of(userId));
+
+    given(userRepository.getReferenceById(any(UUID.class))).willReturn(mock(User.class));
+    // when
+    notificationService.registerInterestNotification(List.of(request1, request2));
+    // then
+    ArgumentCaptor<List<Notification>> notificationCaptor = ArgumentCaptor.forClass(List.class);
+    then(notificationRepository).should().saveAll(notificationCaptor.capture());
+    List<Notification> notifications = notificationCaptor.getValue();
+
+    assertNotNull(notifications);
+    assertAll(
+        () -> assertThat(notifications).hasSize(3),
+        // 1. 리소스 타입 검증
+        () -> assertThat(notifications).extracting(Notification::getResourceType)
+            .containsOnly(NotificationResourceType.INTEREST),
+
+        // 2. 메시지 내용 검증
+        () -> assertThat(notifications).extracting(Notification::getContent)
+            .anyMatch(content -> content.contains("test1") && content.contains("5"))
+            .anyMatch(content -> content.contains("test2") && content.contains("2")),
+
+        // 3. 리소스 아이디 매핑
+        () -> assertThat(notifications).extracting(Notification::getResourceId)
+            .contains(resourceId, resourceId2),
+
+        // 4. 리소스 아이디별 알림 개수
+        () -> assertThat(notifications).filteredOn(n -> n.getResourceId().equals(resourceId))
+            .hasSize(2), // 구독자 2명
+        () -> assertThat(notifications).filteredOn(n -> n.getResourceId().equals(resourceId2))
+            .hasSize(1)  // 1명
+    );
+
+  }
+
 }
