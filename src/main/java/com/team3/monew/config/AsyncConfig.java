@@ -31,6 +31,20 @@ public class AsyncConfig implements AsyncConfigurer {
     return executor;
   }
 
+  //배치 이벤트가 발행되는 스레드풀
+  @Bean(name = "batchNotificationTaskExecutor")
+  public TaskExecutor createBatchNotificationTaskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    executor.setCorePoolSize(5); //기본 스레드 수
+    executor.setMaxPoolSize(10);
+    executor.setQueueCapacity(100);//스레드 별 대기 가능
+    executor.setThreadNamePrefix("batch-noti-task-");//스레드 이름
+    executor.setWaitForTasksToCompleteOnShutdown(true); // 진행 중인 작업 완료 후 종료
+    executor.setAwaitTerminationSeconds(100);           // 최대 대기 시간 설정
+    executor.initialize();
+    return executor;
+  }
+
   @Override
   public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
     return (ex, method, params) -> {
