@@ -10,11 +10,13 @@ import org.springframework.data.jpa.repository.Query;
 public interface SubscriptionRepository extends JpaRepository<Subscription, UUID> {
 
   boolean existsByUserIdAndInterestId(UUID userId, UUID interestId);
+
+  List<Subscription> findAllByInterestId(UUID interestId);
+
   public interface SubscriptionInfo {
 
     UUID getUserId();
 
-  List<Subscription> findAllByInterestId(UUID interestId);
     UUID getInterestId();
   }
 
