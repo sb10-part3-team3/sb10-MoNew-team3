@@ -3,6 +3,7 @@ package com.team3.monew.service;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
@@ -36,7 +37,7 @@ public class InterestService {
   private final SubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
 
-  public InterestDto create(InterestRegisterRequest dto) {
+  public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
 
@@ -121,6 +122,15 @@ public class InterestService {
         interestId, keywords.size(), subscribedByMe);
 
     return interestMapper.toDto(interest, subscribedByMe);
+  }
+
+  public void deleteInterest(UUID interestId) {
+    log.debug("관심사 삭제 요청 - interestId={}", interestId);
+    Interest interest = findInterestOrElseThrow(interestId);
+
+    interestRepository.delete(interest);
+
+    log.debug("관심사 삭제 성공 - interestId={}", interestId);
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {
