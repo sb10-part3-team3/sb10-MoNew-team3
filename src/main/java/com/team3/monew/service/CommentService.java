@@ -51,11 +51,6 @@ public class CommentService {
     newsArticleRepository.incrementCommentCountById(request.articleId());
 
     CommentDto commentDto = commentMapper.toDto(savedComment, false);
-    log.info(
-        "댓글 등록 완료: commentId={}, articleId={}",
-        savedComment.getId(),
-        request.articleId()
-    );
     log.debug(
         "댓글 등록 서비스 종료: articleId={}, userId={}, commentId={}",
         request.articleId(),
@@ -86,7 +81,6 @@ public class CommentService {
 
     comment.updateContent(request.content());
     CommentDto commentDto = commentMapper.toDto(comment, false);
-    log.info("댓글 수정 완료: commentId={}, requestUserId={}", commentId, requestUserId);
     log.debug("댓글 수정 서비스 종료: commentId={}, requestUserId={}", commentId, requestUserId);
     return commentDto;
   }
@@ -104,7 +98,7 @@ public class CommentService {
 
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
-    log.info("댓글 논리 삭제 완료: commentId={}", commentId);
+    log.debug("댓글 논리 삭제 완료: commentId={}", commentId);
   }
 
   @Transactional
@@ -123,7 +117,7 @@ public class CommentService {
         commentId
     );
     commentRepository.delete(comment);
-    log.info("댓글 물리 삭제 완료: commentId={}", commentId);
+    log.debug("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
   private NewsArticle findActiveArticle(UUID articleId) {
