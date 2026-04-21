@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface InterestKeywordRepository extends JpaRepository<InterestKeyword, UUID> {
 
-  List<InterestKeyword> findInterestKeywordsByInterestId(UUID interestId);
+  List<InterestKeyword> findAllByInterestId(UUID interestId);
 }

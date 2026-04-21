@@ -5,6 +5,7 @@ import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
+import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.service.InterestService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -21,6 +22,10 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -55,7 +60,7 @@ class InterestControllerTest {
         false
     );
 
-    given(interestService.create(any(InterestRegisterRequest.class)))
+    given(interestService.createInterest(any(InterestRegisterRequest.class)))
         .willReturn(response);
 
     // when & then
@@ -79,7 +84,7 @@ class InterestControllerTest {
         List.of("keyword", "test")
     );
 
-    given(interestService.create(any(InterestRegisterRequest.class)))
+    given(interestService.createInterest(any(InterestRegisterRequest.class)))
         .willThrow(new InterestDuplicateNameException());
 
     // when & then
@@ -193,5 +198,34 @@ class InterestControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(objMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사를 삭제할 수 있다")
+  void shouldDeleteInterest_whenDeleteRequest() throws Exception {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    doNothing().when(interestService).deleteInterest(interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}", interestId))
+        .andExpect(status().isNoContent());
+
+    then(interestService).should().deleteInterest(interestId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사를 삭제하면 404를 반환한다")
+  void shouldReturn404_whenInterestNotFound() throws Exception {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    doThrow(new InterestNotFoundException())
+        .when(interestService).deleteInterest(interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}", interestId))
+        .andExpect(status().isNotFound());
   }
 }

@@ -75,6 +75,22 @@ public interface InterestApi {
               mediaType = "application/json",
               schema = @Schema(implementation = InterestDto.class)
           )
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
       )
   })
   @PatchMapping("/{interestId}")
@@ -86,5 +102,40 @@ public interface InterestApi {
       @RequestHeader("Monew-Request-User-Id") UUID userId,
       @PathVariable UUID interestId,
       @RequestBody @Valid InterestUpdateRequest dto
+  );
+
+  @Operation(
+      summary = "관심사 삭제",
+      description = "관심사를 삭제합니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "204",
+          description = "삭제 성공"
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      )
+  })
+  @DeleteMapping("/{interestId}")
+  ResponseEntity<Void> delete(
+      @Parameter(
+          description = "삭제할 관심사 ID",
+          required = true
+      )
+      @PathVariable UUID interestId
   );
 }
