@@ -3,11 +3,15 @@ package com.team3.monew.service;
 import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserDto;
+import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
+import java.util.Optional;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -55,6 +59,23 @@ public class UserService {
     }
     log.debug("사용자 로그인 성공: userId={}, email={}", user.getId(), user.getEmail());
     return userMapper.toDto(user);
+  }
+
+  @Transactional
+  public UserDto updateUser(
+      UUID userId,
+      UserUpdateRequest userUpdateRequest
+  ) {
+    log.debug("사용자 수정 요청: userId={}",userId);
+    User findUser = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+
+    Optional.ofNullable(userUpdateRequest.nickname())
+        .ifPresent(findUser::updateNickname);
+    User updatedUser = userRepository.save(findUser);
+
+    log.debug("사용자 수정 성공: targetUserId={}, newNickname={},", userId, updatedUser.getNickname());
+    return userMapper.toDto(updatedUser);
   }
 
   private void validateDuplicateEmail(String email) {

@@ -1,6 +1,7 @@
 package com.team3.monew.entity;
 
 import com.team3.monew.entity.base.SoftDeleteEntity;
+import com.team3.monew.exception.user.InvalidNicknameException;
 import com.team3.monew.exception.user.InvalidPasswordException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -57,5 +58,12 @@ public class User extends SoftDeleteEntity {
             throw new InvalidPasswordException();
         }
         this.password = newPassword;
+    }
+
+    public void updateNickname(String nickname) {
+        if (nickname == null || nickname.isBlank() || nickname.length() < 2 || nickname.length() > 10) {
+            throw new InvalidNicknameException();
+        }
+        this.nickname = nickname;
     }
 }
