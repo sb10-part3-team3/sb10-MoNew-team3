@@ -22,6 +22,7 @@ import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.SubscriptionRepository.SubscriptionInfo;
 import com.team3.monew.service.NotificationService;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -179,5 +180,30 @@ class NotificationEventListenerTest {
                 list.stream().anyMatch(req -> req.interestName().equals("interest1")) &&
                 list.stream().anyMatch(req -> req.interestName().equals("interest2"))
         ));
+  }
+
+  @Test
+  @DisplayName("관심사 알림 등록 중 Entity 예외가 발생하면 리스너가 처리하고 예외를 외부로 전파하지 않는다.")
+  void shouldCatchAndHandleEntityNotFoundException_whenServiceThrowsIt() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    InterestArticleSummary summary1 = new InterestArticleSummary("interest1", 10);
+    Map<UUID, InterestArticleSummary> map = new HashMap<>();
+    map.put(interestId, summary1);
+    InterestNotificationEvent event = new InterestNotificationEvent(map);
+    TestSubscriptionInfo subscriptionInfo1 = new TestSubscriptionInfo(UUID.randomUUID(),
+        interestId);
+    given(
+        subscriptionRepository.findAllProjectedByInterestIdIn(eq(map.keySet()))).willReturn(
+        List.of(subscriptionInfo1));
+
+    // 서비스에서 댓글을 찾지 못함
+    willThrow(new EntityNotFoundException())
+        .given(notificationService)
+        .registerInterestNotification(anyList());
+
+    // when & then
+    assertDoesNotThrow(() -> notificationEventListener.handleInterestNotificationEvent(event));
+    then(notificationService).should().registerInterestNotification(any());
   }
 }

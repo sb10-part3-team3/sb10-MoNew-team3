@@ -10,6 +10,7 @@ import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.SubscriptionRepository.SubscriptionInfo;
 import com.team3.monew.service.NotificationService;
+import jakarta.persistence.EntityNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
@@ -85,10 +87,9 @@ public class NotificationEventListener {
       if (!requests.isEmpty()) {
         notificationService.registerInterestNotification(requests);
       }
-
-    } catch (BusinessException e) {
-      log.warn("알림 등록 취소: 관련 리소스를 찾을 수 없음: Message={}, Details={}"
-          , e.getMessage(), e.getDetails());
-    } //그 외는 비동기 예외
+    } catch (EntityNotFoundException | DataIntegrityViolationException e) {
+      //존재하지 않는 프록시 객체 저장 시도 또는 외래키 위반
+      log.warn("알림 등록 취소: 관련 리소스를 찾을 수 없음.(탈퇴 유저) message={}", e.getMessage());
+    } //그 외는 비동기 예외(재시도)
   }
 }
