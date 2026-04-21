@@ -14,6 +14,7 @@ public enum ErrorCode {
   COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 댓글입니다."),
   COMMENT_DELETED(HttpStatus.NOT_FOUND, "삭제된 댓글입니다."),
   COMMENT_UPDATE_FORBIDDEN(HttpStatus.FORBIDDEN, "댓글 수정 권한이 없습니다."),
+  COMMENT_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "댓글 삭제 권한이 없습니다."),
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
   USER_DELETED(HttpStatus.BAD_REQUEST, "삭제된 사용자입니다."),
 

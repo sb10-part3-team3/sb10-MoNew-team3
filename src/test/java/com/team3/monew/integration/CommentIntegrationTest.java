@@ -230,7 +230,8 @@ class CommentIntegrationTest {
     UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
 
     // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
+            .header(REQUEST_USER_ID_HEADER, user.getId()))
         .andExpect(status().isNoContent());
 
     entityManager.flush();
@@ -250,13 +251,47 @@ class CommentIntegrationTest {
   }
 
   @Test
+  @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 403 Forbidden으로 응답하고 댓글 상태를 변경하지 않는다.")
+  void shouldReturnForbidden_whenDeleteRequesterIsNotAuthor() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User author = saveUser();
+    User otherUser = saveUser();
+    UUID commentId = registerComment(article.getId(), author.getId(), "삭제할 댓글입니다.");
+
+    // when & then
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
+            .header(REQUEST_USER_ID_HEADER, otherUser.getId()))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("COMMENT_DELETE_FORBIDDEN"))
+        .andExpect(jsonPath("$.status").value(403))
+        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    Object[] commentState = entityManager.createQuery(
+            "select c.deleteStatus, c.deletedAt from Comment c where c.id = :commentId",
+            Object[].class
+        )
+        .setParameter("commentId", commentId)
+        .getSingleResult();
+    NewsArticle savedArticle = newsArticleRepository.findById(article.getId()).orElseThrow();
+
+    assertThat(commentState[0].toString()).isEqualTo("ACTIVE");
+    assertThat(commentState[1]).isNull();
+    assertThat(savedArticle.getCommentCount()).isEqualTo(1);
+  }
+
+  @Test
   @DisplayName("존재하지 않는 댓글을 삭제하면 404 Not Found로 응답한다.")
   void shouldReturnNotFound_whenDeleteCommentDoesNotExist() throws Exception {
     // given
     UUID commentId = UUID.randomUUID();
 
     // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
+            .header(REQUEST_USER_ID_HEADER, UUID.randomUUID()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
         .andExpect(jsonPath("$.status").value(404))
@@ -271,11 +306,13 @@ class CommentIntegrationTest {
     User user = saveUser();
     UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
 
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
+            .header(REQUEST_USER_ID_HEADER, user.getId()))
         .andExpect(status().isNoContent());
 
     // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
+            .header(REQUEST_USER_ID_HEADER, user.getId()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("COMMENT_DELETED"))
         .andExpect(jsonPath("$.status").value(404))

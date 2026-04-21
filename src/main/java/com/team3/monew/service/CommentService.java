@@ -11,6 +11,7 @@ import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
+import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
 import com.team3.monew.exception.comment.UnauthorizedCommentException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
@@ -86,8 +87,8 @@ public class CommentService {
   }
 
   @Transactional
-  public void deleteComment(UUID commentId) {
-    log.debug("댓글 논리 삭제 요청 처리 시작: commentId={}", commentId);
+  public void deleteComment(UUID commentId, UUID requestUserId) {
+    log.debug("댓글 논리 삭제 요청 처리 시작: commentId={}, requestUserId={}", commentId, requestUserId);
 
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
@@ -96,9 +97,18 @@ public class CommentService {
       throw new DeletedCommentException(commentId);
     }
 
+    UUID authorId = comment.getUser().getId();
+    if (comment.getUser().isDeleted()) {
+      throw new DeletedUserException(authorId);
+    }
+
+    if (!authorId.equals(requestUserId)) {
+      throw new UnauthorizedCommentDeleteException(commentId);
+    }
+
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
-    log.debug("댓글 논리 삭제 완료: commentId={}", commentId);
+    log.debug("댓글 논리 삭제 완료: commentId={}, requestUserId={}", commentId, requestUserId);
   }
 
   @Transactional
