@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Slf4j
@@ -31,7 +32,11 @@ public class NewsCollectService {
   private final NewsSaveService newsSaveService;
 
   @Scheduled(cron = "${app.cron.news-collections}")
-  public void executeNewsCollection() {
+  public void scheduleNewsJob() {
+    executeNewsCollection().subscribe();
+  }
+
+  public Mono<Void> executeNewsCollection() {
     AtomicLong startTime = new AtomicLong();
     startTime.set(System.currentTimeMillis());
     log.debug("뉴스 기사 수집 시작");
@@ -51,7 +56,7 @@ public class NewsCollectService {
     // 뉴스 수집하기위한 NewsSource
     List<NewsSource> sources = newsSourceRepository.findAll();
 
-    Flux.fromIterable(newsClients.values())
+    return Flux.fromIterable(newsClients.values())
         // 수집, 파싱, 필터까지 수행, NewsSources 개수만큼 동시성 수행
         .flatMap(client -> client.fetchAndProcess(keywords), newsClients.size())
         .flatMapIterable(list -> list)
@@ -63,7 +68,7 @@ public class NewsCollectService {
         .doOnSuccess(result ->
             log.info("뉴스 기사 수집 종료: {}ms", System.currentTimeMillis() - startTime.get()))
 //        .map(k -> 저장된 데이터 알람처리)
-        .subscribe();
+        .then();
   }
 
   private List<ParsedNewsArticle> deduplicateByLinkWithNaverPriority(List<ParsedNewsArticle> list) {

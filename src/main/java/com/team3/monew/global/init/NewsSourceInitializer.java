@@ -3,7 +3,6 @@ package com.team3.monew.global.init;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.NewsSourceRepository;
-import com.team3.monew.service.NewsCollectService;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -16,8 +15,6 @@ import org.springframework.stereotype.Component;
 public class NewsSourceInitializer implements CommandLineRunner {
 
   private final NewsSourceRepository newsSourceRepository;
-  // test용
-  private final NewsCollectService syncService;
 
   @Override
   public void run(String... args) throws Exception {
