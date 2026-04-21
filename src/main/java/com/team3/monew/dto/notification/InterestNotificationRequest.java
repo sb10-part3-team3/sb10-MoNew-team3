@@ -12,6 +12,6 @@ public record InterestNotificationRequest(
 ) {
 
   public InterestNotificationRequest {
-    subscriberIds = subscriberIds == null ? new ArrayList<UUID>() : List.copyOf(subscriberIds);
+    subscriberIds = subscriberIds == null ? List.of() : List.copyOf(subscriberIds);
   }
 }
