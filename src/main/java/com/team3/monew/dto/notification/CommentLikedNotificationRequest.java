@@ -1,4 +1,4 @@
-package com.team3.monew.dto.user.notification;
+package com.team3.monew.dto.notification;
 
 import java.util.UUID;
 
