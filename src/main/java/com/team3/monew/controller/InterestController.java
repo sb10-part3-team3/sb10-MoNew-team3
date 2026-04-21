@@ -23,7 +23,7 @@ public class InterestController implements InterestApi {
   public ResponseEntity<InterestDto> create(
       @Valid @RequestBody InterestRegisterRequest dto
   ) {
-    InterestDto response = interestService.create(dto);
+    InterestDto response = interestService.createInterest(dto);
 
     return ResponseEntity.status(HttpStatus.CREATED)
         .body(response);
@@ -38,5 +38,12 @@ public class InterestController implements InterestApi {
     InterestDto response = interestService.updateKeyword(userId, interestId, dto);
 
     return ResponseEntity.ok(response);
+  }
+
+  @Override
+  public ResponseEntity<Void> delete(UUID interestId) {
+    interestService.deleteInterest(interestId);
+
+    return ResponseEntity.noContent().build();
   }
 }
