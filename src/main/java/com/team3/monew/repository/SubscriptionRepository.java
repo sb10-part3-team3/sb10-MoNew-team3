@@ -1,13 +1,23 @@
 package com.team3.monew.repository;
 
 import com.team3.monew.entity.Subscription;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, UUID> {
 
   boolean existsByUserIdAndInterestId(UUID userId, UUID interestId);
+  public interface SubscriptionInfo {
+
+    UUID getUserId();
 
   List<Subscription> findAllByInterestId(UUID interestId);
+    UUID getInterestId();
+  }
+
+  @Query("select s.user.id as userId, s.interest.id as interestId from Subscription s where s.interest.id in :interestIds")
+  List<SubscriptionInfo> findAllProjectedByInterestIdIn(Collection<UUID> interestIds);
 }

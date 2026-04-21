@@ -1,6 +1,7 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.InterestNotificationRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
@@ -44,6 +45,11 @@ public class NotificationService {
     log.debug("좋아요 알림 엔터티 생성 성공");
     notificationRepository.save(notification);
     log.info("댓글 좋아요 알림 등록 완료: notificationId={}", notification.getId());
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void registerInterestNotification(InterestNotificationRequest request) {
+
   }
 
   private String generateCommentLikedContent(String actorUserNickname) {
