@@ -9,7 +9,7 @@ import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 
-import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.service.NotificationService;
 import java.util.UUID;

@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 
-import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;

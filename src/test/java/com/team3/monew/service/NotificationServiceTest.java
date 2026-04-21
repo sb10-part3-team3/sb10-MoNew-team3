@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
-import com.team3.monew.dto.user.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.Notification;
