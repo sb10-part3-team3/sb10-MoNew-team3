@@ -10,9 +10,13 @@ import static org.mockito.Mockito.verify;
 import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
+import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
+import com.team3.monew.exception.user.InvalidNicknameException;
+import com.team3.monew.exception.user.UserNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.UserMapper;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
@@ -156,6 +160,73 @@ class UserServiceTest {
     assertThat(result).isEqualTo(userDto);
     verify(userRepository).findByEmail(email);
     verify(passwordEncoder).matches(rawPassword, encodedPassword);
+    verify(userMapper).toDto(user);
+  }
+
+  @Test
+  @DisplayName("없는 userId로 수정하는 경우 UserNotFoundException을 던진다.")
+  void shouldThrowUserNotFoundException_whenNotFoundUser() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UserUpdateRequest request = new UserUpdateRequest("newUsername");
+
+    // empty 유저 반환
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> userService.updateUser(userId, request))
+        .isInstanceOf(UserNotFoundException.class);
+
+    verify(userRepository).findById(userId);
+    verify(userMapper, never()).toDto(any());
+  }
+
+
+  @Test
+  @DisplayName("닉네임이 10자를 초과하면 INVALID_NICKNAME 예외를 던진다.")
+  void shouldThrowInvalidNicknameException_whenNicknameLengthExceedsLimit() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    User user = User.create("email1@naver.com", "username1", "password1");
+    UserUpdateRequest request = new UserUpdateRequest("newUsername"); // 11자
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    // when & then
+    assertThatThrownBy(() -> userService.updateUser(userId, request))
+        .isInstanceOfSatisfying(InvalidNicknameException.class, e -> {
+          assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_NICKNAME);
+        });
+
+    verify(userRepository).findById(userId);
+    verify(userRepository, never()).save(any(User.class));
+    verify(userMapper, never()).toDto(any(User.class));
+  }
+
+  @Test
+  @DisplayName("유효한 요청 정보로 수정 시 dto 반환한다.")
+  void shouldUpdateUser_whenValidRequest() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    User user = User.create("email1@naver.com", "username1", "password1");
+    UserUpdateRequest request = new UserUpdateRequest("newname");
+    UserDto userDto = new UserDto(userId, "email1@naver.com", "newname", Instant.now());
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.save(user)).willReturn(user);
+    given(userMapper.toDto(user)).willReturn(userDto);
+
+    // when
+    UserDto result = userService.updateUser(userId, request);
+
+    // then
+    assertThat(user.getNickname()).isEqualTo("newname");
+    assertThat(result).isEqualTo(userDto);
+
+    verify(userRepository).findById(userId);
+    verify(userRepository).save(user);
     verify(userMapper).toDto(user);
   }
 }
