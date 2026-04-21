@@ -75,6 +75,22 @@ public interface InterestApi {
               mediaType = "application/json",
               schema = @Schema(implementation = InterestDto.class)
           )
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
       )
   })
   @PatchMapping("/{interestId}")
@@ -100,6 +116,14 @@ public interface InterestApi {
       @ApiResponse(
           responseCode = "404",
           description = "해당 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
           content = @Content(
               mediaType = "application/json",
               schema = @Schema(implementation = ErrorResponse.class)
