@@ -12,6 +12,7 @@ import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,10 +51,28 @@ public class NotificationService {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void registerInterestNotification(List<InterestNotificationRequest> requests) {
-
+    log.debug("관심사 뉴스 알림 벌크 등록 시작: 요청 관심사 개수={}", requests.size());
+    List<Notification> notifications = new ArrayList<>();
+    requests.forEach(request -> {
+      log.debug("관심사 뉴스 알림 생성 시작: interestId={}", request.interestId());
+      request.subscriberIds().forEach(subscriberId -> {
+        User user = userRepository.getReferenceById(subscriberId);
+        String content = generateInterestNotificationContent(request.interestName(),
+            request.articleCount());
+        notifications.add(Notification.create(user, content, NotificationResourceType.INTEREST,
+            request.interestId(), null));
+      });
+      log.debug("관심사 뉴스 알림 생성 완료: interestId={}", request.interestId());
+    });
+    notificationRepository.saveAll(notifications);
+    log.info("관심사 뉴스 알림 벌크 등록 성공: 등록 개수={}", notifications.size());
   }
 
   private String generateCommentLikedContent(String actorUserNickname) {
     return actorUserNickname + "님이 나의 댓글을 좋아합니다.";
+  }
+
+  private String generateInterestNotificationContent(String interestName, Integer articleCount) {
+    return interestName + "와 관련된 기사가 " + articleCount + "건 등록되었습니다.";
   }
 }
