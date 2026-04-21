@@ -6,7 +6,6 @@ import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.InterestNotificationEvent;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
-import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.SubscriptionRepository.SubscriptionInfo;
 import com.team3.monew.service.NotificationService;

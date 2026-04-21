@@ -9,11 +9,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
-import com.team3.monew.dto.notification.InterestNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.InterestNotificationEvent;
 import com.team3.monew.event.InterestNotificationEvent.InterestArticleSummary;
