@@ -1,6 +1,7 @@
 package com.team3.monew.config;
 
 import java.util.Arrays;
+import java.util.concurrent.ThreadPoolExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +42,8 @@ public class AsyncConfig implements AsyncConfigurer {
     executor.setThreadNamePrefix("batch-noti-task-");//스레드 이름
     executor.setWaitForTasksToCompleteOnShutdown(true); // 진행 중인 작업 완료 후 종료
     executor.setAwaitTerminationSeconds(100);           // 최대 대기 시간 설정
+    executor.setRejectedExecutionHandler(
+        new ThreadPoolExecutor.CallerRunsPolicy());//큐가 가득찾을 때 메인 스레드 사용
     executor.initialize();
     return executor;
   }
