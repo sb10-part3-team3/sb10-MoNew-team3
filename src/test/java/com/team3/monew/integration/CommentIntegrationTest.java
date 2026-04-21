@@ -227,7 +227,7 @@ class CommentIntegrationTest {
     // given
     NewsArticle article = saveArticle();
     User user = saveUser();
-    UUID commentId = registerComment(article.getId(), user.getId(), "?볤? ?댁슜?낅땲??");
+    UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
 
     // when & then
     mockMvc.perform(delete("/api/comments/{commentId}", commentId))
@@ -269,7 +269,7 @@ class CommentIntegrationTest {
     // given
     NewsArticle article = saveArticle();
     User user = saveUser();
-    UUID commentId = registerComment(article.getId(), user.getId(), "?볤? ?댁슜?낅땲??");
+    UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
 
     mockMvc.perform(delete("/api/comments/{commentId}", commentId))
         .andExpect(status().isNoContent());
@@ -289,7 +289,7 @@ class CommentIntegrationTest {
     NewsArticle article = saveArticle();
     User writer = saveUser();
     User actor = saveUser();
-    UUID commentId = registerComment(article.getId(), writer.getId(), "?볤? ?댁슜?낅땲??");
+    UUID commentId = registerComment(article.getId(), writer.getId(), "삭제할 댓글입니다.");
 
     Comment commentReference = entityManager.getReference(Comment.class, commentId);
     User actorReference = entityManager.getReference(User.class, actor.getId());
@@ -384,7 +384,7 @@ class CommentIntegrationTest {
     UUID id = UUID.randomUUID();
     User user = User.create(
         "user-" + id + "@example.com",
-        "테스터",
+        "테스트",
         "encoded-password"
     );
 
