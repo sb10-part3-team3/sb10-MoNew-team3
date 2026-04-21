@@ -10,6 +10,7 @@ import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.SubscriptionRepository.SubscriptionInfo;
 import com.team3.monew.service.NotificationService;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,6 +71,7 @@ public class NotificationEventListener {
       Map<UUID, List<SubscriptionInfo>> subscribers = subscriptionRepository.findAllProjectedByInterestIdIn(
               keySet).stream()
           .collect(Collectors.groupingBy(SubscriptionInfo::getInterestId));
+      List<InterestNotificationRequest> requests = new ArrayList<>();
 
       event.interestArticleSummaryMap().forEach((key, value) -> {
         List<UUID> ids = subscribers.getOrDefault(key, List.of()).stream()
@@ -77,15 +79,12 @@ public class NotificationEventListener {
         if (ids.isEmpty()) {
           return;
         }
-        notificationService.registerInterestNotification(
-            new InterestNotificationRequest(
-                key,
-                value.interestName(),
-                value.articleCount(),
-                ids
-            )
-        );
+        requests.add(
+            new InterestNotificationRequest(key, value.interestName(), value.articleCount(), ids));
       });
+      if (!requests.isEmpty()) {
+        notificationService.registerInterestNotification(requests);
+      }
 
     } catch (BusinessException e) {
       log.warn("알림 등록 취소: 관련 리소스를 찾을 수 없음: Message={}, Details={}"

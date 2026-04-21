@@ -12,6 +12,7 @@ import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,7 +49,7 @@ public class NotificationService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void registerInterestNotification(InterestNotificationRequest request) {
+  public void registerInterestNotification(List<InterestNotificationRequest> requests) {
 
   }
 

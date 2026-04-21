@@ -3,6 +3,7 @@ package com.team3.monew.listener;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -172,13 +173,11 @@ class NotificationEventListenerTest {
     notificationEventListener.handleInterestNotificationEvent(event);
 
     // then
-    then(notificationService).should(times(2)) //구독자가 있는 2개의 관심사에 대해 알림 생성
-        .registerInterestNotification(any(InterestNotificationRequest.class));
-    then(notificationService).should()
-        .registerInterestNotification(argThat(req -> req.interestName().equals("interest1")));
-    then(notificationService).should()
-        .registerInterestNotification(argThat(req -> req.interestName().equals("interest2")));
-    then(notificationService).should(never())
-        .registerInterestNotification(argThat(req -> req.interestName().equals("interest3")));
+    then(notificationService).should(times(1))
+        .registerInterestNotification(argThat(list ->
+            list.size() == 2 && // 구독자가 있는 2개만
+                list.stream().anyMatch(req -> req.interestName().equals("interest1")) &&
+                list.stream().anyMatch(req -> req.interestName().equals("interest2"))
+        ));
   }
 }

@@ -3,6 +3,7 @@ package com.team3.monew.listener;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willAnswer;
@@ -11,7 +12,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 
 import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
-import com.team3.monew.dto.notification.InterestNotificationRequest;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.InterestNotificationEvent;
 import com.team3.monew.event.InterestNotificationEvent.InterestArticleSummary;
@@ -162,7 +162,7 @@ public class NotificationEventListenerIntegrationTest {
     then(notificationEventListener).should(after(1000).never())
         .handleInterestNotificationEvent(event);
     then(notificationService).should(never())
-        .registerInterestNotification(any(InterestNotificationRequest.class));
+        .registerInterestNotification(anyList());
   }
 
   @Test
