@@ -34,7 +34,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,6 +73,7 @@ class CommentServiceTest {
 
     private UUID articleId;
     private UUID userId;
+    private UUID requestUserId;
     private UUID commentId;
     private String content;
     private String updatedContent;
@@ -83,6 +86,7 @@ class CommentServiceTest {
     void setUp() {
         articleId = UUID.randomUUID();
         userId = UUID.randomUUID();
+        requestUserId = UUID.randomUUID();
         commentId = UUID.randomUUID();
         content = "댓글 내용입니다.";
         updatedContent = "수정된 댓글 내용입니다.";
@@ -440,6 +444,93 @@ class CommentServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("댓글 조회 기능을 검증한다.")
+    class FindAllComment {
+
+        @Test
+        @DisplayName("댓글 목록을 조회하면 페이지 응답과 요청자의 좋아요 여부를 반환한다.")
+        void shouldFindCommentsWithLikedByMe_whenRequestIsValid() {
+            // given
+            int limit = 2;
+            Comment firstComment = createComment("첫 번째 댓글입니다.", "2026-04-17T00:00:03Z", 7);
+            Comment secondComment = createComment("두 번째 댓글입니다.", "2026-04-17T00:00:02Z", 5);
+            Comment thirdComment = createComment("세 번째 댓글입니다.", "2026-04-17T00:00:01Z", 3);
+            List<Comment> pageComments = List.of(firstComment, secondComment);
+            CommentDto firstDto = givenCommentDto(firstComment, false);
+            CommentDto secondDto = givenCommentDto(secondComment, true);
+
+            givenActiveComments("likeCount", "DESC", null, null, limit,
+                    List.of(firstComment, secondComment, thirdComment), 3L);
+            givenLikedComments(pageComments, Set.of(secondComment.getId()));
+
+            // when
+            var actual = commentService.findAll(articleId, "likeCount", "DESC", null, null, limit, requestUserId);
+
+            // then
+            assertThat(actual.content()).containsExactly(firstDto, secondDto);
+            assertThat(actual.nextCursor()).isEqualTo(String.valueOf(secondComment.getLikeCount()));
+            assertThat(actual.nextAfter()).isEqualTo(secondComment.getCreatedAt());
+            assertThat(actual.size()).isEqualTo(limit);
+            assertThat(actual.totalElements()).isEqualTo(3L);
+            assertThat(actual.hasNext()).isTrue();
+            thenCommentSearchRequested("likeCount", "DESC", null, null, limit);
+            thenLikedCommentsRequested(pageComments);
+        }
+
+        @Test
+        @DisplayName("조회 결과가 없으면 빈 페이지 응답을 반환한다.")
+        void shouldReturnEmptyPage_whenCommentsDoNotExist() {
+            // given
+            int limit = 10;
+            givenActiveComments("createdAt", "DESC", null, null, limit, List.of(), 0L);
+
+            // when
+            var actual = commentService.findAll(articleId, "createdAt", "DESC", null, null, limit, requestUserId);
+
+            // then
+            assertThat(actual.content()).isEmpty();
+            assertThat(actual.nextCursor()).isNull();
+            assertThat(actual.nextAfter()).isNull();
+            assertThat(actual.size()).isZero();
+            assertThat(actual.totalElements()).isZero();
+            assertThat(actual.hasNext()).isFalse();
+            thenCommentSearchRequested("createdAt", "DESC", null, null, limit);
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("커서가 있으면 다음 페이지 댓글 목록을 조회한다.")
+        void shouldFindNextPageComments_whenCursorExists() {
+            // given
+            int limit = 1;
+            String cursor = "5";
+            Instant after = Instant.parse("2026-04-17T00:00:02Z");
+            Comment nextComment = createComment("다음 페이지 댓글입니다.", "2026-04-17T00:00:01Z", 4);
+            Comment lookAheadComment = createComment("다음 페이지 존재 확인용 댓글입니다.", "2026-04-17T00:00:00Z", 2);
+            List<Comment> pageComments = List.of(nextComment);
+            CommentDto nextDto = givenCommentDto(nextComment, false);
+
+            givenActiveComments("likeCount", "DESC", cursor, after, limit,
+                    List.of(nextComment, lookAheadComment), 4L);
+            givenLikedComments(pageComments, Set.of());
+
+            // when
+            var actual = commentService.findAll(articleId, "likeCount", "DESC", cursor, after, limit, requestUserId);
+
+            // then
+            assertThat(actual.content()).containsExactly(nextDto);
+            assertThat(actual.nextCursor()).isEqualTo(String.valueOf(nextComment.getLikeCount()));
+            assertThat(actual.nextAfter()).isEqualTo(nextComment.getCreatedAt());
+            assertThat(actual.size()).isEqualTo(limit);
+            assertThat(actual.totalElements()).isEqualTo(4L);
+            assertThat(actual.hasNext()).isTrue();
+            thenCommentSearchRequested("likeCount", "DESC", cursor, after, limit);
+            thenLikedCommentsRequested(pageComments);
+        }
+    }
+
     private void assignId(Object entity, UUID id) {
         ReflectionTestUtils.setField(entity, "id", id);
     }
@@ -447,5 +538,45 @@ class CommentServiceTest {
     private void markDeleted(Object entity) {
         ReflectionTestUtils.setField(entity, "deleteStatus", DeleteStatus.DELETED);
         ReflectionTestUtils.setField(entity, "deletedAt", Instant.parse("2026-04-17T00:00:00Z"));
+    }
+
+    private void givenActiveComments(String orderBy, String direction, String cursor, Instant after,
+                                     int limit, List<Comment> comments, long totalElements) {
+        given(commentRepository.findActiveComments(articleId, orderBy, direction, cursor, after, limit + 1))
+                .willReturn(comments);
+        given(commentRepository.countActiveComments(articleId)).willReturn(totalElements);
+    }
+
+    private void givenLikedComments(List<Comment> comments, Set<UUID> likedCommentIds) {
+        given(commentLikeRepository.findLikedCommentIds(requestUserId, commentIdsOf(comments)))
+                .willReturn(likedCommentIds);
+    }
+
+    private CommentDto givenCommentDto(Comment comment, boolean likedByMe) {
+        CommentDto dto = new CommentDto(comment.getId(), articleId, userId, user.getNickname(),
+                comment.getContent(), (long) comment.getLikeCount(), likedByMe, comment.getCreatedAt());
+        given(commentMapper.toDto(comment, likedByMe)).willReturn(dto);
+        return dto;
+    }
+
+    private void thenCommentSearchRequested(String orderBy, String direction, String cursor, Instant after, int limit) {
+        then(commentRepository).should()
+                .findActiveComments(articleId, orderBy, direction, cursor, after, limit + 1);
+    }
+
+    private void thenLikedCommentsRequested(List<Comment> comments) {
+        then(commentLikeRepository).should().findLikedCommentIds(requestUserId, commentIdsOf(comments));
+    }
+
+    private List<UUID> commentIdsOf(List<Comment> comments) {
+        return comments.stream().map(Comment::getId).toList();
+    }
+
+    private Comment createComment(String content, String createdAt, int likeCount) {
+        Comment comment = Comment.create(article, user, content);
+        assignId(comment, UUID.randomUUID());
+        ReflectionTestUtils.setField(comment, "createdAt", Instant.parse(createdAt));
+        ReflectionTestUtils.setField(comment, "likeCount", likeCount);
+        return comment;
     }
 }
