@@ -7,7 +7,7 @@ import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
 import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
-import com.team3.monew.exception.comment.UnauthorizedCommentException;
+import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.CommentService;
 import java.time.Instant;
@@ -355,7 +355,7 @@ class CommentControllerTest {
           eq(commentId),
           eq(userId),
           any(CommentUpdateRequest.class)
-      )).willThrow(new UnauthorizedCommentException(commentId));
+      )).willThrow(new UnauthorizedCommentUpdateException(commentId));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)

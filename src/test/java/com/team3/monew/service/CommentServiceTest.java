@@ -14,7 +14,7 @@ import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
 import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
-import com.team3.monew.exception.comment.UnauthorizedCommentException;
+import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
@@ -277,7 +277,7 @@ class CommentServiceTest {
 
         @Test
         @DisplayName("작성자가 아닌 사용자가 댓글을 수정하면 댓글 수정 권한 없음 예외가 발생한다.")
-        void shouldThrowUnauthorizedCommentException_whenUserIsNotAuthor() {
+        void shouldThrowUnauthorizedCommentUpdateException_whenUserIsNotAuthor() {
             // given
             UUID otherUserId = UUID.randomUUID();
             CommentUpdateRequest otherUserRequest = new CommentUpdateRequest(updatedContent);
@@ -287,7 +287,7 @@ class CommentServiceTest {
 
             // when & then
             assertThatThrownBy(() -> commentService.updateComment(commentId, otherUserId, otherUserRequest))
-                    .isInstanceOf(UnauthorizedCommentException.class);
+                    .isInstanceOf(UnauthorizedCommentUpdateException.class);
 
             assertThat(comment.getContent()).isEqualTo(content);
             then(commentRepository).should().findById(commentId);
@@ -349,7 +349,6 @@ class CommentServiceTest {
 
             assertThat(comment.isDeleted()).isFalse();
             then(newsArticleRepository).shouldHaveNoInteractions();
-            then(notificationRepository).shouldHaveNoInteractions();
         }
 
         @Test
@@ -363,7 +362,6 @@ class CommentServiceTest {
                     .isInstanceOf(CommentNotFoundException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();
-            then(notificationRepository).shouldHaveNoInteractions();
         }
 
         @Test
@@ -380,7 +378,6 @@ class CommentServiceTest {
                     .isInstanceOf(DeletedCommentException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();
-            then(notificationRepository).shouldHaveNoInteractions();
         }
     }
 

@@ -18,6 +18,7 @@ import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.repository.NewsArticleRepository;
@@ -245,7 +246,7 @@ class CommentIntegrationTest {
         .getSingleResult();
     NewsArticle savedArticle = newsArticleRepository.findById(article.getId()).orElseThrow();
 
-    assertThat(deletedCommentState[0].toString()).isEqualTo("DELETED");
+    assertThat(deletedCommentState[0]).isEqualTo(DeleteStatus.DELETED);
     assertThat(deletedCommentState[1]).isNotNull();
     assertThat(savedArticle.getCommentCount()).isEqualTo(0);
   }
@@ -278,7 +279,7 @@ class CommentIntegrationTest {
         .getSingleResult();
     NewsArticle savedArticle = newsArticleRepository.findById(article.getId()).orElseThrow();
 
-    assertThat(commentState[0].toString()).isEqualTo("ACTIVE");
+    assertThat(commentState[0]).isEqualTo(DeleteStatus.ACTIVE);
     assertThat(commentState[1]).isNull();
     assertThat(savedArticle.getCommentCount()).isEqualTo(1);
   }
