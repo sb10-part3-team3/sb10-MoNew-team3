@@ -8,16 +8,20 @@ import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
+import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
-import com.team3.monew.exception.comment.UnauthorizedCommentException;
+import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
+import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.CommentMapper;
+import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
+import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -51,10 +55,16 @@ class CommentServiceTest {
     private CommentRepository commentRepository;
 
     @Mock
+    private CommentLikeRepository commentLikeRepository;
+
+    @Mock
     private CommentMapper commentMapper;
 
     @Mock
     private NewsArticleRepository newsArticleRepository;
+
+    @Mock
+    private NotificationRepository notificationRepository;
 
     @InjectMocks
     private CommentService commentService;
@@ -267,7 +277,7 @@ class CommentServiceTest {
 
         @Test
         @DisplayName("작성자가 아닌 사용자가 댓글을 수정하면 댓글 수정 권한 없음 예외가 발생한다.")
-        void shouldThrowUnauthorizedCommentException_whenUserIsNotAuthor() {
+        void shouldThrowUnauthorizedCommentUpdateException_whenUserIsNotAuthor() {
             // given
             UUID otherUserId = UUID.randomUUID();
             CommentUpdateRequest otherUserRequest = new CommentUpdateRequest(updatedContent);
@@ -277,7 +287,7 @@ class CommentServiceTest {
 
             // when & then
             assertThatThrownBy(() -> commentService.updateComment(commentId, otherUserId, otherUserRequest))
-                    .isInstanceOf(UnauthorizedCommentException.class);
+                    .isInstanceOf(UnauthorizedCommentUpdateException.class);
 
             assertThat(comment.getContent()).isEqualTo(content);
             then(commentRepository).should().findById(commentId);
@@ -300,6 +310,133 @@ class CommentServiceTest {
             assertThat(comment.getContent()).isEqualTo(content);
             then(commentRepository).should().findById(commentId);
             then(commentMapper).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("댓글 삭제 기능을 검증한다.")
+    class DeleteComment {
+
+        @Test
+        @DisplayName("존재하는 댓글을 삭제하면 댓글이 삭제 상태로 변경되고 기사 댓글 수가 감소한다.")
+        void shouldDeleteComment_whenCommentExists() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when
+            commentService.deleteComment(commentId, userId);
+
+            // then
+            assertThat(comment.isDeleted()).isTrue();
+            assertThat(comment.getDeletedAt()).isNotNull();
+            then(newsArticleRepository).should().decrementCommentCountById(articleId);
+        }
+
+        @Test
+        @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 댓글 삭제 권한 없음 예외가 발생한다.")
+        void shouldThrowUnauthorizedCommentDeleteException_whenUserIsNotAuthor() {
+            // given
+            UUID otherUserId = UUID.randomUUID();
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.deleteComment(commentId, otherUserId))
+                    .isInstanceOf(UnauthorizedCommentDeleteException.class);
+
+            assertThat(comment.isDeleted()).isFalse();
+            then(newsArticleRepository).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 댓글을 삭제하면 댓글 없음 예외가 발생한다.")
+        void shouldThrowCommentNotFoundException_whenDeleteCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.deleteComment(commentId, userId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("이미 삭제된 댓글을 삭제하면 삭제된 댓글 예외가 발생한다.")
+        void shouldThrowDeletedCommentException_whenDeleteCommentIsAlreadyDeleted() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.deleteComment(commentId, userId))
+                    .isInstanceOf(DeletedCommentException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("댓글 물리 삭제 기능을 검증한다.")
+    class HardDeleteComment {
+
+        @Test
+        @DisplayName("활성 댓글을 물리 삭제하면 관련 데이터가 삭제되고 기사 댓글 수가 감소한다.")
+        void shouldHardDeleteCommentAndDecreaseCommentCount_whenActiveCommentExists() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when
+            commentService.hardDeleteComment(commentId);
+
+            // then
+            then(newsArticleRepository).should().decrementCommentCountById(articleId);
+            then(commentLikeRepository).should().deleteByCommentId(commentId);
+            then(notificationRepository).should()
+                    .deleteByResourceTypeAndResourceId(NotificationResourceType.COMMENT, commentId);
+            then(commentRepository).should().delete(comment);
+        }
+
+        @Test
+        @DisplayName("이미 삭제된 댓글을 물리 삭제하면 기사 댓글 수 감소 없이 관련 데이터만 삭제한다.")
+        void shouldHardDeleteCommentWithoutDecreasingCommentCount_whenDeletedCommentExists() {
+            // given
+            Comment comment = Comment.create(article, user, content);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when
+            commentService.hardDeleteComment(commentId);
+
+            // then
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).should().deleteByCommentId(commentId);
+            then(notificationRepository).should()
+                    .deleteByResourceTypeAndResourceId(NotificationResourceType.COMMENT, commentId);
+            then(commentRepository).should().delete(comment);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 댓글을 물리 삭제하면 댓글 없음 예외가 발생한다.")
+        void shouldThrowCommentNotFoundException_whenHardDeleteCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.hardDeleteComment(commentId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(notificationRepository).shouldHaveNoInteractions();
         }
     }
 

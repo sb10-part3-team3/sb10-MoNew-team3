@@ -10,6 +10,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,5 +43,22 @@ public class CommentController implements CommentApi {
     return ResponseEntity.ok(
         commentService.updateComment(commentId, requestUserId, commentUpdateRequest)
     );
+  }
+
+  @DeleteMapping("/{commentId}")
+  public ResponseEntity<Void> deleteComment(
+      @PathVariable("commentId") UUID commentId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+  ) {
+    commentService.deleteComment(commentId, requestUserId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @DeleteMapping("/{commentId}/hard")
+  public ResponseEntity<Void> hardDeleteComment(
+      @PathVariable("commentId") UUID commentId
+  ) {
+    commentService.hardDeleteComment(commentId);
+    return ResponseEntity.noContent().build();
   }
 }
