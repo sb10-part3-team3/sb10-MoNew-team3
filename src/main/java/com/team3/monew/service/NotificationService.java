@@ -1,6 +1,8 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
+import com.team3.monew.dto.notification.CursorPageResponseNotificationDto;
+import com.team3.monew.dto.notification.CursorPageResponseNotificationDto.NotificationDto;
 import com.team3.monew.dto.notification.InterestNotificationRequest;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.Notification;
@@ -12,8 +14,11 @@ import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 
+import java.awt.print.Pageable;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,6 +71,12 @@ public class NotificationService {
     });
     notificationRepository.saveAll(notifications);
     log.info("관심사 뉴스 알림 벌크 등록 성공: 등록 개수={}", notifications.size());
+  }
+
+  @Transactional(readOnly = true)
+  public CursorPageResponseNotificationDto findAllNotConfirmed(UUID requestUserId,
+      Instant cursor, UUID after, Integer limit) {
+    return null;
   }
 
   private String generateCommentLikedContent(String actorUserNickname) {
