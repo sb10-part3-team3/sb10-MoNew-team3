@@ -596,7 +596,6 @@ class CommentControllerTest {
       given(commentService.findAll(
           articleId,
           "createdAt",
-          "DESC",
           null,
           null,
           limit,
@@ -608,7 +607,6 @@ class CommentControllerTest {
               .header(REQUEST_USER_ID_HEADER, userId)
               .param("articleId", articleId.toString())
               .param("orderBy", "createdAt")
-              .param("direction", "DESC")
               .param("limit", String.valueOf(limit)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.content[0].id").value(firstCommentId.toString()))
@@ -621,7 +619,7 @@ class CommentControllerTest {
           .andExpect(jsonPath("$.totalElements").value(3))
           .andExpect(jsonPath("$.hasNext").value(true));
 
-      then(commentService).should().findAll(articleId, "createdAt", "DESC", null, null, limit, userId);
+      then(commentService).should().findAll(articleId, "createdAt", null, null, limit, userId);
       then(commentService).shouldHaveNoMoreInteractions();
     }
 
@@ -635,7 +633,6 @@ class CommentControllerTest {
       mockMvc.perform(get("/api/comments")
               .param("articleId", articleId.toString())
               .param("orderBy", "createdAt")
-              .param("direction", "DESC")
               .param("limit", "10"))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
@@ -644,5 +641,6 @@ class CommentControllerTest {
 
       then(commentService).shouldHaveNoInteractions();
     }
+
   }
 }

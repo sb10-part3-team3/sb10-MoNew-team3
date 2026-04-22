@@ -68,16 +68,15 @@ public class CommentController implements CommentApi {
 
   @GetMapping
   public ResponseEntity<CursorPageResponseCommentDto> findAllComments(
-      @RequestParam(required = false) UUID articleId,
+      @RequestParam UUID articleId,
       @RequestParam String orderBy,
-      @RequestParam String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam int limit,
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   ) {
     return ResponseEntity.ok(
-        commentService.findAll(articleId, orderBy, direction, cursor, after, limit, requestUserId)
+        commentService.findAll(articleId, orderBy, cursor, after, limit, requestUserId)
     );
   }
 }

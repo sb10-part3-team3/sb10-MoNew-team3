@@ -5,12 +5,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> {
 
   void deleteByCommentId(UUID commentId);
 
-  default Set<UUID> findLikedCommentIds(UUID userId, List<UUID> commentIds) {
-    throw new UnsupportedOperationException("댓글 좋아요 여부 조회 쿼리는 아직 구현되지 않았습니다.");
-  }
+  @Query("""
+      select commentLike.comment.id
+      from CommentLike commentLike
+      where commentLike.user.id = :userId
+        and commentLike.comment.id in :commentIds
+      """)
+  Set<UUID> findLikedCommentIds(
+      @Param("userId") UUID userId,
+      @Param("commentIds") List<UUID> commentIds
+  );
 }

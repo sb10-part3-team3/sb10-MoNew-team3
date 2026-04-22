@@ -17,6 +17,8 @@ import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
+import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.CommentMapper;
 import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
@@ -25,6 +27,7 @@ import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +40,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CommentService {
+
+  private static final String ORDER_BY_LIKE_COUNT = "likeCount";
+  private static final String CURSOR_DELIMITER = "|";
 
   private final UserRepository userRepository;
   private final CommentRepository commentRepository;
@@ -118,12 +124,13 @@ public class CommentService {
     log.debug("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
-  public CursorPageResponseCommentDto findAll(UUID articleId, String orderBy, String direction,
-      String cursor, Instant after, int limit, UUID requestUserId) {
+  public CursorPageResponseCommentDto findAll(UUID articleId, String orderBy, String cursor,
+      Instant after, int limit, UUID requestUserId) {
     log.debug("댓글 목록 조회 요청 처리 시작: articleId={}, requestUserId={}", articleId, requestUserId);
+    validateLimit(limit);
 
     List<Comment> comments = commentRepository.findActiveComments(
-        articleId, orderBy, direction, cursor, after, limit + 1);
+        articleId, orderBy, cursor, after, limit + 1);
     long totalElements = commentRepository.countActiveComments(articleId);
     boolean hasNext = comments.size() > limit;
     List<Comment> pageComments = hasNext ? comments.subList(0, limit) : comments;
@@ -205,9 +212,22 @@ public class CommentService {
   }
 
   private String resolveNextCursor(Comment comment, String orderBy) {
-    if ("likeCount".equals(orderBy)) {
-      return String.valueOf(comment.getLikeCount());
+    if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
+      return String.join(
+          CURSOR_DELIMITER,
+          String.valueOf(comment.getLikeCount()),
+          comment.getCreatedAt().toString()
+      );
     }
     return comment.getCreatedAt().toString();
+  }
+
+  private void validateLimit(int limit) {
+    if (limit < 1) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT_VALUE,
+          Map.of("limit", String.valueOf(limit))
+      );
+    }
   }
 }

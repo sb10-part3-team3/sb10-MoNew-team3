@@ -77,9 +77,8 @@ public interface CommentApi {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<CursorPageResponseCommentDto> findAllComments(
-      @RequestParam(required = false) UUID articleId,
+      @RequestParam UUID articleId,
       @RequestParam String orderBy,
-      @RequestParam String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam int limit,

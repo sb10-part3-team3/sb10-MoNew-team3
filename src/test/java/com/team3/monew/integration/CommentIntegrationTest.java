@@ -422,7 +422,6 @@ class CommentIntegrationTest {
             .header(REQUEST_USER_ID_HEADER, requestUser.getId())
             .param("articleId", article.getId().toString())
             .param("orderBy", "createdAt")
-            .param("direction", "DESC")
             .param("limit", "10"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content[0].id").value(first.getId().toString()))
@@ -443,27 +442,39 @@ class CommentIntegrationTest {
     NewsArticle article = saveArticle();
     User writer = saveUser();
     User requestUser = saveUser();
-    Instant secondCreatedAt = Instant.parse("2026-04-17T00:00:02Z");
 
-    saveComment(article, writer, "첫 번째 댓글입니다.",
+    Comment first = saveComment(article, writer, "첫 번째 댓글입니다.",
         Instant.parse("2026-04-17T00:00:03Z"), 10);
-    saveComment(article, writer, "두 번째 댓글입니다.", secondCreatedAt, 7);
+    Comment second = saveComment(article, writer, "두 번째 댓글입니다.",
+        Instant.parse("2026-04-17T00:00:02Z"), 7);
     Comment third = saveComment(article, writer, "세 번째 댓글입니다.",
-        Instant.parse("2026-04-17T00:00:01Z"), 3);
+        Instant.parse("2026-04-17T00:00:01Z"), 7);
+
+    JsonNode firstPage = objectMapper.readTree(mockMvc.perform(get("/api/comments")
+            .header(REQUEST_USER_ID_HEADER, requestUser.getId())
+            .param("articleId", article.getId().toString())
+            .param("orderBy", "likeCount")
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value(first.getId().toString()))
+        .andExpect(jsonPath("$.content[1].id").value(second.getId().toString()))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andReturn()
+        .getResponse()
+        .getContentAsString());
+    String nextCursor = firstPage.get("nextCursor").asText();
 
     // when & then
     mockMvc.perform(get("/api/comments")
             .header(REQUEST_USER_ID_HEADER, requestUser.getId())
             .param("articleId", article.getId().toString())
             .param("orderBy", "likeCount")
-            .param("direction", "DESC")
-            .param("cursor", "7")
-            .param("after", secondCreatedAt.toString())
+            .param("cursor", nextCursor)
             .param("limit", "2"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content[0].id").value(third.getId().toString()))
         .andExpect(jsonPath("$.content[0].content").value("세 번째 댓글입니다."))
-        .andExpect(jsonPath("$.content[0].likeCount").value(3))
+        .andExpect(jsonPath("$.content[0].likeCount").value(7))
         .andExpect(jsonPath("$.size").value(1))
         .andExpect(jsonPath("$.totalElements").value(3))
         .andExpect(jsonPath("$.hasNext").value(false));
