@@ -1,5 +1,6 @@
 package com.team3.monew.controller.api;
 
+import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -137,5 +139,43 @@ public interface InterestApi {
           required = true
       )
       @PathVariable UUID interestId
+  );
+
+  @GetMapping
+  @Operation(
+      summary = "관심사 목록 조회",
+      description = "관심사를 검색하고 정렬 및 커서 기반 페이지네이션으로 조회합니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "조회 성공",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = CursorPageResponseInterestDto.class)
+          )
+      )
+  })
+  ResponseEntity<CursorPageResponseInterestDto> findAll(
+      @Parameter(description = "요청 사용자 ID", required = true)
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+
+      @Parameter(description = "검색어 (관심사 이름 또는 키워드)")
+      @RequestParam(value = "keyword", required = false) String keyword,
+
+      @Parameter(description = "정렬 기준 (name, subscriberCount)")
+      @RequestParam(value = "orderBy", defaultValue = "name") String orderBy,
+
+      @Parameter(description = "정렬 방향 (ASC, DESC)")
+      @RequestParam(value = "direction", defaultValue = "ASC") String direction,
+
+      @Parameter(description = "다음 페이지 커서 값")
+      @RequestParam(value = "cursor", required = false) String cursor,
+
+      @Parameter(description = "다음 페이지 기준 시간")
+      @RequestParam(value = "after", required = false) Instant after,
+
+      @Parameter(description = "페이지 크기", example = "10")
+      @RequestParam(value = "limit", defaultValue = "10") int limit
   );
 }
