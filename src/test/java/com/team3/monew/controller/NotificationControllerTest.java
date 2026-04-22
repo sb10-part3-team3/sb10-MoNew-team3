@@ -135,7 +135,7 @@ class NotificationControllerTest {
 
     CursorPageResponseNotificationDto pageDto = new CursorPageResponseNotificationDto(
         List.of(notificationDto1, notificationDto2, notificationDto3), notificationDto3.createdAt(),
-        notificationDto3.id(), 3, 4, true);
+        notificationDto3.id(), 3, 4L, true);
 
     given(notificationService.findAllNotConfirmed(eq(userId1), eq(cursor), eq(after),
         eq(3))).willReturn(pageDto);
@@ -165,7 +165,7 @@ class NotificationControllerTest {
     //given
     CursorPageResponseNotificationDto pageDto = new CursorPageResponseNotificationDto(
         List.of(notificationDto1, notificationDto2, notificationDto3, notificationDto4), null, null,
-        4, 4, false);
+        4, 4L, false);
 
     given(notificationService.findAllNotConfirmed(eq(userId1), eq(null), eq(null),
         eq(50))).willReturn(pageDto);

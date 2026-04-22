@@ -22,7 +22,7 @@ public record CursorPageResponseNotificationDto(
     Integer size,
 
     @Schema(description = "총 요소 수")
-    Integer totalElements,
+    Long totalElements,
 
     @Schema(description = "다음 페이지 여부")
     Boolean hasNext
