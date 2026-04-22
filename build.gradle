@@ -59,7 +59,12 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        def cliTags = System.getProperty("junit.platform.exclude.tags")
+        if (cliTags) {
+            excludeTags cliTags.split(',')
+        }
+    }
     systemProperty 'spring.profiles.active', 'test'
     finalizedBy jacocoTestReport
 }
