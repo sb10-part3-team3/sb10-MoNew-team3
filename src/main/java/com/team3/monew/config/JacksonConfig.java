@@ -15,7 +15,7 @@ public class JacksonConfig {
   @Primary    // 우선순위
   public ObjectMapper createObjectMapper() {    // json Parsing용
     return new ObjectMapper()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)  // 예상못한 필드 제거
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)  // 예상못한 필드 무시
         .registerModule(new JavaTimeModule());
   }
 

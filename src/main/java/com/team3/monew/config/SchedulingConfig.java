@@ -1,5 +1,6 @@
 package com.team3.monew.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.TaskScheduler;
@@ -10,7 +11,10 @@ import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 @Configuration
 @EnableScheduling
+@RequiredArgsConstructor
 public class SchedulingConfig implements SchedulingConfigurer {
+
+  private final TaskScheduler taskScheduler;
 
   @Bean
   public TaskScheduler taskScheduler() {
@@ -25,6 +29,6 @@ public class SchedulingConfig implements SchedulingConfigurer {
 
   @Override
   public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-    taskRegistrar.setTaskScheduler(taskScheduler());
+    taskRegistrar.setTaskScheduler(taskScheduler);
   }
 }

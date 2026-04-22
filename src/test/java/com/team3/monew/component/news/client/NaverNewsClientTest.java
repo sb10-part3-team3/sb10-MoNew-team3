@@ -68,8 +68,7 @@ class NaverNewsClientTest {
     ParsedData parsedData2 = new ParsedData(NewsSourceType.NAVER, null, 0, articles2);
 
     given(newsCollector.collectRawNews(any(), any()))
-        .willReturn(Flux.just(parsedData1))
-        .willReturn(Flux.just(parsedData2));
+        .willReturn(Flux.just(parsedData1, parsedData2));
     given(newsFilter.filterKeyword(any()))
         .willReturn(articles1)
         .willReturn(articles2);
