@@ -11,3 +11,14 @@ spring:
 logging:
   level:
     root: info
+
+api:
+  naver:
+    credentials:
+      id: ${NAVER_API_ID}
+      secret: ${NAVER_API_SECRET}
+
+app:
+  cron:
+    # "초 분 시 일 월 요일" (cron)
+    news-collections: "0 0 * * * *" # 1시간 마다
