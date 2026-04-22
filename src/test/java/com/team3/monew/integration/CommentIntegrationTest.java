@@ -416,7 +416,7 @@ class CommentIntegrationTest {
     entityManager.persist(comment);
     entityManager.flush();
     entityManager.clear();
-    return comment;
+    return entityManager.find(Comment.class, comment.getId());
   }
 
   private Comment saveComment(
