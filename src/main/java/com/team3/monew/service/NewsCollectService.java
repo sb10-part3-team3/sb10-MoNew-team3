@@ -4,10 +4,8 @@ import com.team3.monew.component.news.client.NewsClient;
 import com.team3.monew.component.news.filter.KeywordMatch;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.entity.InterestKeyword;
-import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.InterestKeywordRepository;
-import com.team3.monew.repository.NewsSourceRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,13 +26,14 @@ public class NewsCollectService {
 
   private final InterestKeywordRepository interestKeywordRepository;
   private final KeywordMatch keywordMatch;
-  private final NewsSourceRepository newsSourceRepository;
   private final Map<String, NewsClient> newsClients;
   private final NewsSaveService newsSaveService;
 
   @Scheduled(cron = "${app.cron.news-collections}")
   public void scheduleNewsJob() {
-    executeNewsCollection().subscribe();
+    executeNewsCollection()
+        .doOnError(e -> log.error("뉴스 수집 스케줄 작업 실패", e))
+        .subscribe();
   }
 
   public Mono<Void> executeNewsCollection() {
@@ -53,9 +52,6 @@ public class NewsCollectService {
     // 키워드 세팅
     Set<String> keywords = keywordInterests.keySet();
     keywordMatch.refreshKeywords(keywords);
-
-    // 뉴스 수집하기위한 NewsSource
-    List<NewsSource> sources = newsSourceRepository.findAll();
 
     return Flux.fromIterable(newsClients.values())
         // 수집, 파싱, 필터까지 수행, NewsSources 개수만큼 동시성 수행

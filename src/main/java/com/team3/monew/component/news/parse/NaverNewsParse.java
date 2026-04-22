@@ -3,7 +3,6 @@ package com.team3.monew.component.news.parse;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.component.news.record.RawArticleResult;
@@ -14,15 +13,16 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class NaverNewsParse implements NewsParse {
 
-  private final ObjectMapper objectMapper = new ObjectMapper()  // json Parsing용
-      .registerModule(new JavaTimeModule());
+  private final ObjectMapper objectMapper;
 
   @Override
   public ParsedData parse(NewsSourceType sourceType, RawArticleResult rawArticle) {
@@ -53,7 +53,7 @@ public class NaverNewsParse implements NewsParse {
       return new ParsedData(sourceType, lastBuildDate, rawArticle.page(), parsedSortedNewsArticles);
     } catch (Exception e) {
       log.warn("Naver 파싱 에러: {}", e.getMessage());
-      return ParsedData.Empty();
+      return ParsedData.createEmpty();
     }
   }
 

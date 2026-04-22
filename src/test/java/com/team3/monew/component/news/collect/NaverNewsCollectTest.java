@@ -65,7 +65,7 @@ class NaverNewsCollectTest {
     ReflectionTestUtils.setField(newsCollect, "naverBaseUrl", url + ":" + port);
 
     webServer.enqueue(new MockResponse().setBody("Invalid Data"));
-    given(newsParser.parse(any(), any())).willReturn(ParsedData.Empty());
+    given(newsParser.parse(any(), any())).willReturn(ParsedData.createEmpty());
 
     WebClient webClient = WebClient.builder()
         .build();
@@ -88,7 +88,7 @@ class NaverNewsCollectTest {
     List<ParsedNewsArticle> articles = List.of(
         new ParsedNewsArticle(null, null, null, null, null, List.of("삼성"))
     );
-    ParsedData parsedData = new ParsedData(null, null, 0, articles);
+    ParsedData parsedData = new ParsedData(null, Instant.now(), 0, articles);
 
     webServer.enqueue(new MockResponse().setBody("raw data"));
     given(newsParser.parse(any(), any())).willReturn(parsedData);
@@ -125,7 +125,7 @@ class NaverNewsCollectTest {
     webServer.enqueue(new MockResponse().setBody("raw data2"));
     given(newsParser.parse(any(), any()))
         .willReturn(parsedData1)
-        .willReturn(ParsedData.Empty());
+        .willReturn(ParsedData.createEmpty());
 
     WebClient webClient = WebClient.builder()
         .build();

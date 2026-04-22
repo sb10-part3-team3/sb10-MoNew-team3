@@ -5,14 +5,16 @@ import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.RawArticleResult;
 import com.team3.monew.config.NaverProperties;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.exception.news.NewsClientException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
@@ -31,7 +33,8 @@ public class NaverNewsCollect implements NewsCollect {
   private final NewsParser newsParser;
 
   // Test를 위한 비 상수화
-  private String naverBaseUrl = "https://openapi.naver.com";
+  @Value("${news.chosun.base-url:https://openapi.naver.com}")
+  private String naverBaseUrl;
   private static final String NAVER_QUERY_PATH = "/v1/search/news.json";
   private static final int NAVER_QUERY_DISPLAY = 100;     // 한번에 표시할 갯수(10~100) default: 10
   private static final int NAVER_QUERY_START = 1;         // 검색 시작 위치(1~1000)    default: 1
@@ -40,7 +43,7 @@ public class NaverNewsCollect implements NewsCollect {
   private static final int NAVER_CONCURRENCY_SIZE = 5;
 
   // keyword별 검색시간
-  private final Map<String, Instant> lastCollectedAt = new HashMap<>();
+  private final Map<String, Instant> lastCollectedAt = new ConcurrentHashMap<>();
 
   @Override
   public Flux<ParsedData> collect(WebClient webClient, NewsSourceType sourceType,
@@ -56,7 +59,7 @@ public class NaverNewsCollect implements NewsCollect {
                     // 재귀 확장용
                     .expand(data -> {
                       // 파싱 오류로 나온 빈값 검사
-                      if (data.isEmpty()) {
+                      if (data.articles().isEmpty()) {
                         return Mono.empty();
                       }
 
@@ -76,7 +79,7 @@ public class NaverNewsCollect implements NewsCollect {
                         log.debug("{}번째 페이지 요청", data.page() + 1);
                         return fetchNewsData(webClient, keyword, data.page() + 1)
                             .map(raw -> newsParser.parse(sourceType, raw))
-                            .filter(nextData -> !nextData.isEmpty());
+                            .filter(nextData -> !nextData.articles().isEmpty());
                       }
 
                       // API 호출시간이 기사 리스트 안쪽에 포함되어있다면, 즉 이미 봤다고 가정하면
@@ -109,20 +112,18 @@ public class NaverNewsCollect implements NewsCollect {
         .onStatus(HttpStatusCode::is4xxClientError, response ->
             // 바디를 읽지 않고 비움처리 후에 에러 전파
             response.releaseBody()
-                .then(Mono.error(new RuntimeException("네이버 요청 실패(4xx)")))
+                .then(Mono.error(new NewsClientException("Chosun 요청 실패(4xx)", false)))
         )
         // 500번대 에러
         .onStatus(HttpStatusCode::is5xxServerError, response ->
-            // 바디를 읽지 않고 비움처리 후에 에러 전파
             response.releaseBody()
-                .then(Mono.error(new RuntimeException("네이버 서버 일시적 장애(5xx)")))
+                .then(Mono.error(new NewsClientException("Chosun 서버 일시적 장애(5xx)", true)))
         )
         .bodyToMono(String.class)
         // 재시도 전략(최대 2번, 0.5초 간격)
         .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
             // 400번대 에러는 재시도 전략에서 제거
-            .filter(throwable -> !(throwable instanceof RuntimeException && throwable.getMessage()
-                .contains("4xx")))
+            .filter(throwable -> throwable instanceof NewsClientException ncs && ncs.isRetryable())
         )
         .onErrorResume(e -> {
           log.error("Naver 기사 수집 실패: keyword={}, error={}", keyword, e.getMessage());

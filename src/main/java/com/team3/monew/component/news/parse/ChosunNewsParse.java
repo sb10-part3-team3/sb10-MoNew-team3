@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.component.news.record.RawArticleResult;
@@ -25,8 +24,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class ChosunNewsParse implements NewsParse {
 
-  private final XmlMapper xmlMapper = XmlMapper.builder()       //  xml Parsing용
-      .addModule(new JavaTimeModule()).build();
+  private final XmlMapper xmlMapper;
 
   @Override
   public ParsedData parse(NewsSourceType sourceType, RawArticleResult rawArticle) {
@@ -56,7 +54,7 @@ public class ChosunNewsParse implements NewsParse {
       return new ParsedData(sourceType, lastBuildDate, rawArticle.page(), parsedSortedNewsArticles);
     } catch (Exception e) {
       log.warn("Chosun 파싱 에러: {}", e.getMessage());
-      return ParsedData.Empty();
+      return ParsedData.createEmpty();
     }
   }
 

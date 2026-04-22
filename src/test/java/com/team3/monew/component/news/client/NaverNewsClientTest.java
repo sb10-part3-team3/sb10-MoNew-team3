@@ -71,7 +71,7 @@ class NaverNewsClientTest {
 
   @Test
   @DisplayName("다중 키워드로 동일한 뉴스기사를 가져와도 중복제거를 한 기사 List를 반환한다")
-  void shouldReturnParsedNewsArticleList_whenKeywordsIsEmpty() {
+  void shouldReturnDeduplicatedList_whenDuplicateArticlesExist() {
     // given
     List<ParsedNewsArticle> articles = List.of(
         new ParsedNewsArticle(null, "1", "삼성", null, "애플", List.of("삼성", "애플"))

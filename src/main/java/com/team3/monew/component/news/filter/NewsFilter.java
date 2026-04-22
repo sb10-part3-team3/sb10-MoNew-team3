@@ -19,8 +19,7 @@ public class NewsFilter {
 
   public List<ParsedNewsArticle> filterKeyword(ParsedData parsedData) {
     List<ParsedNewsArticle> parsedNewsArticles = parsedData.articles().stream()
-        // 람다변수 형태를 안바꾸고 내부만 수정할거라면 map보단 peek
-        .peek(article -> {
+        .map(article -> {
           Set<String> matchedKeywords = Stream.of(
                   keywordMatch.findMatches(article.title()),
                   keywordMatch.findMatches(article.summary()))
@@ -29,6 +28,7 @@ public class NewsFilter {
 
           // set에 데이터가 있어서 article에 저장되면 true
           article.keywords().addAll(matchedKeywords);
+          return article;
         })
         .filter(article -> !article.keywords().isEmpty())
         .toList();

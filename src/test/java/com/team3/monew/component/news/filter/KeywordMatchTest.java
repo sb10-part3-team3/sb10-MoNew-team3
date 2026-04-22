@@ -8,16 +8,11 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @Tag("unit")
-@ExtendWith(MockitoExtension.class)
 class KeywordMatchTest {
 
-  @InjectMocks
-  private KeywordMatch keywordMatch;
+  private final KeywordMatch keywordMatch = new KeywordMatch();
 
   @Test
   @DisplayName("주입받은 키워드가 갖고있는 키워드와 동일해도 그대로 작동한다")
@@ -42,7 +37,7 @@ class KeywordMatchTest {
     String context = "삼성 메모리 반도체 HBM4E Nvidia..";
     keywordMatch.refreshKeywords(Set.of("삼성", "메모리"));
     List<String> matched1 = keywordMatch.findMatches(context);
-    keywordMatch.refreshKeywords(Set.of("반도체", "H..E"));
+    keywordMatch.refreshKeywords(Set.of("반도체"));
     List<String> matched2 = keywordMatch.findMatches(context);
 
     // then
@@ -52,7 +47,7 @@ class KeywordMatchTest {
   }
 
   @Test
-  @DisplayName("대소문자가 달라도 매칭된 키워드를 반환한다")
+  @DisplayName("대소문자가 달라도 매칭되고 반환값은 입력 원본의 형태가 된다")
   void shouldReturnMatchedKeywords_whenCaseIsDifferent() {
     // when
     String context = "Apple BANANA";

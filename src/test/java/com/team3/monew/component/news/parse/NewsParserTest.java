@@ -1,5 +1,6 @@
 package com.team3.monew.component.news.parse;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -57,9 +58,10 @@ class NewsParserTest {
     RawArticleResult mockArticle = new RawArticleResult(null, null, 0);
 
     // when
-    newsParser.parse(NewsSourceType.NAVER, mockArticle);
+    ParsedData actual = newsParser.parse(NewsSourceType.NAVER, mockArticle);
 
     // when, then
+    assertThat(actual).isEqualTo(parsedData);
     then(naverNewsParse).should().parse(eq(NewsSourceType.NAVER), any());
   }
 }

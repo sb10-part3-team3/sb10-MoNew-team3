@@ -16,7 +16,6 @@ import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.InterestKeywordRepository;
-import com.team3.monew.repository.NewsSourceRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,8 +41,6 @@ class NewsCollectServiceTest {
   @Mock
   private KeywordMatch keywordMatch;
   @Mock
-  private NewsSourceRepository newsSourceRepository;
-  @Mock
   private Map<String, NewsClient> newsClients;
   @Mock
   private NaverNewsClient naverNewsClient;
@@ -53,6 +51,9 @@ class NewsCollectServiceTest {
 
   @InjectMocks
   private NewsCollectService newsCollectService;
+
+  @Captor
+  private ArgumentCaptor<List<ParsedNewsArticle>> listCaptor;
 
   List<InterestKeyword> interestKeywords;
   List<NewsSource> newsSources;
@@ -78,7 +79,6 @@ class NewsCollectServiceTest {
   void shouldKeepNaverArticle_whenMultipleSourcesProvideSameLink() {
     // given
     given(interestKeywordRepository.findAll()).willReturn(interestKeywords);
-    given(newsSourceRepository.findAll()).willReturn(newsSources);
     given(newsClients.values()).willReturn(List.of(naverNewsClient, chosunNewsClient));
     given(newsClients.size()).willReturn(2);
 
@@ -95,9 +95,6 @@ class NewsCollectServiceTest {
             List.of("화성공장"))
     );
     given(chosunNewsClient.fetchAndProcess(anySet())).willReturn(Mono.just(chosunList));
-
-    // 인수값 테스트 캡처용
-    ArgumentCaptor<List<ParsedNewsArticle>> listCaptor = ArgumentCaptor.forClass(List.class);
 
     // when
     newsCollectService.scheduleNewsJob();

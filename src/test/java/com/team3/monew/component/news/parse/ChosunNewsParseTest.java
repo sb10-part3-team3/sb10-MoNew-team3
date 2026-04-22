@@ -3,6 +3,8 @@ package com.team3.monew.component.news.parse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.RawArticleResult;
 import com.team3.monew.entity.enums.NewsSourceType;
@@ -16,11 +18,16 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
 class ChosunNewsParseTest {
+
+  @Spy
+  private XmlMapper xmlMapper = XmlMapper.builder()   // NewsParse 실제 내부에서 사용
+      .addModule(new JavaTimeModule()).build();
 
   @InjectMocks
   private ChosunNewsParse newsParse;

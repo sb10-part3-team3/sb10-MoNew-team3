@@ -80,7 +80,7 @@ class ChosunNewsCollectTest {
     ReflectionTestUtils.setField(newsCollect, "chosunBaseUrl", url + ":" + port);
 
     webServer.enqueue(new MockResponse().setBody("Invalid Data"));
-    given(newsParser.parse(any(), any())).willReturn(ParsedData.Empty());
+    given(newsParser.parse(any(), any())).willReturn(ParsedData.createEmpty());
 
     WebClient webClient = WebClient.builder()
         .baseUrl(webServer.url("/").toString())

@@ -4,11 +4,12 @@ import com.team3.monew.component.news.parse.NewsParser;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.RawArticleResult;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.exception.news.NewsClientException;
 import java.time.Duration;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.web.servlet.error.BasicErrorController;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,10 +23,10 @@ import reactor.util.retry.Retry;
 public class ChosunNewsCollect implements NewsCollect {
 
   private final NewsParser newsParser;
-  private final BasicErrorController basicErrorController;
 
   // Test를 위한 비 상수화
-  private String chosunBaseUrl = "https://www.chosun.com";
+  @Value("${news.chosun.base-url:https://www.chosun.com}")
+  private String chosunBaseUrl;
   private static final String CHOSUN_QUERY_PATH = "/arc/outboundfeeds/rss/?outputType=xml";
 
   @Override
@@ -40,20 +41,18 @@ public class ChosunNewsCollect implements NewsCollect {
         .onStatus(HttpStatusCode::is4xxClientError, response ->
             // 바디를 읽지 않고 비움처리 후에 에러 전파
             response.releaseBody()
-                .then(Mono.error(new RuntimeException("Chosun 요청 실패(4xx)")))
+                .then(Mono.error(new NewsClientException("Chosun 요청 실패(4xx)", false)))
         )
         // 500번대 에러
         .onStatus(HttpStatusCode::is5xxServerError, response ->
-            // 바디를 읽지 않고 비움처리 후에 에러 전파
             response.releaseBody()
-                .then(Mono.error(new RuntimeException("Chosun 서버 일시적 장애(5xx)")))
+                .then(Mono.error(new NewsClientException("Chosun 서버 일시적 장애(5xx)", true)))
         )
         .bodyToMono(String.class)
         // 재시도 전략(최대 2번, 0.5초 간격)
         .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
             // 400번대 에러는 재시도 전략에서 제거
-            .filter(throwable -> !(throwable instanceof RuntimeException && throwable.getMessage()
-                .contains("4xx")))
+            .filter(throwable -> throwable instanceof NewsClientException ncs && ncs.isRetryable())
         )
         .onErrorResume(e -> {
           log.error("Chosun 기사 수집 실패: error={}", e.getMessage());

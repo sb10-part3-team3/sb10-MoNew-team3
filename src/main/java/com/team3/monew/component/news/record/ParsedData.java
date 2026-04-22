@@ -10,11 +10,11 @@ public record ParsedData(NewsSourceType sourceType,
                          int page,
                          List<ParsedNewsArticle> articles) {
 
-  public static ParsedData Empty() {
+  public static ParsedData createEmpty() {
     return new ParsedData(null, null, 0, Collections.emptyList());
   }
 
   public boolean isEmpty() {
-    return this.articles.isEmpty();
+    return this.articles == null || this.articles.isEmpty();
   }
 }

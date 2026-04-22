@@ -19,9 +19,9 @@ public class NewsSourceInitializer implements CommandLineRunner {
   @Override
   public void run(String... args) throws Exception {
     // Source 초기화
-    NewsSource sourceNaver = NewsSource.create("NAVER", NewsSourceType.NAVER,
+    NewsSource sourceNaver = NewsSource.create(NewsSourceType.NAVER.name(), NewsSourceType.NAVER,
         "https://openapi.naver.com");
-    NewsSource sourceChosun = NewsSource.create("CHOSUN", NewsSourceType.CHOSUN,
+    NewsSource sourceChosun = NewsSource.create(NewsSourceType.CHOSUN.name(), NewsSourceType.CHOSUN,
         "https://www.chosun.com");
     List<NewsSource> sources = List.of(sourceNaver, sourceChosun);
 

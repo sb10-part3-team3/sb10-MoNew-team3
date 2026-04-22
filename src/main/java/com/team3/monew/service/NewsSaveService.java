@@ -33,10 +33,8 @@ public class NewsSaveService {
         .toList();
 
     // repository에 이미 저장된 뉴스 Link
-    Set<String> existingLinks = newsArticleRepository.findAllByOriginalLinkIn(newNewsArticleLinks)
-        .stream()
-        .map(NewsArticle::getOriginalLink)
-        .collect(Collectors.toSet());
+    Set<String> existingLinks = newsArticleRepository.findExistingOriginalLinks(
+        newNewsArticleLinks);
 
     // 중복이 걸러진 뉴스기사
     List<ParsedNewsArticle> newNewsArticles = data.stream()
@@ -46,7 +44,7 @@ public class NewsSaveService {
     // NewsSource 타입
     Map<NewsSourceType, NewsSource> newsSources = newsSourceRepository.findAll().stream()
         .collect(Collectors.toMap(
-            source -> NewsSourceType.valueOf(source.getName()),
+            NewsSource::getSourceType,
             source -> source
         ));
 
