@@ -7,7 +7,6 @@ import static org.mockito.BDDMockito.given;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.entity.enums.NewsSourceType;
-import com.team3.monew.service.KeywordMatchService;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -24,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class NewsFilterTest {
 
   @Mock
-  private KeywordMatchService keywordMatchService;
+  private KeywordMatch keywordMatch;
 
   @InjectMocks
   private NewsFilter newsFilter;
@@ -39,7 +38,7 @@ class NewsFilterTest {
     );
     ParsedData parsedData = new ParsedData(NewsSourceType.NAVER, null, 0, newsArticles);
 
-    given(keywordMatchService.findMatches(any()))
+    given(keywordMatch.findMatches(any()))
         .willReturn(List.of("삼성"))
         .willReturn(List.of("메모리"))
         .willReturn(List.of())

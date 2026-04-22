@@ -1,6 +1,7 @@
 package com.team3.monew.service;
 
 import com.team3.monew.component.news.client.NewsClient;
+import com.team3.monew.component.news.filter.KeywordMatch;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.NewsSource;
@@ -26,7 +27,7 @@ import reactor.core.scheduler.Schedulers;
 public class NewsCollectService {
 
   private final InterestKeywordRepository interestKeywordRepository;
-  private final KeywordMatchService keywordMatchService;
+  private final KeywordMatch keywordMatch;
   private final NewsSourceRepository newsSourceRepository;
   private final Map<String, NewsClient> newsClients;
   private final NewsSaveService newsSaveService;
@@ -51,7 +52,7 @@ public class NewsCollectService {
 
     // 키워드 세팅
     Set<String> keywords = keywordInterests.keySet();
-    keywordMatchService.refreshKeywords(keywords);
+    keywordMatch.refreshKeywords(keywords);
 
     // 뉴스 수집하기위한 NewsSource
     List<NewsSource> sources = newsSourceRepository.findAll();

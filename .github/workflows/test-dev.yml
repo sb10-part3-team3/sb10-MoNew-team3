@@ -48,7 +48,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: 테스트 (AWS 연결 제외)
-        run: ./gradlew test -Djunit.platform.exclude.tags=aws
+        run: ./gradlew test -Djunit.platform.exclude.tags='aws & external-api'
 
       - name: 테스트 결과 리포트 생성
         uses: EnricoMi/publish-unit-test-result-action@v2

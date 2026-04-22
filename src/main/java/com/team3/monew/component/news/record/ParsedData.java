@@ -18,5 +18,3 @@ public record ParsedData(NewsSourceType sourceType,
     return this.articles.isEmpty();
   }
 }
-
-

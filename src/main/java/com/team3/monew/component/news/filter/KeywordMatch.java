@@ -1,4 +1,4 @@
-package com.team3.monew.service;
+package com.team3.monew.component.news.filter;
 
 import java.util.HashSet;
 import java.util.List;
@@ -9,11 +9,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 @Slf4j
-@Service
-public class KeywordMatchService {
+@Component
+public class KeywordMatch {
 
   private Set<String> currentKeywords;
   private Pattern compiledPattern;

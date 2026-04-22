@@ -9,7 +9,6 @@ import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.NewsArticleRepository;
-import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.service.NewsCollectService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -31,11 +30,9 @@ class NewsCollectIntegrationTest {
 
   @Autowired
   private InterestKeywordRepository interestKeywordRepository;
-  @Autowired
-  private InterestRepository interestRepository;
 
   @Autowired
-  private NewsSourceRepository newsSourceRepository;
+  private InterestRepository interestRepository;
 
   @Autowired
   private NewsArticleRepository newsArticleRepository;
@@ -51,6 +48,7 @@ class NewsCollectIntegrationTest {
     interestRepository.save(samsung);
     InterestKeyword keyword = InterestKeyword.create(samsung, "메모리");
     interestKeywordRepository.save(keyword);
+    // NewsSource는 SpringBoot 시에 저장하는 것으로 사용
 
     // when
     // NewsSource는 현재 Naver, Chosun 2개 존재
@@ -82,5 +80,4 @@ class NewsCollectIntegrationTest {
         // 조선일보는 쿼리 요청후 키워드를 매칭해서 0개 이상임
         .hasSizeGreaterThanOrEqualTo(0);
   }
-
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.timeout;
 import com.team3.monew.component.news.client.ChosunNewsClient;
 import com.team3.monew.component.news.client.NaverNewsClient;
 import com.team3.monew.component.news.client.NewsClient;
+import com.team3.monew.component.news.filter.KeywordMatch;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
@@ -38,7 +39,7 @@ class NewsCollectServiceTest {
   @Mock
   private InterestKeywordRepository interestKeywordRepository;
   @Mock
-  private KeywordMatchService keywordMatchService;
+  private KeywordMatch keywordMatch;
   @Mock
   private NewsSourceRepository newsSourceRepository;
   @Mock
@@ -111,6 +112,4 @@ class NewsCollectServiceTest {
         .extracting(ParsedNewsArticle::sourceType)
         .containsExactly(NewsSourceType.NAVER);
   }
-
-
 }

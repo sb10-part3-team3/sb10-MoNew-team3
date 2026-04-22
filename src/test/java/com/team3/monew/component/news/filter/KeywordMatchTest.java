@@ -1,4 +1,4 @@
-package com.team3.monew.service;
+package com.team3.monew.component.news.filter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,20 +14,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class KeywordMatchServiceTest {
+class KeywordMatchTest {
 
   @InjectMocks
-  private KeywordMatchService keywordMatchService;
+  private KeywordMatch keywordMatch;
 
   @Test
   @DisplayName("주입받은 키워드가 갖고있는 키워드와 동일해도 그대로 작동한다")
   void shouldMaintainExistingPattern_whenSameKeywordsAreProvided() {
     // when
     String context = "삼성 메모리 반도체 HBM4E Nvidia..";
-    keywordMatchService.refreshKeywords(Set.of("삼성", "메모리"));
-    List<String> matched1 = keywordMatchService.findMatches(context);
-    keywordMatchService.refreshKeywords(Set.of("메모리", "삼성"));
-    List<String> matched2 = keywordMatchService.findMatches(context);
+    keywordMatch.refreshKeywords(Set.of("삼성", "메모리"));
+    List<String> matched1 = keywordMatch.findMatches(context);
+    keywordMatch.refreshKeywords(Set.of("메모리", "삼성"));
+    List<String> matched2 = keywordMatch.findMatches(context);
 
     // then
     assertThat(matched2)
@@ -40,10 +40,10 @@ class KeywordMatchServiceTest {
   void shouldUpdatePattern_whenDifferentKeywordsAreProvided() {
     // when
     String context = "삼성 메모리 반도체 HBM4E Nvidia..";
-    keywordMatchService.refreshKeywords(Set.of("삼성", "메모리"));
-    List<String> matched1 = keywordMatchService.findMatches(context);
-    keywordMatchService.refreshKeywords(Set.of("반도체", "H..E"));
-    List<String> matched2 = keywordMatchService.findMatches(context);
+    keywordMatch.refreshKeywords(Set.of("삼성", "메모리"));
+    List<String> matched1 = keywordMatch.findMatches(context);
+    keywordMatch.refreshKeywords(Set.of("반도체", "H..E"));
+    List<String> matched2 = keywordMatch.findMatches(context);
 
     // then
     assertThat(matched2)
@@ -56,8 +56,8 @@ class KeywordMatchServiceTest {
   void shouldReturnMatchedKeywords_whenCaseIsDifferent() {
     // when
     String context = "Apple BANANA";
-    keywordMatchService.refreshKeywords(Set.of("APPLE", "BanaNa"));
-    List<String> matched = keywordMatchService.findMatches(context);
+    keywordMatch.refreshKeywords(Set.of("APPLE", "BanaNa"));
+    List<String> matched = keywordMatch.findMatches(context);
 
     // then
     assertThat(matched)
@@ -68,10 +68,10 @@ class KeywordMatchServiceTest {
   @DisplayName("주입받은 키워드가 없으면 매칭기능이 작동되지 않는다")
   void shouldReturnEmptyList_whenKeywordsAreEmpty() {
     // given
-    keywordMatchService.refreshKeywords(Set.of());
+    keywordMatch.refreshKeywords(Set.of());
 
     // when
-    List<String> matchedKeywords = keywordMatchService.findMatches("메모리 삼성");
+    List<String> matchedKeywords = keywordMatch.findMatches("메모리 삼성");
 
     // then
     assertThat(matchedKeywords)

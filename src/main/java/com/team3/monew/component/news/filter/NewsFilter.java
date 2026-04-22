@@ -2,7 +2,6 @@ package com.team3.monew.component.news.filter;
 
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
-import com.team3.monew.service.KeywordMatchService;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -16,15 +15,15 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NewsFilter {
 
-  private final KeywordMatchService keywordMatchService;
+  private final KeywordMatch keywordMatch;
 
   public List<ParsedNewsArticle> filterKeyword(ParsedData parsedData) {
     List<ParsedNewsArticle> parsedNewsArticles = parsedData.articles().stream()
         // 람다변수 형태를 안바꾸고 내부만 수정할거라면 map보단 peek
         .peek(article -> {
           Set<String> matchedKeywords = Stream.of(
-                  keywordMatchService.findMatches(article.title()),
-                  keywordMatchService.findMatches(article.summary()))
+                  keywordMatch.findMatches(article.title()),
+                  keywordMatch.findMatches(article.summary()))
               .flatMap(List::stream)
               .collect(Collectors.toSet());
 
