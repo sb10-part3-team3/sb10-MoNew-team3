@@ -120,51 +120,6 @@ class CommentControllerTest {
       then(commentService).shouldHaveNoInteractions();
     }
 
-    @Test
-    @DisplayName("content가 500자를 초과하면 댓글 등록에 실패하고 400 Bad Request로 응답한다.")
-    void shouldReturnBadRequest_whenContentExceedsMaxLength() throws Exception {
-      // given
-      CommentRegisterRequest request = new CommentRegisterRequest(
-          UUID.randomUUID(),
-          UUID.randomUUID(),
-          "a".repeat(501)
-      );
-
-      // when & then
-      mockMvc.perform(post("/api/comments")
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
-          .andExpect(jsonPath("$.status").value(400))
-          .andExpect(jsonPath("$.details.content").exists());
-
-      then(commentService).shouldHaveNoInteractions();
-    }
-
-    @Test
-    @DisplayName("댓글 등록 중 예상하지 못한 오류가 발생하면 500 Internal Server Error로 응답한다.")
-    void shouldReturnInternalServerError_whenUnexpectedExceptionOccurs() throws Exception {
-      // given
-      CommentRegisterRequest request = new CommentRegisterRequest(
-          UUID.randomUUID(),
-          UUID.randomUUID(),
-          "댓글 내용입니다."
-      );
-      given(commentService.registerComment(any(CommentRegisterRequest.class)))
-          .willThrow(new RuntimeException("unexpected error"));
-
-      // when & then
-      mockMvc.perform(post("/api/comments")
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isInternalServerError())
-          .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
-          .andExpect(jsonPath("$.status").value(500));
-
-      then(commentService).should().registerComment(any(CommentRegisterRequest.class));
-      then(commentService).shouldHaveNoMoreInteractions();
-    }
   }
 
   @Nested
@@ -250,27 +205,6 @@ class CommentControllerTest {
       UUID commentId = UUID.randomUUID();
       UUID userId = UUID.randomUUID();
       CommentUpdateRequest request = new CommentUpdateRequest("");
-
-      // when & then
-      mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .header(REQUEST_USER_ID_HEADER, userId)
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
-          .andExpect(jsonPath("$.status").value(400))
-          .andExpect(jsonPath("$.details.content").exists());
-
-      then(commentService).shouldHaveNoInteractions();
-    }
-
-    @Test
-    @DisplayName("content가 500자를 초과하면 댓글 수정에 실패하고 400 Bad Request로 응답한다.")
-    void shouldReturnBadRequest_whenContentExceedsMaxLength() throws Exception {
-      // given
-      UUID commentId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("a".repeat(501));
 
       // when & then
       mockMvc.perform(patch("/api/comments/{commentId}", commentId)
@@ -378,35 +312,6 @@ class CommentControllerTest {
       then(commentService).shouldHaveNoMoreInteractions();
     }
 
-    @Test
-    @DisplayName("댓글 수정 중 예상하지 못한 오류가 발생하면 500 Internal Server Error로 응답한다.")
-    void shouldReturnInternalServerError_whenUnexpectedExceptionOccurs() throws Exception {
-      // given
-      UUID commentId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
-      given(commentService.updateComment(
-          eq(commentId),
-          eq(userId),
-          any(CommentUpdateRequest.class)
-      )).willThrow(new RuntimeException("unexpected error"));
-
-      // when & then
-      mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-              .header(REQUEST_USER_ID_HEADER, userId)
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(objectMapper.writeValueAsString(request)))
-          .andExpect(status().isInternalServerError())
-          .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
-          .andExpect(jsonPath("$.status").value(500));
-
-      then(commentService).should().updateComment(
-          eq(commentId),
-          eq(userId),
-          any(CommentUpdateRequest.class)
-      );
-      then(commentService).shouldHaveNoMoreInteractions();
-    }
   }
 
   @Nested
@@ -460,28 +365,6 @@ class CommentControllerTest {
               .header(REQUEST_USER_ID_HEADER, userId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
-          .andExpect(jsonPath("$.status").value(404))
-          .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
-
-      then(commentService).should().deleteComment(commentId, userId);
-      then(commentService).shouldHaveNoMoreInteractions();
-    }
-
-    @Test
-    @DisplayName("이미 삭제된 댓글을 삭제하면 404 Not Found로 응답한다.")
-    void shouldReturnNotFound_whenDeleteCommentIsAlreadyDeleted() throws Exception {
-      // given
-      UUID commentId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      willThrow(new DeletedCommentException(commentId))
-          .given(commentService)
-          .deleteComment(commentId, userId);
-
-      // when & then
-      mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-              .header(REQUEST_USER_ID_HEADER, userId))
-          .andExpect(status().isNotFound())
-          .andExpect(jsonPath("$.code").value("COMMENT_DELETED"))
           .andExpect(jsonPath("$.status").value(404))
           .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
 

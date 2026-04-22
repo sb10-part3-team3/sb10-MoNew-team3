@@ -26,12 +26,16 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,8 +45,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CommentService {
 
+  private static final String ORDER_BY_CREATED_AT = "createdAt";
   private static final String ORDER_BY_LIKE_COUNT = "likeCount";
   private static final String CURSOR_DELIMITER = "|";
+
+  private record CommentCursor(Integer likeCount, Instant createdAt) {
+  }
 
   private final UserRepository userRepository;
   private final CommentRepository commentRepository;
@@ -127,10 +135,11 @@ public class CommentService {
   public CursorPageResponseCommentDto findAll(UUID articleId, String orderBy, String cursor,
       Instant after, int limit, UUID requestUserId) {
     log.debug("댓글 목록 조회 요청 처리 시작: articleId={}, requestUserId={}", articleId, requestUserId);
-    validateLimit(limit);
+    if (limit < 1) {
+      throwInvalidInput("limit", limit);
+    }
 
-    List<Comment> comments = commentRepository.findActiveComments(
-        articleId, orderBy, cursor, after, limit + 1);
+    List<Comment> comments = findActiveComments(articleId, orderBy, cursor, after, limit + 1);
     long totalElements = commentRepository.countActiveComments(articleId);
     boolean hasNext = comments.size() > limit;
     List<Comment> pageComments = hasNext ? comments.subList(0, limit) : comments;
@@ -158,6 +167,7 @@ public class CommentService {
         content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
   }
 
+  // 활성 기사인지 확인하고 반환한다.
   private NewsArticle findActiveArticle(UUID articleId) {
     log.debug("댓글 등록 기사 조회 시작: articleId={}", articleId);
 
@@ -172,6 +182,7 @@ public class CommentService {
     return article;
   }
 
+  // 활성 사용자인지 확인하고 반환한다.
   private User findActiveUser(UUID userId) {
     log.debug("댓글 등록 사용자 조회 시작: userId={}", userId);
 
@@ -186,6 +197,7 @@ public class CommentService {
     return user;
   }
 
+  // 활성 댓글인지 확인하고 반환한다.
   private Comment findActiveComment(UUID commentId) {
     Comment comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
@@ -196,6 +208,7 @@ public class CommentService {
     return comment;
   }
 
+  // 댓글 작성자와 요청자가 같은지 확인한다.
   private void validateCommentAuthor(
       Comment comment,
       UUID requestUserId,
@@ -211,6 +224,7 @@ public class CommentService {
     }
   }
 
+  // 다음 페이지 조회에 사용할 커서 값을 만든다.
   private String resolveNextCursor(Comment comment, String orderBy) {
     if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
       return String.join(
@@ -222,12 +236,105 @@ public class CommentService {
     return comment.getCreatedAt().toString();
   }
 
-  private void validateLimit(int limit) {
-    if (limit < 1) {
-      throw new BusinessException(
-          ErrorCode.INVALID_INPUT_VALUE,
-          Map.of("limit", String.valueOf(limit))
+  // 정렬 기준에 맞는 댓글 조회 쿼리를 선택한다.
+  private List<Comment> findActiveComments(
+      UUID articleId,
+      String orderBy,
+      String cursor,
+      Instant after,
+      int limit
+  ) {
+    Pageable pageable = PageRequest.of(0, limit);
+    CommentCursor commentCursor = parseCursor(orderBy, cursor, after);
+
+    if (ORDER_BY_CREATED_AT.equals(orderBy)) {
+      return commentRepository.findActiveCommentsByCreatedAtDesc(
+          articleId,
+          commentCursor.createdAt(),
+          pageable
       );
     }
+
+    if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
+      return commentRepository.findActiveCommentsByLikeCountDesc(
+          articleId,
+          commentCursor.likeCount(),
+          commentCursor.createdAt(),
+          pageable
+      );
+    }
+
+    throwInvalidInput("orderBy", orderBy);
+    return List.of();
+  }
+
+  // 요청 커서를 정렬 기준값으로 해석한다.
+  private CommentCursor parseCursor(String orderBy, String cursor, Instant after) {
+    String[] cursorValues = splitCursor(cursor);
+
+    if (ORDER_BY_CREATED_AT.equals(orderBy)) {
+      return new CommentCursor(null, parseInstant(cursorValue(cursorValues, 0), "cursor"));
+    }
+
+    if (ORDER_BY_LIKE_COUNT.equals(orderBy)) {
+      Instant cursorCreatedAt = parseInstant(cursorValue(cursorValues, 1), "cursorCreatedAt");
+      return new CommentCursor(
+          parseInteger(cursorValue(cursorValues, 0), "cursor"),
+          cursorCreatedAt != null ? cursorCreatedAt : after
+      );
+    }
+
+    throwInvalidInput("orderBy", orderBy);
+    return new CommentCursor(null, null);
+  }
+
+  // 커서를 구분자로 나누어 빈 커서는 빈 배열로 반환한다.
+  private String[] splitCursor(String cursor) {
+    if (cursor == null || cursor.isBlank()) {
+      return new String[0];
+    }
+    return cursor.split(Pattern.quote(CURSOR_DELIMITER));
+  }
+
+  // 커서 배열에서 지정 위치 값을 꺼낸다.
+  private String cursorValue(String[] cursorValues, int index) {
+    if (cursorValues.length <= index) {
+      return null;
+    }
+    return cursorValues[index];
+  }
+
+  // 문자열을 Instant로 변환하고 잘못된 값은 입력 오류로 처리한다.
+  private Instant parseInstant(String value, String field) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return Instant.parse(value);
+    } catch (DateTimeParseException e) {
+      throwInvalidInput(field, value);
+      return null;
+    }
+  }
+
+  // 문자열을 Integer로 변환하고 잘못된 값은 입력 오류로 처리한다.
+  private Integer parseInteger(String value, String field) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      throwInvalidInput(field, value);
+      return null;
+    }
+  }
+
+  // 입력 오류 예외를 생성해 던진다.
+  private void throwInvalidInput(String field, Object value) {
+    throw new BusinessException(
+        ErrorCode.INVALID_INPUT_VALUE,
+        Map.of(field, String.valueOf(value))
+    );
   }
 }

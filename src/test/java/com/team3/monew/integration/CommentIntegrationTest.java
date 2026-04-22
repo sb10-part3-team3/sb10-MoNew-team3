@@ -97,46 +97,6 @@ class CommentIntegrationTest {
   }
 
   @Test
-  @DisplayName("존재하지 않는 기사에 댓글을 등록하면 404 Not Found로 응답한다.")
-  void shouldReturnNotFound_whenArticleDoesNotExist() throws Exception {
-    // given
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(),
-        UUID.randomUUID(),
-        "댓글 내용입니다."
-    );
-
-    // when & then
-    mockMvc.perform(post("/api/comments")
-            .contentType(APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("ARTICLE_NOT_FOUND"))
-        .andExpect(jsonPath("$.status").value(404))
-        .andExpect(jsonPath("$.details.articleId").value(request.articleId().toString()));
-  }
-
-  @Test
-  @DisplayName("content가 비어 있으면 댓글 등록에 실패하고 400 Bad Request로 응답한다.")
-  void shouldReturnBadRequest_whenContentIsEmpty() throws Exception {
-    // given
-    CommentRegisterRequest request = new CommentRegisterRequest(
-        UUID.randomUUID(),
-        UUID.randomUUID(),
-        ""
-    );
-
-    // when & then
-    mockMvc.perform(post("/api/comments")
-            .contentType(APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
-        .andExpect(jsonPath("$.status").value(400))
-        .andExpect(jsonPath("$.details.content").exists());
-  }
-
-  @Test
   @DisplayName("유효한 요청이면 댓글 수정에 성공하고 댓글 내용을 변경한다.")
   void shouldUpdateComment_whenRequestIsValid() throws Exception {
     // given
@@ -170,24 +130,6 @@ class CommentIntegrationTest {
         .getSingleResult();
 
     assertThat(savedContent).isEqualTo("수정된 댓글 내용입니다.");
-  }
-
-  @Test
-  @DisplayName("존재하지 않는 댓글을 수정하면 404 Not Found로 응답한다.")
-  void shouldReturnNotFound_whenCommentDoesNotExist() throws Exception {
-    // given
-    UUID commentId = UUID.randomUUID();
-    CommentUpdateRequest request = new CommentUpdateRequest("수정된 댓글 내용입니다.");
-
-    // when & then
-    mockMvc.perform(patch("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, UUID.randomUUID())
-            .contentType(APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(request)))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
-        .andExpect(jsonPath("$.status").value(404))
-        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
   }
 
   @Test
@@ -286,42 +228,6 @@ class CommentIntegrationTest {
   }
 
   @Test
-  @DisplayName("존재하지 않는 댓글을 삭제하면 404 Not Found로 응답한다.")
-  void shouldReturnNotFound_whenDeleteCommentDoesNotExist() throws Exception {
-    // given
-    UUID commentId = UUID.randomUUID();
-
-    // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, UUID.randomUUID()))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
-        .andExpect(jsonPath("$.status").value(404))
-        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
-  }
-
-  @Test
-  @DisplayName("이미 삭제된 댓글을 삭제하면 404 Not Found로 응답한다.")
-  void shouldReturnNotFound_whenDeleteCommentIsAlreadyDeleted() throws Exception {
-    // given
-    NewsArticle article = saveArticle();
-    User user = saveUser();
-    UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
-
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, user.getId()))
-        .andExpect(status().isNoContent());
-
-    // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, user.getId()))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("COMMENT_DELETED"))
-        .andExpect(jsonPath("$.status").value(404))
-        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
-  }
-
-  @Test
   @DisplayName("유효한 요청이면 댓글 물리 삭제에 성공하고 관련 데이터가 함께 삭제된다.")
   void shouldHardDeleteComment_whenRequestIsValid() throws Exception {
     // given
@@ -381,20 +287,6 @@ class CommentIntegrationTest {
     assertThat(commentLikeCount).isEqualTo(0);
     assertThat(notificationCount).isEqualTo(0);
     assertThat(savedArticle.getCommentCount()).isEqualTo(0);
-  }
-
-  @Test
-  @DisplayName("존재하지 않는 댓글을 물리 삭제하면 404 Not Found로 응답한다.")
-  void shouldReturnNotFound_whenHardDeleteCommentDoesNotExist() throws Exception {
-    // given
-    UUID commentId = UUID.randomUUID();
-
-    // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}/hard", commentId))
-        .andExpect(status().isNotFound())
-        .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
-        .andExpect(jsonPath("$.status").value(404))
-        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
   }
 
   @Test

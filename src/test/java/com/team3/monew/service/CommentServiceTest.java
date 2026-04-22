@@ -32,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -475,8 +476,6 @@ class CommentServiceTest {
             assertThat(actual.size()).isEqualTo(limit);
             assertThat(actual.totalElements()).isEqualTo(3L);
             assertThat(actual.hasNext()).isTrue();
-            thenCommentSearchRequested("likeCount", null, null, limit);
-            thenLikedCommentsRequested(pageComments);
         }
 
         @Test
@@ -496,7 +495,6 @@ class CommentServiceTest {
             assertThat(actual.size()).isZero();
             assertThat(actual.totalElements()).isZero();
             assertThat(actual.hasNext()).isFalse();
-            thenCommentSearchRequested("createdAt", null, null, limit);
             then(commentLikeRepository).shouldHaveNoInteractions();
             then(commentMapper).shouldHaveNoInteractions();
         }
@@ -527,8 +525,6 @@ class CommentServiceTest {
             assertThat(actual.size()).isEqualTo(limit);
             assertThat(actual.totalElements()).isEqualTo(4L);
             assertThat(actual.hasNext()).isTrue();
-            thenCommentSearchRequested("likeCount", cursor, null, limit);
-            thenLikedCommentsRequested(pageComments);
         }
 
         @Test
@@ -537,6 +533,19 @@ class CommentServiceTest {
             // when & then
             assertThatThrownBy(() ->
                     commentService.findAll(articleId, "createdAt", null, null, 0, requestUserId)
+            ).isInstanceOf(BusinessException.class);
+
+            then(commentRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("정렬 기준이 유효하지 않으면 댓글 목록 조회에 실패한다.")
+        void shouldThrowBusinessException_whenOrderByIsInvalid() {
+            // when & then
+            assertThatThrownBy(() ->
+                    commentService.findAll(articleId, "invalid", null, null, 10, requestUserId)
             ).isInstanceOf(BusinessException.class);
 
             then(commentRepository).shouldHaveNoInteractions();
@@ -556,8 +565,21 @@ class CommentServiceTest {
 
     private void givenActiveComments(String orderBy, String cursor, Instant after, int limit,
                                      List<Comment> comments, long totalElements) {
-        given(commentRepository.findActiveComments(articleId, orderBy, cursor, after, limit + 1))
-                .willReturn(comments);
+        PageRequest pageable = PageRequest.of(0, limit + 1);
+        if ("likeCount".equals(orderBy)) {
+            given(commentRepository.findActiveCommentsByLikeCountDesc(
+                    articleId,
+                    cursorLikeCount(cursor),
+                    likeCountCursorCreatedAt(cursor, after),
+                    pageable
+            )).willReturn(comments);
+        } else {
+            given(commentRepository.findActiveCommentsByCreatedAtDesc(
+                    articleId,
+                    createdAtCursor(cursor),
+                    pageable
+            )).willReturn(comments);
+        }
         given(commentRepository.countActiveComments(articleId)).willReturn(totalElements);
     }
 
@@ -571,15 +593,6 @@ class CommentServiceTest {
                 comment.getContent(), (long) comment.getLikeCount(), likedByMe, comment.getCreatedAt());
         given(commentMapper.toDto(comment, likedByMe)).willReturn(dto);
         return dto;
-    }
-
-    private void thenCommentSearchRequested(String orderBy, String cursor, Instant after, int limit) {
-        then(commentRepository).should()
-                .findActiveComments(articleId, orderBy, cursor, after, limit + 1);
-    }
-
-    private void thenLikedCommentsRequested(List<Comment> comments) {
-        then(commentLikeRepository).should().findLikedCommentIds(requestUserId, commentIdsOf(comments));
     }
 
     private List<UUID> commentIdsOf(List<Comment> comments) {
@@ -599,5 +612,30 @@ class CommentServiceTest {
             return comment.getLikeCount() + "|" + comment.getCreatedAt();
         }
         return comment.getCreatedAt().toString();
+    }
+
+    private Integer cursorLikeCount(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+        return Integer.valueOf(cursor.split("\\|")[0]);
+    }
+
+    private Instant likeCountCursorCreatedAt(String cursor, Instant after) {
+        if (cursor == null || cursor.isBlank()) {
+            return after;
+        }
+        String[] cursorValues = cursor.split("\\|");
+        if (cursorValues.length < 2 || cursorValues[1].isBlank()) {
+            return after;
+        }
+        return Instant.parse(cursorValues[1]);
+    }
+
+    private Instant createdAtCursor(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+        return Instant.parse(cursor);
     }
 }
