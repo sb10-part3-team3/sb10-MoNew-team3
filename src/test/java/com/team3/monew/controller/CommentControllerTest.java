@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.comment.CommentDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
+import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
 import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
@@ -11,6 +12,7 @@ import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.CommentService;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,6 +32,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -545,6 +548,101 @@ class CommentControllerTest {
 
       then(commentService).should().hardDeleteComment(commentId);
       then(commentService).shouldHaveNoMoreInteractions();
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 조회 API를 검증한다.")
+  class FindAllComment {
+
+    @Test
+    @DisplayName("유효한 요청을 받으면 댓글 목록 페이지를 반환한다.")
+    void shouldFindComments_whenRequestIsValid() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      UUID firstCommentId = UUID.randomUUID();
+      UUID secondCommentId = UUID.randomUUID();
+      int limit = 2;
+      CommentDto firstComment = new CommentDto(
+          firstCommentId,
+          articleId,
+          UUID.randomUUID(),
+          "첫 번째 작성자",
+          "첫 번째 댓글입니다.",
+          3L,
+          false,
+          Instant.parse("2026-04-17T00:00:03Z")
+      );
+      CommentDto secondComment = new CommentDto(
+          secondCommentId,
+          articleId,
+          userId,
+          "두 번째 작성자",
+          "두 번째 댓글입니다.",
+          1L,
+          true,
+          Instant.parse("2026-04-17T00:00:02Z")
+      );
+      CursorPageResponseCommentDto response = new CursorPageResponseCommentDto(
+          List.of(firstComment, secondComment),
+          "2026-04-17T00:00:02Z",
+          Instant.parse("2026-04-17T00:00:02Z"),
+          2,
+          3L,
+          true
+      );
+
+      given(commentService.findAll(
+          articleId,
+          "createdAt",
+          "DESC",
+          null,
+          null,
+          limit,
+          userId
+      )).willReturn(response);
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .header(REQUEST_USER_ID_HEADER, userId)
+              .param("articleId", articleId.toString())
+              .param("orderBy", "createdAt")
+              .param("direction", "DESC")
+              .param("limit", String.valueOf(limit)))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.content[0].id").value(firstCommentId.toString()))
+          .andExpect(jsonPath("$.content[0].likedByMe").value(false))
+          .andExpect(jsonPath("$.content[1].id").value(secondCommentId.toString()))
+          .andExpect(jsonPath("$.content[1].likedByMe").value(true))
+          .andExpect(jsonPath("$.nextCursor").value("2026-04-17T00:00:02Z"))
+          .andExpect(jsonPath("$.nextAfter").value("2026-04-17T00:00:02Z"))
+          .andExpect(jsonPath("$.size").value(2))
+          .andExpect(jsonPath("$.totalElements").value(3))
+          .andExpect(jsonPath("$.hasNext").value(true));
+
+      then(commentService).should().findAll(articleId, "createdAt", "DESC", null, null, limit, userId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("요청자 ID 헤더가 없으면 댓글 조회에 실패하고 400 Bad Request로 응답한다.")
+    void shouldReturnBadRequest_whenRequestUserIdHeaderIsMissing() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .param("articleId", articleId.toString())
+              .param("orderBy", "createdAt")
+              .param("direction", "DESC")
+              .param("limit", "10"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(jsonPath("$.details.header").value(REQUEST_USER_ID_HEADER));
+
+      then(commentService).shouldHaveNoInteractions();
     }
   }
 }
