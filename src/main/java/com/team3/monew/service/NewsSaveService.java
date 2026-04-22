@@ -41,6 +41,11 @@ public class NewsSaveService {
         .filter(raw -> !existingLinks.contains(raw.link()))
         .toList();
 
+    if (newNewsArticles.isEmpty()) {
+      log.info("뉴스 기사 저장 스킵 - 저장할 데이터가 없습니다. articleSize=0");
+      return List.of();
+    }
+
     // NewsSource 타입
     Map<NewsSourceType, NewsSource> newsSources = newsSourceRepository.findAll().stream()
         .collect(Collectors.toMap(
@@ -58,7 +63,7 @@ public class NewsSaveService {
     // Repository에 데이터 저장
     newsArticleRepository.saveAll(articleToSave);
 
-    log.info("뉴스 기사 저장 완료");
+    log.info("뉴스 기사 저장 완료 - articleSize={}", articleToSave.size());
     // 저장된 뉴스의 원본 반환
     return newNewsArticles;
   }

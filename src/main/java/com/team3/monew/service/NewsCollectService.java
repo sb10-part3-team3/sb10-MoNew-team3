@@ -75,7 +75,7 @@ public class NewsCollectService {
             article -> article,     // value: ParsedNewsArticle
             (existing, replacement) ->
                 // merge function. 중복일 시 Naver우선으로 충돌 해결
-                existing.sourceType().equals(NewsSourceType.NAVER)
+                NewsSourceType.NAVER.equals(existing.sourceType())
                     ? existing
                     : replacement
         ))

@@ -49,10 +49,14 @@ public class ChosunNewsCollect implements NewsCollect {
                 .then(Mono.error(new NewsClientException("Chosun 서버 일시적 장애(5xx)", true)))
         )
         .bodyToMono(String.class)
+        .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
         // 재시도 전략(최대 2번, 0.5초 간격)
         .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
-            // 400번대 에러는 재시도 전략에서 제거
-            .filter(throwable -> throwable instanceof NewsClientException ncs && ncs.isRetryable())
+            // 400번대 에러는 재시도 전략에서 제거 || 타임아웃 재시도 부여
+            .filter(ex ->
+                (ex instanceof NewsClientException ncs && ncs.isRetryable()) ||
+                    ex instanceof java.util.concurrent.TimeoutException
+            )
         )
         .onErrorResume(e -> {
           log.error("Chosun 기사 수집 실패: error={}", e.getMessage());

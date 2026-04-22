@@ -51,7 +51,7 @@ public class KeywordMatch {
   public List<String> findMatches(String text) {
     lock.readLock().lock();
     try {
-      if (compiledPattern == null) {
+      if (compiledPattern == null || text == null || text.isBlank()) {
         return List.of();
       }
 

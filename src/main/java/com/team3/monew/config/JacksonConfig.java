@@ -1,5 +1,6 @@
 package com.team3.monew.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -14,6 +15,7 @@ public class JacksonConfig {
   @Primary    // 우선순위
   public ObjectMapper createObjectMapper() {    // json Parsing용
     return new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)  // 예상못한 필드 제거
         .registerModule(new JavaTimeModule());
   }
 

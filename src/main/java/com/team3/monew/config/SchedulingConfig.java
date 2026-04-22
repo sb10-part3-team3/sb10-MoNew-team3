@@ -19,7 +19,6 @@ public class SchedulingConfig implements SchedulingConfigurer {
     taskScheduler.setThreadNamePrefix("scheduled-task-");
     taskScheduler.setWaitForTasksToCompleteOnShutdown(true); // Graceful Shutdown 설정용
     taskScheduler.setAwaitTerminationSeconds(10);
-    taskScheduler.initialize();
 
     return taskScheduler;
   }

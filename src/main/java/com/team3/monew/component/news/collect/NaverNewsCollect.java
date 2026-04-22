@@ -33,7 +33,7 @@ public class NaverNewsCollect implements NewsCollect {
   private final NewsParser newsParser;
 
   // Test를 위한 비 상수화
-  @Value("${news.chosun.base-url:https://openapi.naver.com}")
+  @Value("${news.naver.base-url:https://openapi.naver.com}")
   private String naverBaseUrl;
   private static final String NAVER_QUERY_PATH = "/v1/search/news.json";
   private static final int NAVER_QUERY_DISPLAY = 100;     // 한번에 표시할 갯수(10~100) default: 10
@@ -112,18 +112,22 @@ public class NaverNewsCollect implements NewsCollect {
         .onStatus(HttpStatusCode::is4xxClientError, response ->
             // 바디를 읽지 않고 비움처리 후에 에러 전파
             response.releaseBody()
-                .then(Mono.error(new NewsClientException("Chosun 요청 실패(4xx)", false)))
+                .then(Mono.error(new NewsClientException("Naver 요청 실패(4xx)", false)))
         )
         // 500번대 에러
         .onStatus(HttpStatusCode::is5xxServerError, response ->
             response.releaseBody()
-                .then(Mono.error(new NewsClientException("Chosun 서버 일시적 장애(5xx)", true)))
+                .then(Mono.error(new NewsClientException("Naver 서버 일시적 장애(5xx)", true)))
         )
         .bodyToMono(String.class)
+        .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
         // 재시도 전략(최대 2번, 0.5초 간격)
         .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
-            // 400번대 에러는 재시도 전략에서 제거
-            .filter(throwable -> throwable instanceof NewsClientException ncs && ncs.isRetryable())
+            // 400번대 에러는 재시도 전략에서 제거 || 타임아웃 재시도 부여
+            .filter(ex ->
+                (ex instanceof NewsClientException ncs && ncs.isRetryable()) ||
+                    ex instanceof java.util.concurrent.TimeoutException
+            )
         )
         .onErrorResume(e -> {
           log.error("Naver 기사 수집 실패: keyword={}, error={}", keyword, e.getMessage());

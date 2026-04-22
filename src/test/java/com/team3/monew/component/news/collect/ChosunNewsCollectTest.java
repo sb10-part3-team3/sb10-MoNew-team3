@@ -1,5 +1,6 @@
 package com.team3.monew.component.news.collect;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
@@ -110,6 +111,7 @@ class ChosunNewsCollectTest {
     StepVerifier.create(newsCollect.collect(webClient, null, null))
         .expectNextCount(0) // 데이터 0개
         .verifyComplete();
+    assertThat(webServer.getRequestCount()).isEqualTo(1); // 횟수 호출 1
   }
 
   @Test
@@ -132,5 +134,6 @@ class ChosunNewsCollectTest {
     StepVerifier.create(newsCollect.collect(webClient, null, null))
         .expectNextCount(0) // 데이터 0개
         .verifyComplete();
+    assertThat(webServer.getRequestCount()).isEqualTo(3); // 횟수 호출 3(재시도2)
   }
 }
