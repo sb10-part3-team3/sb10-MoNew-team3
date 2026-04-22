@@ -150,6 +150,8 @@ class NotificationControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.size()").value(3))
         .andExpect(jsonPath("$.content[0].id").value(notificationDto1.id().toString()))
+        .andExpect(jsonPath("$.content[0].resourceType").value(
+            notificationDto1.resourceType().name().toLowerCase()))
         .andExpect(jsonPath("$.nextCursor").value(notificationDto3.createdAt().toString()))
         .andExpect(jsonPath("$.nextAfter").value(notificationDto3.id().toString()))
         .andExpect(jsonPath("$.size").value(3))
@@ -175,6 +177,8 @@ class NotificationControllerTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.size()").value(4))
         .andExpect(jsonPath("$.content[0].id").value(notificationDto1.id().toString()))
+        .andExpect(jsonPath("$.content[0].resourceType").value(
+            notificationDto1.resourceType().name().toLowerCase()))
         .andExpect(jsonPath("$.nextCursor").value(nullValue()))
         .andExpect(jsonPath("$.nextAfter").value(nullValue()))
         .andExpect(jsonPath("$.size").value(4))
