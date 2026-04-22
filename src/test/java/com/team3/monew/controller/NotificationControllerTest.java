@@ -1,7 +1,6 @@
 package com.team3.monew.controller;
 
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,7 +12,6 @@ import com.team3.monew.dto.notification.CursorPageResponseNotificationDto.Notifi
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
-import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.List;
@@ -49,7 +47,8 @@ class NotificationControllerTest {
   private User user2;
   private User user3;
   private UUID commentId1;
-  private UUID articleId1;
+  private UUID interestId1;
+  private UUID interestId2;
 
   private UUID likeNotiId1;
   private UUID likeNotiId2;
@@ -79,7 +78,8 @@ class NotificationControllerTest {
     ReflectionTestUtils.setField(user3, "id", userId3);
 
     commentId1 = UUID.randomUUID();
-    articleId1 = UUID.randomUUID();
+    interestId1 = UUID.randomUUID();
+    interestId2 = UUID.randomUUID();
 
     likeNotiId1 = UUID.randomUUID();
     likeNotiId2 = UUID.randomUUID();
@@ -98,10 +98,10 @@ class NotificationControllerTest {
     interestNotiId2 = UUID.randomUUID();
     interestNotification1 = Notification.create(user1, "interest1에 관한 기사가 10건 등록되었습니다.",
         NotificationResourceType.INTEREST,
-        interestNotiId1, null);
+        interestId1, null);
     interestNotification2 = Notification.create(user1, "interest2에 관한 기사가 3건 등록되었습니다.",
         NotificationResourceType.INTEREST,
-        interestNotiId2, null);
+        interestId2, null);
     ReflectionTestUtils.setField(interestNotification1, "id", interestNotiId1);
     ReflectionTestUtils.setField(interestNotification2, "id", interestNotiId2);
     ReflectionTestUtils.setField(interestNotification1, "createdAt",
