@@ -1,9 +1,9 @@
 package com.team3.monew.repository.impl;
 
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.entity.Interest;
@@ -25,14 +25,12 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
   @Override
   public List<Interest> searchByCondition(InterestSearchCondition condition) {
     QInterest interest = QInterest.interest;
-    QInterestKeyword keyword = QInterestKeyword.interestKeyword;
 
     return queryFactory
-        .selectDistinct(interest)
+        .select(interest)
         .from(interest)
-        .leftJoin(interest.keywords, keyword)
         .where(
-            buildSearchCondition(condition, interest, keyword),
+            buildSearchCondition(condition, interest),
             buildCursorCondition(condition, interest)
         )
         .orderBy(getOrderSpecifier(condition, interest))
@@ -43,15 +41,11 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
   @Override
   public int countByCondition(InterestSearchCondition condition) {
     QInterest interest = QInterest.interest;
-    QInterestKeyword keyword = QInterestKeyword.interestKeyword;
-
-    BooleanBuilder builder = buildSearchCondition(condition, interest, keyword);
 
     Long count = queryFactory
-        .select(interest.countDistinct())
+        .select(interest.count())
         .from(interest)
-        .leftJoin(interest.keywords, keyword)
-        .where(builder)
+        .where(buildSearchCondition(condition, interest))
         .fetchOne();
 
     return count == null ? 0 : count.intValue();
@@ -59,8 +53,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
 
   private BooleanBuilder buildSearchCondition(
       InterestSearchCondition condition,
-      QInterest interest,
-      QInterestKeyword keyword
+      QInterest interest
   ) {
     BooleanBuilder builder = new BooleanBuilder();
 
@@ -70,9 +63,21 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
       return builder;
     }
 
+    QInterestKeyword keyword = QInterestKeyword.interestKeyword;
+
+    // 테스트 시 페이지네이션 깨짐 현상으로 subquery 사용
     builder.and(
         interest.name.containsIgnoreCase(searchKeyword)
-            .or(keyword.keyword.containsIgnoreCase(searchKeyword))
+            .or(
+                JPAExpressions
+                    .selectOne()
+                    .from(keyword)
+                    .where(
+                        keyword.interest.eq(interest),
+                        keyword.keyword.containsIgnoreCase(searchKeyword)
+                    )
+                    .exists()
+            )
     );
 
     return builder;
