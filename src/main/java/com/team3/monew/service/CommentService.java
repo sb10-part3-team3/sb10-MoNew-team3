@@ -3,6 +3,7 @@ package com.team3.monew.service;
 import com.team3.monew.dto.comment.CommentDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
+import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
@@ -22,6 +23,9 @@ import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -114,6 +118,39 @@ public class CommentService {
     log.debug("댓글 물리 삭제 완료: commentId={}", commentId);
   }
 
+  public CursorPageResponseCommentDto findAll(UUID articleId, String orderBy, String direction,
+      String cursor, Instant after, int limit, UUID requestUserId) {
+    log.debug("댓글 목록 조회 요청 처리 시작: articleId={}, requestUserId={}", articleId, requestUserId);
+
+    List<Comment> comments = commentRepository.findActiveComments(
+        articleId, orderBy, direction, cursor, after, limit + 1);
+    long totalElements = commentRepository.countActiveComments(articleId);
+    boolean hasNext = comments.size() > limit;
+    List<Comment> pageComments = hasNext ? comments.subList(0, limit) : comments;
+
+    if (pageComments.isEmpty()) {
+      log.debug("댓글 목록 조회 완료: articleId={}, size=0, hasNext=false", articleId);
+      return new CursorPageResponseCommentDto(List.of(), null, null, 0, totalElements, false);
+    }
+
+    List<UUID> commentIds = pageComments.stream()
+        .map(Comment::getId)
+        .toList();
+    Set<UUID> likedCommentIds = commentLikeRepository.findLikedCommentIds(requestUserId, commentIds);
+    List<CommentDto> content = pageComments.stream()
+        .map(comment -> commentMapper.toDto(comment, likedCommentIds.contains(comment.getId())))
+        .toList();
+
+    Comment lastComment = pageComments.get(pageComments.size() - 1);
+    String nextCursor = hasNext ? resolveNextCursor(lastComment, orderBy) : null;
+    Instant nextAfter = hasNext ? lastComment.getCreatedAt() : null;
+
+    log.debug("댓글 목록 조회 완료: articleId={}, size={}, hasNext={}",
+        articleId, content.size(), hasNext);
+    return new CursorPageResponseCommentDto(
+        content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
+  }
+
   private NewsArticle findActiveArticle(UUID articleId) {
     log.debug("댓글 등록 기사 조회 시작: articleId={}", articleId);
 
@@ -165,5 +202,12 @@ public class CommentService {
     if (!authorId.equals(requestUserId)) {
       throw unauthorizedException;
     }
+  }
+
+  private String resolveNextCursor(Comment comment, String orderBy) {
+    if ("likeCount".equals(orderBy)) {
+      return String.valueOf(comment.getLikeCount());
+    }
+    return comment.getCreatedAt().toString();
   }
 }
