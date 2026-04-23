@@ -26,6 +26,7 @@ import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.NotificationService;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -74,6 +75,9 @@ public class NotificationIntegrationTest {
 
   @Autowired
   private MockMvc mockMvc;
+
+  @Autowired
+  private EntityManager em;
 
   @Nested
   @DisplayName("좋아요 알림 등록 테스트")
@@ -298,6 +302,12 @@ public class NotificationIntegrationTest {
       notificationRepository.saveAndFlush(notification2);
       notificationRepository.saveAndFlush(notification3);
       notificationRepository.saveAndFlush(notification4);
+
+      em.clear();
+      // 새로가져오기
+      notification1 = notificationRepository.findById(notification1.getId()).orElseThrow();
+      notification2 = notificationRepository.findById(notification2.getId()).orElseThrow();
+      notification3 = notificationRepository.findById(notification3.getId()).orElseThrow();
     }
 
     @Test
