@@ -567,7 +567,7 @@ class InterestServiceTest {
   }
 
   @Test
-  @DisplayName("구독 저장 중 DB unique 제약 위반이 발생하면 구독에 실패한다")
+  @DisplayName("구독 저장 중 DB unique 제약 위반이 발생하면 중복 구독 예외로 변환된다")
   void shouldFailToSubscribe_whenDataIntegrityViolationOccurs() {
     // given
     UUID userId = UUID.randomUUID();
@@ -592,10 +592,16 @@ class InterestServiceTest {
 
     // when & then
     assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
-        .isInstanceOf(InterestException.class)
-        .hasMessage(ErrorCode.INTEREST_ALREADY_SUBSCRIBING.getMessage());
+        .isInstanceOfSatisfying(InterestException.class, e -> {
+          assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+          assertThat(e.getMessage()).isEqualTo(ErrorCode.INTEREST_ALREADY_SUBSCRIBING.getMessage());
+        });
 
+    then(userRepository).should().findById(userId);
+    then(interestRepository).should().findById(interestId);
+    then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
     then(subscriptionRepository).should().save(any(Subscription.class));
+    then(interestRepository).should(never()).increaseSubscriberCount(any(UUID.class));
     then(interestMapper).should(never()).toSubscriptionDto(any(), any());
   }
 }

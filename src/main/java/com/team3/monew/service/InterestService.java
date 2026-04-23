@@ -6,9 +6,7 @@ import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
-import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.Interest;
-import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
@@ -17,14 +15,13 @@ import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.InterestMapper;
-import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
-import java.time.Instant;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -253,15 +250,12 @@ public class InterestService {
   // 유니크 제약 위반 검증
   private boolean isDuplicateSubscriptionViolation(DataIntegrityViolationException e) {
     Throwable cause = e;
-
     while (cause != null) {
-      String message = cause.getMessage();
-      if (message != null && message.contains("uk_subscriptions_user_id_interest_id")) {
-        return true;
+      if (cause instanceof ConstraintViolationException cve) {
+        return "uk_subscriptions_user_id_interest_id".equals(cve.getConstraintName());
       }
       cause = cause.getCause();
     }
-
     return false;
   }
 
