@@ -4,6 +4,7 @@ import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.Interest;
@@ -13,6 +14,7 @@ import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestKeywordRepository;
@@ -39,6 +41,7 @@ public class InterestService {
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
+  private final UserRepository userRepository;
 
   public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
@@ -207,9 +210,40 @@ public class InterestService {
     log.debug("관심사 삭제 성공 - interestId={}", interestId);
   }
 
+  public SubscriptionDto subscribe(UUID userId, UUID interestId) {
+    log.debug("관심사 구독 요청 - interestId={}", interestId);
+    User user = findUserOrElseThrow(userId);
+    Interest interest = findInterestOrElseThrow(interestId);
+
+    boolean isSubscribed = subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
+
+    if (isSubscribed) {
+      log.warn("관심사 구독 실패 - 이미 구독중인 관심사, interestId={}", interestId);
+      throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+    }
+
+    try {
+      Subscription subscription = Subscription.create(user, interest);
+      Subscription savedSubscription = subscriptionRepository.save(subscription);
+
+      interest.increaseSubscriberCount();
+
+      log.debug("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
+      return interestMapper.toSubscriptionDto(savedSubscription, interest);
+    } catch (DataIntegrityViolationException e) {
+      log.warn("관심사 구독 실패 - 중복 구독 충돌, userId={}, interestId={}", userId, interestId);
+      throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+    }
+  }
+
   private Interest findInterestOrElseThrow(UUID interestId) {
     return interestRepository.findById(interestId)
         .orElseThrow(InterestNotFoundException::new);
+  }
+
+  private User findUserOrElseThrow(UUID userId) {
+    return userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
   }
 
   // 유사도 계산 메서드

@@ -23,6 +23,7 @@ public enum ErrorCode {
   INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 관심사를 찾을 수 없습니다."),
   INTEREST_KEYWORD_LIST_IS_BLANK(HttpStatus.BAD_REQUEST, "관심사 키워드가 비어있습니다."),
   INTEREST_KEYWORD_DUPLICATED(HttpStatus.BAD_REQUEST, "중복된 관심사 키워드가 존재합니다."),
+  INTEREST_ALREADY_SUBSCRIBING(HttpStatus.CONFLICT, "이미 구독중인 관심사입니다."),
 
   //COMMON
   INVALID_PARAMETER_TYPE(HttpStatus.BAD_REQUEST, "해당 파라미터가 유효하지 않습니다."),
