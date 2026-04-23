@@ -1,6 +1,7 @@
 package com.team3.monew.controller.api;
 
 import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentLikeDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
@@ -82,6 +83,30 @@ public interface CommentApi {
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam int limit,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+  );
+
+  @Operation(summary = "댓글 좋아요 등록", description = "댓글 좋아요를 등록합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "댓글 좋아요 등록 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 누락, 중복 좋아요 등)"),
+      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  ResponseEntity<CommentLikeDto> likeComment(
+      @PathVariable UUID commentId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+  );
+
+  @Operation(summary = "댓글 좋아요 취소", description = "댓글 좋아요를 취소합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "댓글 좋아요 취소 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 누락, 좋아요 정보 없음 등)"),
+      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  ResponseEntity<Void> unlikeComment(
+      @PathVariable UUID commentId,
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 }

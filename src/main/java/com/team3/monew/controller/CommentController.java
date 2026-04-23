@@ -2,6 +2,7 @@ package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.CommentApi;
 import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentLikeDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
@@ -78,5 +79,22 @@ public class CommentController implements CommentApi {
     return ResponseEntity.ok(
         commentService.findAll(articleId, orderBy, cursor, after, limit, requestUserId)
     );
+  }
+
+  @PostMapping("/{commentId}/comment-likes")
+  public ResponseEntity<CommentLikeDto> likeComment(
+      @PathVariable("commentId") UUID commentId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+  ) {
+    return ResponseEntity.ok(commentService.likeComment(commentId, requestUserId));
+  }
+
+  @DeleteMapping("/{commentId}/comment-likes")
+  public ResponseEntity<Void> unlikeComment(
+      @PathVariable("commentId") UUID commentId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+  ) {
+    commentService.unlikeComment(commentId, requestUserId);
+    return ResponseEntity.ok().build();
   }
 }
