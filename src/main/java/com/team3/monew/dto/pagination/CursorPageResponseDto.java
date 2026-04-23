@@ -1,5 +1,6 @@
 package com.team3.monew.dto.pagination;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
@@ -14,6 +15,7 @@ public record CursorPageResponseDto<T>(
     String nextCursor,
 
     @Schema(description = "다음 보조 커서(마지막 요소의 생성 시간)")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", timezone = "UTC")
     Instant nextAfter,
 
     @Schema(description = "페이지 크기")

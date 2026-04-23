@@ -14,6 +14,8 @@ import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.service.NotificationService;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +41,9 @@ class NotificationControllerTest {
 
 
   private static final String NOTIFICATION_URL = "/api/notifications";
+  private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+          "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'")
+      .withZone(ZoneId.of("UTC"));//날짜 비교를 위해
 
   private UUID userId1;
   private UUID userId2;
@@ -154,7 +159,7 @@ class NotificationControllerTest {
         .andExpect(jsonPath("$.content[0].resourceType").value(
             notificationDto1.resourceType().name().toLowerCase()))
         .andExpect(jsonPath("$.nextCursor").value(notificationDto3.id().toString()))
-        .andExpect(jsonPath("$.nextAfter").value(notificationDto3.createdAt().toString()))
+        .andExpect(jsonPath("$.nextAfter").value(formatter.format(notificationDto3.createdAt())))
         .andExpect(jsonPath("$.size").value(3))
         .andExpect(jsonPath("$.totalElements").value(4))
         .andExpect(jsonPath("$.hasNext").value(true));
