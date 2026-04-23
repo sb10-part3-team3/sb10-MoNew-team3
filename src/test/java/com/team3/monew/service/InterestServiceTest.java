@@ -579,8 +579,16 @@ class InterestServiceTest {
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
+
+    org.hibernate.exception.ConstraintViolationException cause =
+        new org.hibernate.exception.ConstraintViolationException(
+            "unique constraint violation",
+            null,
+            "uk_subscriptions_user_id_interest_id"
+        );
+
     given(subscriptionRepository.save(any(Subscription.class)))
-        .willThrow(new DataIntegrityViolationException("unique constraint violation"));
+        .willThrow(new DataIntegrityViolationException("unique constraint violation", cause));
 
     // when & then
     assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
