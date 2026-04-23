@@ -88,7 +88,7 @@ public class NotificationService {
     ));
     Page<NotificationDto> pages = notificationRepository.findAllNotConfirmedNotificationByUserId(
         requestUserId, cursor, after, pageable).map(notificationMapper::toDto);
-    log.debug("알림 목록 데이터베이스 조회 성공: userId={}, cursor={}, after={}, limit]{}", requestUserId, cursor,
+    log.debug("알림 목록 데이터베이스 조회 성공: userId={}, cursor={}, after={}, limit{}", requestUserId, cursor,
         after, limit);
     List<NotificationDto> content = pages.getContent();
     boolean hasNext = pages.hasNext();
