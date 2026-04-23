@@ -1,6 +1,5 @@
 package com.team3.monew.dto.notification;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
@@ -10,11 +9,9 @@ public record NotificationDto(
     @Schema(description = "알림 ID")
     UUID id,
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", timezone = "UTC")
     @Schema(description = "생성된 날짜")
     Instant createdAt,
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", timezone = "UTC")
     @Schema(description = "확인한 날짜")
     Instant updatedAt,
 

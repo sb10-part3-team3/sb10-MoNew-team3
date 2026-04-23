@@ -45,9 +45,7 @@ class NotificationControllerTest {
 
 
   private static final String NOTIFICATION_URL = "/api/notifications";
-  private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-          "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'")
-      .withZone(ZoneId.of("UTC"));//날짜 비교를 위해
+  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
 
   private UUID userId1;
   private UUID userId2;

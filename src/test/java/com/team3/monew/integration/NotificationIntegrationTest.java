@@ -261,9 +261,7 @@ public class NotificationIntegrationTest {
     private Notification notification3;
     private Notification notification4;
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'")
-        .withZone(ZoneId.of("UTC"));
+    private final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
 
     @BeforeEach
     void setUp() {
