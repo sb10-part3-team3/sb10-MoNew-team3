@@ -5,6 +5,7 @@ import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.service.InterestService;
@@ -76,6 +77,13 @@ public class InterestController implements InterestApi {
 
     CursorPageResponseInterestDto response =
         interestService.findAll(condition, userId);
+
+    return ResponseEntity.ok(response);
+  }
+
+  @Override
+  public ResponseEntity<SubscriptionDto> subscribe(UUID userId, UUID interestId) {
+    SubscriptionDto response = interestService.subscribe(userId, interestId);
 
     return ResponseEntity.ok(response);
   }
