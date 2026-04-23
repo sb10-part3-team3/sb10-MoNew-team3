@@ -357,13 +357,13 @@ public class InterestServiceIntegrationTest {
     );
     UUID userId = user.getId();
 
-    interestRepository.save(Interest.create("나무"));
-    Interest furniture = interestRepository.save(Interest.create("가구"));
-    Interest bridge = interestRepository.save(Interest.create("다리"));
-    interestRepository.save(Interest.create("책상"));
-    interestRepository.save(Interest.create("카톡"));
+    interestRepository.save(Interest.create("A"));
+    Interest beta = interestRepository.save(Interest.create("B"));
+    interestRepository.save(Interest.create("C"));
+    interestRepository.save(Interest.create("D"));
+    interestRepository.save(Interest.create("E"));
 
-    subscriptionRepository.save(Subscription.create(user, furniture));
+    subscriptionRepository.save(Subscription.create(user, beta));
 
     InterestSearchCondition firstCondition = new InterestSearchCondition(
         null,
@@ -390,9 +390,9 @@ public class InterestServiceIntegrationTest {
     assertThat(secondPage.content()).hasSize(2);
     assertThat(secondPage.content())
         .extracting(InterestDto::name)
-        .containsExactly("다리", "책상");
+        .containsExactly("C", "D");
     assertThat(secondPage.hasNext()).isTrue();
-    assertThat(secondPage.nextCursor()).isEqualTo("책상");
+    assertThat(secondPage.nextCursor()).isEqualTo("D");
     assertThat(secondPage.nextAfter()).isNotNull();
     assertThat(secondPage.totalElements()).isEqualTo(5);
   }
@@ -406,11 +406,11 @@ public class InterestServiceIntegrationTest {
     );
     UUID userId = user.getId();
 
-    interestRepository.save(Interest.create("나무"));
-    interestRepository.save(Interest.create("가구"));
-    interestRepository.save(Interest.create("다리"));
-    interestRepository.save(Interest.create("책상"));
-    interestRepository.save(Interest.create("카톡"));
+    interestRepository.save(Interest.create("A"));
+    interestRepository.save(Interest.create("B"));
+    interestRepository.save(Interest.create("C"));
+    interestRepository.save(Interest.create("D"));
+    interestRepository.save(Interest.create("E"));
 
     InterestSearchCondition firstCondition = new InterestSearchCondition(
         null,
@@ -447,7 +447,7 @@ public class InterestServiceIntegrationTest {
     assertThat(thirdPage.content()).hasSize(1);
     assertThat(thirdPage.content())
         .extracting(InterestDto::name)
-        .containsExactly("카톡");
+        .containsExactly("E");
     assertThat(thirdPage.hasNext()).isFalse();
     assertThat(thirdPage.nextCursor()).isNull();
     assertThat(thirdPage.nextAfter()).isNull();
