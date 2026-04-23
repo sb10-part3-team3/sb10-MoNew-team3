@@ -150,7 +150,7 @@ class NotificationControllerTest {
     mockMvc.perform(get(NOTIFICATION_URL)
             .header("Monew-Request-User-ID", userId1)
             .param("cursor", cursor.toString())
-            .param("after", after.toString())
+            .param("after", formatter.format(after))
             .param("limit", "3")
             .accept(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())

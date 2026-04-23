@@ -324,7 +324,7 @@ public class NotificationIntegrationTest {
       mockMvc.perform(get("/api/notifications")
               .header("Monew-Request-User-ID", subscriber.getId())
               .param("cursor", notification3.getId().toString())
-              .param("after", notification3.getCreatedAt().toString())
+              .param("after", formatter.format(notification3.getCreatedAt()))
               .param("limit", "5")
               .accept(MediaType.APPLICATION_JSON))
           .andExpectAll(
@@ -346,7 +346,7 @@ public class NotificationIntegrationTest {
       mockMvc.perform(get("/api/notifications")
               .header("Monew-Request-User-ID", subscriber.getId())
               .param("cursor", notification3.getId().toString())
-              .param("after", notification3.getCreatedAt().toString())
+              .param("after", formatter.format(notification3.getCreatedAt()))
               .param("limit", "1")
               .accept(MediaType.APPLICATION_JSON))
           .andExpectAll(
