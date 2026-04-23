@@ -265,7 +265,7 @@ public class NotificationIntegrationTest {
     private Notification notification3;
     private Notification notification4;
 
-    private final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
 
     @BeforeEach
     void setUp() {
