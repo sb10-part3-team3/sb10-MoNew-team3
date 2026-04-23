@@ -226,10 +226,11 @@ public class InterestService {
       Subscription subscription = Subscription.create(user, interest);
       Subscription savedSubscription = subscriptionRepository.save(subscription);
 
-      interest.increaseSubscriberCount();
+      interestRepository.increaseSubscriberCount(interestId);
+      Interest updatedInterest = findInterestOrElseThrow(interestId);
 
       log.debug("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
-      return interestMapper.toSubscriptionDto(savedSubscription, interest);
+      return interestMapper.toSubscriptionDto(savedSubscription, updatedInterest);
     } catch (DataIntegrityViolationException e) {
       log.warn("관심사 구독 실패 - 중복 구독 충돌, userId={}, interestId={}", userId, interestId);
       throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);

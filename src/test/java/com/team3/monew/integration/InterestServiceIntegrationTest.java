@@ -675,7 +675,7 @@ public class InterestServiceIntegrationTest {
     Interest interest = interestRepository.save(Interest.create("주식"));
 
     subscriptionRepository.save(Subscription.create(user, interest));
-    interest.increaseSubscriberCount();
+    interestRepository.increaseSubscriberCount(interest.getId());
 
     entityManager.flush();
     entityManager.clear();
