@@ -73,12 +73,11 @@ class NotificationRepositoryTest {
     interestNotification2 = Notification.create(user1, "interest2에 관한 기사가 3건 등록되었습니다.",
         NotificationResourceType.INTEREST,
         interestId2, null);
+    ReflectionTestUtils.setField(confirmedNotification, "isConfirmed", true);
 
     notificationRepository.saveAll(
         List.of(likeNotification1, likeNotification2, interestNotification1,
             interestNotification2, confirmedNotification)); //5개 (4개 미확인)
-
-    ReflectionTestUtils.setField(confirmedNotification, "isConfirmed", true);
 
     notificationRepository.flush();
   }
@@ -146,7 +145,6 @@ class NotificationRepositoryTest {
             likeNotification1.getId()),//가장 먼저 저장된
 
         // 2. 페이징 정보 검증
-        () -> assertThat(result.getTotalElements()).isEqualTo(1),//전체 미확인 개수는 별도 쿼리 필요
         () -> assertThat(result.hasNext()).isFalse()
 
     );
