@@ -1,11 +1,15 @@
 package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.InterestApi;
+import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.internal.InterestCursor;
+import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.service.InterestService;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -45,5 +49,34 @@ public class InterestController implements InterestApi {
     interestService.deleteInterest(interestId);
 
     return ResponseEntity.noContent().build();
+  }
+
+  @Override
+  public ResponseEntity<CursorPageResponseInterestDto> findAll(
+      UUID userId,
+      String keyword,
+      String orderBy,
+      String direction,
+      String cursor,
+      Instant after,
+      int limit
+  ) {
+    InterestCursor interestCursor =
+        (cursor == null || after == null)
+            ? new InterestCursor(null, null)
+            : new InterestCursor(cursor, after);
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        keyword,
+        orderBy,
+        direction,
+        interestCursor,
+        limit
+    );
+
+    CursorPageResponseInterestDto response =
+        interestService.findAll(condition, userId);
+
+    return ResponseEntity.ok(response);
   }
 }
