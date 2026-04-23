@@ -16,7 +16,6 @@ import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
-import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
@@ -103,19 +102,13 @@ public class CommentService {
   }
 
   @Transactional
-  public void deleteComment(UUID commentId, UUID requestUserId) {
-    log.debug("댓글 논리 삭제 요청 처리 시작: commentId={}, requestUserId={}", commentId, requestUserId);
+  public void deleteComment(UUID commentId) {
+    log.debug("댓글 논리 삭제 요청 처리 시작: commentId={}", commentId);
 
     Comment comment = findActiveComment(commentId);
-    validateCommentAuthor(
-        comment,
-        requestUserId,
-        new UnauthorizedCommentDeleteException(commentId)
-    );
-
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
-    log.debug("댓글 논리 삭제 완료: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.debug("댓글 논리 삭제 완료: commentId={}", commentId);
   }
 
   @Transactional

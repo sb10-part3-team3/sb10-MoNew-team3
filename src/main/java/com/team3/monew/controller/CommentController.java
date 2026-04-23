@@ -52,10 +52,9 @@ public class CommentController implements CommentApi {
 
   @DeleteMapping("/{commentId}")
   public ResponseEntity<Void> deleteComment(
-      @PathVariable("commentId") UUID commentId,
-      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+      @PathVariable("commentId") UUID commentId
   ) {
-    commentService.deleteComment(commentId, requestUserId);
+    commentService.deleteComment(commentId);
     return ResponseEntity.noContent().build();
   }
 

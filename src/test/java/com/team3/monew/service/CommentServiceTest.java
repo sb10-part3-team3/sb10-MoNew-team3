@@ -16,7 +16,6 @@ import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
-import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
@@ -339,29 +338,12 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when
-            commentService.deleteComment(commentId, userId);
+            commentService.deleteComment(commentId);
 
             // then
             assertThat(comment.isDeleted()).isTrue();
             assertThat(comment.getDeletedAt()).isNotNull();
             then(newsArticleRepository).should().decrementCommentCountById(articleId);
-        }
-
-        @Test
-        @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 댓글 삭제 권한 없음 예외가 발생한다.")
-        void shouldThrowUnauthorizedCommentDeleteException_whenUserIsNotAuthor() {
-            // given
-            UUID otherUserId = UUID.randomUUID();
-            Comment comment = Comment.create(article, user, content);
-            assignId(comment, commentId);
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
-
-            // when & then
-            assertThatThrownBy(() -> commentService.deleteComment(commentId, otherUserId))
-                    .isInstanceOf(UnauthorizedCommentDeleteException.class);
-
-            assertThat(comment.isDeleted()).isFalse();
-            then(newsArticleRepository).shouldHaveNoInteractions();
         }
 
         @Test
@@ -371,7 +353,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.deleteComment(commentId, userId))
+            assertThatThrownBy(() -> commentService.deleteComment(commentId))
                     .isInstanceOf(CommentNotFoundException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();
@@ -387,7 +369,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when & then
-            assertThatThrownBy(() -> commentService.deleteComment(commentId, userId))
+            assertThatThrownBy(() -> commentService.deleteComment(commentId))
                     .isInstanceOf(DeletedCommentException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();

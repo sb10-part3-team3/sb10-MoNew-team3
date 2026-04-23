@@ -51,14 +51,11 @@ public interface CommentApi {
   @Operation(summary = "댓글 논리 삭제", description = "기존 댓글을 논리 삭제합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "204", description = "삭제 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 누락)"),
-      @ApiResponse(responseCode = "403", description = "댓글 삭제 권한 없음"),
       @ApiResponse(responseCode = "404", description = "댓글 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<Void> deleteComment(
-      @PathVariable UUID commentId,
-      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
+      @PathVariable UUID commentId
   );
 
   @Operation(summary = "댓글 물리 삭제", description = "기존 댓글을 물리 삭제합니다.")
@@ -71,10 +68,16 @@ public interface CommentApi {
       @PathVariable UUID commentId
   );
 
-  @Operation(summary = "댓글 목록 조회", description = "기사별 댓글 목록을 정렬 조건에 따라 커서 기반으로 조회합니다.")
+  @Operation(
+      summary = "댓글 목록 조회",
+      description = "기사별 댓글 목록을 정렬 조건에 따라 커서 기반으로 조회합니다."
+  )
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "조회 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 누락, 정렬 기준 오류, 페이지네이션 파라미터 오류 등)"),
+      @ApiResponse(
+          responseCode = "400",
+          description = "잘못된 요청(헤더 파싱, 정렬 기준 오류, 페이지네이션 파라미터 오류 등)"
+      ),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<CursorPageResponseCommentDto> findAllComments(
@@ -89,7 +92,7 @@ public interface CommentApi {
   @Operation(summary = "댓글 좋아요 등록", description = "댓글 좋아요를 등록합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "댓글 좋아요 등록 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 누락, 중복 좋아요 등)"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 파싱, 중복 좋아요 등)"),
       @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
@@ -101,7 +104,10 @@ public interface CommentApi {
   @Operation(summary = "댓글 좋아요 취소", description = "댓글 좋아요를 취소합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "댓글 좋아요 취소 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 누락, 좋아요 정보 없음 등)"),
+      @ApiResponse(
+          responseCode = "400",
+          description = "잘못된 요청(헤더 파싱, 좋아요 정보 없음 등)"
+      ),
       @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })

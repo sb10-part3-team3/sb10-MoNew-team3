@@ -174,8 +174,7 @@ class CommentIntegrationTest {
     UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
 
     // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, user.getId()))
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId))
         .andExpect(status().isNoContent());
 
     entityManager.flush();
@@ -192,39 +191,6 @@ class CommentIntegrationTest {
     assertThat(deletedCommentState[0]).isEqualTo(DeleteStatus.DELETED);
     assertThat(deletedCommentState[1]).isNotNull();
     assertThat(savedArticle.getCommentCount()).isEqualTo(0);
-  }
-
-  @Test
-  @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 403 Forbidden으로 응답하고 댓글 상태를 변경하지 않는다.")
-  void shouldReturnForbidden_whenDeleteRequesterIsNotAuthor() throws Exception {
-    // given
-    NewsArticle article = saveArticle();
-    User author = saveUser();
-    User otherUser = saveUser();
-    UUID commentId = registerComment(article.getId(), author.getId(), "삭제할 댓글입니다.");
-
-    // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, otherUser.getId()))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("COMMENT_DELETE_FORBIDDEN"))
-        .andExpect(jsonPath("$.status").value(403))
-        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
-
-    entityManager.flush();
-    entityManager.clear();
-
-    Object[] commentState = entityManager.createQuery(
-            "select c.deleteStatus, c.deletedAt from Comment c where c.id = :commentId",
-            Object[].class
-        )
-        .setParameter("commentId", commentId)
-        .getSingleResult();
-    NewsArticle savedArticle = newsArticleRepository.findById(article.getId()).orElseThrow();
-
-    assertThat(commentState[0]).isEqualTo(DeleteStatus.ACTIVE);
-    assertThat(commentState[1]).isNull();
-    assertThat(savedArticle.getCommentCount()).isEqualTo(1);
   }
 
   @Test
