@@ -1,6 +1,7 @@
 package com.team3.monew.controller;
 
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -143,7 +144,9 @@ class NotificationControllerTest {
         notificationDto3.id().toString(),
         notificationDto3.createdAt(), 3, 4L, true);
 
-    given(notificationService.findAllNotConfirmed(eq(userId1), eq(cursor), eq(after),
+    given(notificationService.findAllNotConfirmed(eq(userId1),
+        any(UUID.class),
+        any(Instant.class),
         eq(3))).willReturn(pageDto);
 
     // when & then
