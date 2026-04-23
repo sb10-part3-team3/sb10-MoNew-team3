@@ -39,7 +39,7 @@ CREATE TABLE users
     nickname           VARCHAR(100)             NOT NULL,
     password           VARCHAR(255)             NOT NULL,
 
-    delete_status      VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
+    delete_status      VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE' CHECK (delete_status IN ('ACTIVE', 'DELETED')),
     deleted_at         TIMESTAMP WITH TIME ZONE,
     purge_scheduled_at TIMESTAMP WITH TIME ZONE,
 
@@ -130,7 +130,7 @@ CREATE TABLE news_articles
     comment_count INT                      NOT NULL DEFAULT 0,
     view_count    INT                      NOT NULL DEFAULT 0,
 
-    delete_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
+    delete_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE' CHECK (delete_status IN ('ACTIVE', 'DELETED')),
     deleted_at    TIMESTAMP WITH TIME ZONE,
 
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -191,7 +191,7 @@ CREATE TABLE comments
 
     like_count    INT                      NOT NULL DEFAULT 0,
 
-    delete_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE',
+    delete_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE' CHECK (delete_status IN ('ACTIVE', 'DELETED')),
     deleted_at    TIMESTAMP WITH TIME ZONE,
 
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
