@@ -496,8 +496,8 @@ class InterestServiceTest {
     assertThat(result.interestName()).isEqualTo("주식");
     assertThat(result.interestSubscriberCount()).isEqualTo(1);
 
+    then(userRepository).should().findById(userId);
     then(interestRepository).should(times(2)).findById(interestId);
-    then(interestRepository).should().findById(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
     then(subscriptionRepository).should().save(any(Subscription.class));
     then(interestMapper).should().toSubscriptionDto(savedSubscription, interest);
