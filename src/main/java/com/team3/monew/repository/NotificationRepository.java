@@ -17,9 +17,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       + "where n.user.id = :userId "
       + "and n.isConfirmed = false "
       + "and ("
-      + "  :after is null or"
+      + "  cast(:after as timestamp)is null or"
       + "  n.createdAt < :after or " // 과거
-      + "  (n.createdAt = :after and (:cursor is null or n.id > :cursor))" // 시간은 같은 경우
+      + "  (n.createdAt = :after and (cast(:cursor as uuid)is null or n.id > :cursor))" // 시간은 같은 경우
       + ") ")
   Page<Notification> findAllNotConfirmedNotificationByUserId(UUID userId, UUID cursor,
       Instant after, Pageable pageable);
