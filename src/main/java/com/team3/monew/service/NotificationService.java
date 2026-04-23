@@ -1,26 +1,30 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto;
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto.NotificationDto;
 import com.team3.monew.dto.notification.InterestNotificationRequest;
+import com.team3.monew.dto.notification.NotificationDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
+import com.team3.monew.mapper.NotificationMapper;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 
-import java.awt.print.Pageable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,7 @@ public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final UserRepository userRepository;
   private final CommentRepository commentRepository;
+  private final NotificationMapper notificationMapper;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public void registerLikeNotification(CommentLikedNotificationRequest request) {
@@ -74,9 +79,42 @@ public class NotificationService {
   }
 
   @Transactional(readOnly = true)
-  public CursorPageResponseNotificationDto findAllNotConfirmed(UUID requestUserId,
-      Instant cursor, UUID after, Integer limit) {
-    return null;
+  public CursorPageResponseDto<NotificationDto> findAllNotConfirmed(UUID requestUserId,
+      UUID cursor, Instant after, Integer limit) {
+    log.debug("알림 목록 조회 시작: userId={}", requestUserId);
+    Pageable pageable = PageRequest.of(0, limit, Sort.by(
+        Sort.Order.desc("createdAt"),
+        Sort.Order.asc("id")
+    ));
+    Page<NotificationDto> pages = notificationRepository.findAllNotConfirmedNotificationByUserId(
+        requestUserId, cursor, after, pageable).map(notificationMapper::toDto);
+    log.debug("알림 목록 데이터베이스 조회 성공: userId={}, cursor={}, after={}, limit]{}", requestUserId, cursor,
+        after, limit);
+    List<NotificationDto> content = pages.getContent();
+    boolean hasNext = pages.hasNext();
+    UUID nextCursor = null;
+    Instant nextAfter = null;
+
+    if (hasNext && pages.hasContent()) {
+      NotificationDto lastNotification = pages.getContent().get(content.size() - 1);
+      nextCursor = lastNotification.id();
+      nextAfter = lastNotification.createdAt();
+    }
+
+    Long totalElements = pages.getTotalElements();
+    //전체 미확인 알림 개수 쿼리(첫페이지는 추가 쿼리X)
+    if (after != null) {
+      totalElements = notificationRepository.countByUserIdAndIsConfirmedFalse(requestUserId);
+    }
+    log.info("알림 목록 조회 완료: userId={}", requestUserId);
+    return new CursorPageResponseDto<NotificationDto>(
+        content,
+        nextCursor == null ? null : nextCursor.toString(),
+        nextAfter,
+        content.size(),
+        totalElements,
+        hasNext
+    );
   }
 
   private String generateCommentLikedContent(String actorUserNickname) {
