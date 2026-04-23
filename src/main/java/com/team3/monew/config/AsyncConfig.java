@@ -48,6 +48,25 @@ public class AsyncConfig implements AsyncConfigurer {
     return executor;
   }
 
+  // 사용자 활동 내역 실시간 갱신용 (뉴스 기사 배치의 영향 없으므로 배치용 x)
+  @Bean(name = "userActivityTaskExecutor")
+  public TaskExecutor userActivityTaskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+
+    executor.setCorePoolSize(2); // 평소에는 2개 정도 작업자가 상시 대기
+    executor.setMaxPoolSize(8); // 순간 트래픽이 몰릴 때 최대 8개까지 확장
+    executor.setQueueCapacity(100);// 너무 큰 큐로 문제를 숨기지 않도록 중간 수준으로 제한
+    executor.setThreadNamePrefix("user-activity-");
+
+    executor.setWaitForTasksToCompleteOnShutdown(true); // 종료 시 진행 중인 작업은 최대한 마무리
+    executor.setAwaitTerminationSeconds(30);
+
+    // 활동 내역은 부가 기능이므로 기본 거절 정책 유지(메인 요청 우선, 실패 후 로그 남기기 위해)
+
+    executor.initialize();
+    return executor;
+  }
+
   @Override
   public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
     return (ex, method, params) -> {
