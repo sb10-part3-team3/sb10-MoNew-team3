@@ -1,12 +1,16 @@
 package com.team3.monew.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.internal.InterestCursor;
+import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.service.InterestService;
+import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -25,9 +29,11 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(InterestController.class)
@@ -227,5 +233,170 @@ class InterestControllerTest {
     // when & then
     mockMvc.perform(delete("/api/interests/{interestId}", interestId))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("관심사 목록을 조회할 수 있다")
+  void shouldFindAllInterests_whenRequestIsValid() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.parse("2026-04-22T10:00:00Z");
+
+    InterestDto first = new InterestDto(
+        UUID.randomUUID(),
+        "가구",
+        List.of("의자", "책상"),
+        3,
+        true
+    );
+
+    InterestDto second = new InterestDto(
+        UUID.randomUUID(),
+        "나무",
+        List.of("소나무"),
+        1,
+        false
+    );
+
+    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+        List.of(first, second),
+        "나무",
+        after.toString(),
+        2,
+        5,
+        true
+    );
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        "구",
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        2
+    );
+
+    given(interestService.findAll(condition, userId)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(get("/api/interests")
+            .header("Monew-Request-User-Id", userId.toString())
+            .param("keyword", "구")
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(2))
+        .andExpect(jsonPath("$.content[0].name").value("가구"))
+        .andExpect(jsonPath("$.content[0].subscribedByMe").value(true))
+        .andExpect(jsonPath("$.content[1].name").value("나무"))
+        .andExpect(jsonPath("$.content[1].subscribedByMe").value(false))
+        .andExpect(jsonPath("$.nextCursor").value("나무"))
+        .andExpect(jsonPath("$.nextAfter").value(after.toString()))
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.totalElements").value(5))
+        .andExpect(jsonPath("$.hasNext").value(true));
+
+    then(interestService).should().findAll(condition, userId);
+  }
+
+  @Test
+  @DisplayName("커서 없이 첫 페이지를 조회할 수 있다")
+  void shouldFindFirstPage_whenCursorAndAfterAreMissing() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+        List.of(),
+        null,
+        null,
+        10,
+        0,
+        false
+    );
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    given(interestService.findAll(condition, userId)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(get("/api/interests")
+            .header("Monew-Request-User-Id", userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("limit", "10"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(0))
+        .andExpect(jsonPath("$.nextCursor").doesNotExist())
+        .andExpect(jsonPath("$.nextAfter").doesNotExist())
+        .andExpect(jsonPath("$.size").value(10))
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.hasNext").value(false));
+
+    then(interestService).should().findAll(condition, userId);
+  }
+
+  @Test
+  @DisplayName("커서와 after 값으로 다음 페이지를 조회할 수 있다")
+  void shouldFindNextPage_whenCursorAndAfterAreGiven() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.parse("2026-04-22T10:00:00Z");
+
+    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+        List.of(),
+        "다리",
+        "2026-04-22T10:05:00Z",
+        2,
+        5,
+        true
+    );
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor("나무", after),
+        2
+    );
+
+    given(interestService.findAll(condition, userId)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(get("/api/interests")
+            .header("Monew-Request-User-Id", userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("cursor", "나무")
+            .param("after", after.toString())
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.nextCursor").value("다리"))
+        .andExpect(jsonPath("$.hasNext").value(true));
+
+    then(interestService).should().findAll(condition, userId);
+  }
+
+  @Test
+  @DisplayName("관심사 등록 요청이 올바르지 않으면 400을 반환한다")
+  void shouldReturnBadRequest_whenCreateRequestIsInvalid() throws Exception {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "",
+        List.of()
+    );
+
+    // when & then
+    mockMvc.perform(post("/api/interests")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objMapper.writeValueAsString(request)))
+        .andExpect(status().isBadRequest());
+
+    then(interestService).should(never()).createInterest(request);
   }
 }

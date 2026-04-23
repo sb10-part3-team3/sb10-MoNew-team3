@@ -1,12 +1,16 @@
 package com.team3.monew.integration;
 
+import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.internal.InterestCursor;
+import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
+import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
@@ -14,8 +18,14 @@ import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
+import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.InterestService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -40,6 +50,12 @@ public class InterestServiceIntegrationTest {
   private InterestRepository interestRepository;
   @Autowired
   private InterestKeywordRepository interestKeywordRepository;
+  @Autowired
+  private SubscriptionRepository subscriptionRepository;
+  @Autowired
+  private UserRepository userRepository;
+  @PersistenceContext
+  private EntityManager entityManager;
 
   @Test
   @DisplayName("관심사를 등록하면 키워드와 함께 저장된다")
@@ -287,5 +303,303 @@ public class InterestServiceIntegrationTest {
     // then
     assertThat(interestRepository.findById(saved.id())).isEmpty();
     assertThat(interestKeywordRepository.findAllByInterestId(saved.id())).isEmpty();
+  }
+
+  @Test
+  @DisplayName("커서가 없을 때 첫번째 페이지를 보여줘야 한다")
+  void shouldReturnFirstPage_whenCursorIsNull() {
+    // given
+    // 관심사 생성 (정렬 확인 위해 이름 순서 의도적으로 섞음)
+    Interest i1 = interestRepository.save(Interest.create("나무"));
+    Interest i2 = interestRepository.save(Interest.create("가구"));
+    Interest i3 = interestRepository.save(Interest.create("다리"));
+    Interest i4 = interestRepository.save(Interest.create("책상"));
+    Interest i5 = interestRepository.save(Interest.create("카톡"));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    User user = userRepository.save(User.create("test@example.com", "tester", "test1234!"));
+
+    subscriptionRepository.save(Subscription.create(user, i2));
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        2
+    );
+
+    // when
+    CursorPageResponseInterestDto response =
+        interestService.findAll(condition, user.getId());
+
+    // then
+    assertThat(response.content()).hasSize(2);
+
+    // 정렬 확인 (name ASC → 가구, 나무)
+    assertThat(response.content())
+        .extracting(InterestDto::name)
+        .containsExactly("가구", "나무");
+    assertThat(response.hasNext()).isTrue();
+    assertThat(response.nextCursor()).isEqualTo("나무");
+    assertThat(response.nextAfter()).isNotNull();
+    assertThat(response.totalElements()).isEqualTo(5);
+
+    // subscribedByMe 확인
+    Map<String, Boolean> map = response.content().stream()
+        .collect(Collectors.toMap(InterestDto::name, InterestDto::subscribedByMe));
+
+    assertThat(map.get("가구")).isTrue();
+    assertThat(map.get("나무")).isFalse();
+  }
+
+  @Test
+  @DisplayName("커서와 after 값으로 다음 페이지를 조회할 수 있다")
+  void shouldReturnNextPage_whenCursorAndAfterAreGiven() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    interestRepository.save(Interest.create("A"));
+    Interest beta = interestRepository.save(Interest.create("B"));
+    interestRepository.save(Interest.create("C"));
+    interestRepository.save(Interest.create("D"));
+    interestRepository.save(Interest.create("E"));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    subscriptionRepository.save(Subscription.create(user, beta));
+
+    InterestSearchCondition firstCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        2
+    );
+
+    CursorPageResponseInterestDto firstPage = interestService.findAll(firstCondition, userId);
+
+    InterestSearchCondition secondCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(firstPage.nextCursor(), Instant.parse(firstPage.nextAfter())),
+        2
+    );
+
+    // when
+    CursorPageResponseInterestDto secondPage = interestService.findAll(secondCondition, userId);
+
+    // then
+    assertThat(secondPage.content()).hasSize(2);
+    assertThat(secondPage.content())
+        .extracting(InterestDto::name)
+        .containsExactly("C", "D");
+    assertThat(secondPage.hasNext()).isTrue();
+    assertThat(secondPage.nextCursor()).isEqualTo("D");
+    assertThat(secondPage.nextAfter()).isNotNull();
+    assertThat(secondPage.totalElements()).isEqualTo(5);
+  }
+
+  @Test
+  @DisplayName("더 이상 데이터가 없으면 마지막 페이지를 반환한다")
+  void shouldReturnLastPage_whenNoMoreDataExists() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    interestRepository.save(Interest.create("A"));
+    interestRepository.save(Interest.create("B"));
+    interestRepository.save(Interest.create("C"));
+    interestRepository.save(Interest.create("D"));
+    interestRepository.save(Interest.create("E"));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    InterestSearchCondition firstCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        2
+    );
+
+    CursorPageResponseInterestDto firstPage = interestService.findAll(firstCondition, userId);
+
+    InterestSearchCondition secondCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(firstPage.nextCursor(), Instant.parse(firstPage.nextAfter())),
+        2
+    );
+
+    CursorPageResponseInterestDto secondPage = interestService.findAll(secondCondition, userId);
+
+    InterestSearchCondition thirdCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(secondPage.nextCursor(), Instant.parse(secondPage.nextAfter())),
+        2
+    );
+
+    // when
+    CursorPageResponseInterestDto thirdPage = interestService.findAll(thirdCondition, userId);
+
+    // then
+    assertThat(thirdPage.content()).hasSize(1);
+    assertThat(thirdPage.content())
+        .extracting(InterestDto::name)
+        .containsExactly("E");
+    assertThat(thirdPage.hasNext()).isFalse();
+    assertThat(thirdPage.nextCursor()).isNull();
+    assertThat(thirdPage.nextAfter()).isNull();
+    assertThat(thirdPage.totalElements()).isEqualTo(5);
+  }
+
+  @Test
+  @DisplayName("검색어가 관심사 이름에 일치하면 필터링된 결과를 반환한다")
+  void shouldReturnFilteredPage_whenSearchKeywordMatchesInterestName() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    interestRepository.save(Interest.create("축구"));
+    interestRepository.save(Interest.create("야구"));
+    interestRepository.save(Interest.create("농구"));
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        "구",
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content())
+        .extracting(InterestDto::name)
+        .containsExactly("농구", "야구", "축구");
+    assertThat(response.totalElements()).isEqualTo(3);
+    assertThat(response.hasNext()).isFalse();
+    assertThat(response.nextCursor()).isNull();
+    assertThat(response.nextAfter()).isNull();
+  }
+
+  @Test
+  @DisplayName("검색어가 관심사 키워드에 일치하면 필터링된 결과를 반환한다")
+  void shouldReturnFilteredPage_whenSearchKeywordMatchesInterestKeyword() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    Interest soccer = Interest.create("축구");
+    soccer.addKeyword("손흥민");
+    soccer.addKeyword("프리미어리그");
+    interestRepository.save(soccer);
+
+    Interest baseball = Interest.create("야구");
+    baseball.addKeyword("류현진");
+    interestRepository.save(baseball);
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        "손",
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content()).hasSize(1);
+    assertThat(response.content().get(0).name()).isEqualTo("축구");
+    assertThat(response.totalElements()).isEqualTo(1);
+    assertThat(response.hasNext()).isFalse();
+  }
+
+  @Test
+  @DisplayName("사용자가 구독한 관심사는 subscribedByMe가 true로 설정된다")
+  void shouldSetSubscribedByMeTrue_whenUserSubscribedInterestExists() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    Interest furniture = interestRepository.save(Interest.create("가구"));
+    Interest tree = interestRepository.save(Interest.create("나무"));
+
+    subscriptionRepository.save(Subscription.create(user, furniture));
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content()).hasSize(2);
+
+    Map<String, Boolean> subscribedMap = response.content().stream()
+        .collect(Collectors.toMap(InterestDto::name, InterestDto::subscribedByMe));
+
+    assertThat(subscribedMap.get("가구")).isTrue();
+    assertThat(subscribedMap.get("나무")).isFalse();
+  }
+
+  @Test
+  @DisplayName("검색 결과가 없으면 빈 페이지를 반환한다")
+  void shouldReturnEmptyPage_whenNoInterestMatchesKeyword() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    interestRepository.save(Interest.create("축구"));
+    interestRepository.save(Interest.create("야구"));
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        "경제",
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content()).isEmpty();
+    assertThat(response.totalElements()).isEqualTo(0);
+    assertThat(response.hasNext()).isFalse();
+    assertThat(response.nextCursor()).isNull();
+    assertThat(response.nextAfter()).isNull();
   }
 }
