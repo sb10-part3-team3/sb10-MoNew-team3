@@ -13,6 +13,7 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.NotificationService;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -32,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(NotificationController.class)
 @ActiveProfiles("test")
+@Import(GlobalExceptionHandler.class)
 class NotificationControllerTest {
 
   @Autowired
