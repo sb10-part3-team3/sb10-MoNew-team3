@@ -170,7 +170,7 @@ class NotificationControllerTest {
 
   @Test
   @DisplayName("아무 쿼리 파라미터도 없을 때 리미트 디폴트 설정으로 확인 되지 않는 알림 목록을 조회할 수 있다.")
-  void shouldFindAllNotConfirmed_whenAnythingIsGiven() throws Exception {
+  void shouldFindAllNotConfirmed_whenNoQueryParamsGiven() throws Exception {
     //given
     CursorPageResponseDto<NotificationDto> pageDto = new CursorPageResponseDto<>(
         List.of(notificationDto1, notificationDto2, notificationDto3, notificationDto4), null, null,
