@@ -45,7 +45,7 @@ class NotificationControllerTest {
 
 
   private static final String NOTIFICATION_URL = "/api/notifications";
-  private final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
+  private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
 
   private UUID userId1;
   private UUID userId2;
