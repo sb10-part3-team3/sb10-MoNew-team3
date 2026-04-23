@@ -331,7 +331,7 @@ class InterestServiceTest {
     );
 
     given(interestRepository.searchByCondition(condition)).willReturn(result);
-    given(interestRepository.countByCondition(condition)).willReturn(3);
+    given(interestRepository.countByCondition(condition)).willReturn(3L);
 
     given(subscriptionRepository.existsByUserIdAndInterestId(any(), any()))
         .willReturn(false);
@@ -379,7 +379,7 @@ class InterestServiceTest {
     );
 
     given(interestRepository.searchByCondition(condition)).willReturn(result);
-    given(interestRepository.countByCondition(condition)).willReturn(2);
+    given(interestRepository.countByCondition(condition)).willReturn(2L);
 
     given(subscriptionRepository.existsByUserIdAndInterestId(any(), any()))
         .willReturn(false);
@@ -408,7 +408,7 @@ class InterestServiceTest {
     );
 
     given(interestRepository.searchByCondition(condition)).willReturn(List.of());
-    given(interestRepository.countByCondition(condition)).willReturn(0);
+    given(interestRepository.countByCondition(condition)).willReturn(0L);
 
     // when
     CursorPageResponseInterestDto response
@@ -432,7 +432,7 @@ class InterestServiceTest {
     );
 
     given(interestRepository.searchByCondition(condition)).willReturn(List.of(interest));
-    given(interestRepository.countByCondition(condition)).willReturn(1);
+    given(interestRepository.countByCondition(condition)).willReturn(1L);
 
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interest.getId()))
         .willReturn(true);
