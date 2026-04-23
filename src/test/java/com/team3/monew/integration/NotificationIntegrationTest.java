@@ -293,8 +293,11 @@ public class NotificationIntegrationTest {
       notification4 = Notification.create(subscriber, "content4", NotificationResourceType.COMMENT,
           comment.getId(), actor);//이미 확인된
       ReflectionTestUtils.setField(notification4, "isConfirmed", true);
-      notificationRepository.saveAll(
-          List.of(notification1, notification2, notification3, notification4));
+
+      notificationRepository.saveAndFlush(notification1);
+      notificationRepository.saveAndFlush(notification2);
+      notificationRepository.saveAndFlush(notification3);
+      notificationRepository.saveAndFlush(notification4);
     }
 
     @Test

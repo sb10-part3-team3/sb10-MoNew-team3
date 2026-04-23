@@ -260,9 +260,8 @@ class NotificationServiceTest {
         Sort.Order.desc("createdAt"),
         Sort.Order.asc("id")
     ));
-    List<Notification> contents = List.of(likeNotification1, likeNotification2,
-        interestNotification1, interestNotification2);
-
+    List<Notification> contents = List.of(
+        interestNotification2, interestNotification1, likeNotification2, likeNotification1);
     Page<Notification> notifications = new PageImpl<>(contents, pageable, totalElement);
 
     given(notificationRepository.findAllNotConfirmedNotificationByUserId(eq(userId1), eq(cursor),
@@ -281,11 +280,11 @@ class NotificationServiceTest {
     assertAll(
         // 1. 컨텐츠 검증
         () -> assertThat(result.content()).hasSize(4),
-        () -> assertThat(result.content().get(0).id()).isEqualTo(likeNotification1.getId()),
+        () -> assertThat(result.content().get(0).id()).isEqualTo(interestNotification2.getId()),
 
         // 2. 커서 검증
-        () -> assertThat(result.nextCursor()).isEqualTo(interestNotification2.getId().toString()),
-        () -> assertThat(result.nextAfter()).isEqualTo(interestNotification2.getCreatedAt()),
+        () -> assertThat(result.nextCursor()).isEqualTo(likeNotification1.getId().toString()),
+        () -> assertThat(result.nextAfter()).isEqualTo(likeNotification1.getCreatedAt()),
 
         // 3. 페이징 정보 검증
         () -> assertThat(result.totalElements()).isEqualTo(totalElement),
