@@ -20,6 +20,8 @@ import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.InterestService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -52,6 +54,8 @@ public class InterestServiceIntegrationTest {
   private SubscriptionRepository subscriptionRepository;
   @Autowired
   private UserRepository userRepository;
+  @PersistenceContext
+  private EntityManager entityManager;
 
   @Test
   @DisplayName("관심사를 등록하면 키워드와 함께 저장된다")
@@ -312,6 +316,9 @@ public class InterestServiceIntegrationTest {
     Interest i4 = interestRepository.save(Interest.create("책상"));
     Interest i5 = interestRepository.save(Interest.create("카톡"));
 
+    entityManager.flush();
+    entityManager.clear();
+
     User user = userRepository.save(User.create("test@example.com", "tester", "test1234!"));
 
     subscriptionRepository.save(Subscription.create(user, i2));
@@ -363,6 +370,9 @@ public class InterestServiceIntegrationTest {
     interestRepository.save(Interest.create("D"));
     interestRepository.save(Interest.create("E"));
 
+    entityManager.flush();
+    entityManager.clear();
+
     subscriptionRepository.save(Subscription.create(user, beta));
 
     InterestSearchCondition firstCondition = new InterestSearchCondition(
@@ -411,6 +421,9 @@ public class InterestServiceIntegrationTest {
     interestRepository.save(Interest.create("C"));
     interestRepository.save(Interest.create("D"));
     interestRepository.save(Interest.create("E"));
+
+    entityManager.flush();
+    entityManager.clear();
 
     InterestSearchCondition firstCondition = new InterestSearchCondition(
         null,
