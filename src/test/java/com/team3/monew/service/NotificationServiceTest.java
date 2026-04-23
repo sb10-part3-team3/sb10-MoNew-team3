@@ -345,7 +345,7 @@ class NotificationServiceTest {
   @DisplayName("커서 조건이 없을 때(첫페이지) 사용자 아이디로 확인하지 않은 알림 목록을 최신순으로 조회한다.(다음요소가 있는 경우)")
   void shouldFindAllNotConfirmedNotifications_whenUserIdAndAnyPaginationConditionIsGiven() {
     //given
-    UUID cursor = UUID.randomUUID();
+    UUID cursor = null;
     Instant after = null;
     Integer limit = 5;
     Long totalElement = 10L;
