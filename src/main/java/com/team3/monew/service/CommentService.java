@@ -1,13 +1,16 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentLikeDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
 import com.team3.monew.entity.Comment;
+import com.team3.monew.entity.CommentLike;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentException;
@@ -34,6 +37,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -58,6 +62,7 @@ public class CommentService {
   private final CommentMapper commentMapper;
   private final NewsArticleRepository newsArticleRepository;
   private final NotificationRepository notificationRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
@@ -165,6 +170,64 @@ public class CommentService {
         articleId, content.size(), hasNext);
     return new CursorPageResponseCommentDto(
         content, nextCursor, nextAfter, content.size(), totalElements, hasNext);
+  }
+
+  @Transactional
+  public CommentLikeDto likeComment(UUID commentId, UUID requestUserId) {
+    log.debug("댓글 좋아요 등록 요청 처리 시작: commentId={}, requestUserId={}", commentId, requestUserId);
+
+    Comment comment = findActiveComment(commentId);
+    User user = findActiveUser(requestUserId);
+
+    if (commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId)) {
+      throw new BusinessException(
+          ErrorCode.INVALID_INPUT_VALUE,
+          Map.of("commentLike", "alreadyExists")
+      );
+    }
+
+    CommentLike savedCommentLike = commentLikeRepository.save(CommentLike.create(comment, user));
+    comment.increaseLikeCount();
+
+    if (!comment.getUser().getId().equals(requestUserId)) {
+      eventPublisher.publishEvent(new CommentLikedEvent(requestUserId, commentId));
+    }
+
+    log.debug("댓글 좋아요 등록 완료: commentId={}, requestUserId={}", commentId, requestUserId);
+    return toCommentLikeDto(savedCommentLike);
+  }
+
+  @Transactional
+  public void unlikeComment(UUID commentId, UUID requestUserId) {
+    log.debug("댓글 좋아요 취소 요청 처리 시작: commentId={}, requestUserId={}", commentId, requestUserId);
+
+    Comment comment = findActiveComment(commentId);
+    CommentLike commentLike = commentLikeRepository.findByCommentIdAndUserId(commentId, requestUserId)
+        .orElseThrow(() -> new BusinessException(
+            ErrorCode.INVALID_INPUT_VALUE,
+            Map.of("commentLike", "notFound")
+        ));
+
+    comment.decreaseLikeCount();
+    commentLikeRepository.delete(commentLike);
+
+    log.debug("댓글 좋아요 취소 완료: commentId={}, requestUserId={}", commentId, requestUserId);
+  }
+
+  private CommentLikeDto toCommentLikeDto(CommentLike commentLike) {
+    Comment comment = commentLike.getComment();
+    return new CommentLikeDto(
+        commentLike.getId(),
+        commentLike.getUser().getId(),
+        commentLike.getCreatedAt(),
+        comment.getId(),
+        comment.getArticle().getId(),
+        comment.getUser().getId(),
+        comment.getUser().getNickname(),
+        comment.getContent(),
+        (long) comment.getLikeCount(),
+        comment.getCreatedAt()
+    );
   }
 
   // 활성 기사인지 확인하고 반환한다.
@@ -288,7 +351,7 @@ public class CommentService {
     return new CommentCursor(null, null);
   }
 
-  // 커서를 구분자로 나누어 빈 커서는 빈 배열로 반환한다.
+  // 커서를 구분자로 나누고 빈 커서는 빈 배열로 반환한다.
   private String[] splitCursor(String cursor) {
     if (cursor == null || cursor.isBlank()) {
       return new String[0];
