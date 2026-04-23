@@ -232,8 +232,11 @@ public class InterestService {
       log.debug("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
       return interestMapper.toSubscriptionDto(savedSubscription, updatedInterest);
     } catch (DataIntegrityViolationException e) {
-      log.warn("관심사 구독 실패 - 중복 구독 충돌, userId={}, interestId={}", userId, interestId);
-      throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+      if (isDuplicateSubscriptionViolation(e)) {
+        log.warn("관심사 구독 실패 - 중복 구독 충돌, userId={}, interestId={}", userId, interestId);
+        throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+      }
+      throw e;
     }
   }
 
@@ -245,6 +248,21 @@ public class InterestService {
   private User findUserOrElseThrow(UUID userId) {
     return userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
+  }
+
+  // 유니크 제약 위반 검증
+  private boolean isDuplicateSubscriptionViolation(DataIntegrityViolationException e) {
+    Throwable cause = e;
+
+    while (cause != null) {
+      String message = cause.getMessage();
+      if (message != null && message.contains("uk_subscriptions_user_id_interest_id")) {
+        return true;
+      }
+      cause = cause.getCause();
+    }
+
+    return false;
   }
 
   // 유사도 계산 메서드
