@@ -9,9 +9,11 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+@Getter
 @Document(collection = "user_activities")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserActivityDocument {

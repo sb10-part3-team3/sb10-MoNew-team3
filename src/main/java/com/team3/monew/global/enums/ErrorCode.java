@@ -17,6 +17,7 @@ public enum ErrorCode {
   COMMENT_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "댓글 삭제 권한이 없습니다."),
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
   USER_DELETED(HttpStatus.BAD_REQUEST, "삭제된 사용자입니다."),
+  USER_ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자의 활동 내역을 찾을 수 없습니다."),
 
   // INTEREST EXCEPTION
   INTEREST_NAME_DUPLICATE(HttpStatus.CONFLICT, "중복된 관심사 이름입니다."),
