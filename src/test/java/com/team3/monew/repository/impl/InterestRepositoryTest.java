@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @Import({InterestRepositoryImpl.class, JpaAuditingConfig.class, QueryDslConfig.class})
@@ -154,5 +155,220 @@ class InterestRepositoryTest {
     assertThat(result)
         .extracting(Interest::getName)
         .containsExactly("야구", "경제", "게임");
+  }
+
+  @Test
+  @DisplayName("검색어가 없으면 전체 관심사가 조회된다")
+  void shouldReturnAllInterests_whenKeywordIsNull() {
+    // given
+    Interest a = Interest.create("A");
+    Interest b = Interest.create("B");
+    Interest c = Interest.create("C");
+
+    em.persist(a);
+    em.persist(b);
+    em.persist(c);
+    em.flush();
+    em.clear();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    List<Interest> result = interestRepository.searchByCondition(condition);
+
+    // then
+    assertThat(result)
+        .extracting(Interest::getName)
+        .containsExactly("A", "B", "C");
+  }
+
+  @Test
+  @DisplayName("구독자 수 오름차순으로 정렬된다")
+  void shouldSearchByCondition_orderBySubscriberCountAsc() {
+    // given
+    Interest a = Interest.create("A");
+    Interest b = Interest.create("B");
+    Interest c = Interest.create("C");
+
+    ReflectionTestUtils.setField(a, "subscriberCount", 30);
+    ReflectionTestUtils.setField(b, "subscriberCount", 10);
+    ReflectionTestUtils.setField(c, "subscriberCount", 20);
+
+    em.persist(a);
+    em.persist(b);
+    em.persist(c);
+    em.flush();
+    em.clear();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "subscriberCount",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    List<Interest> result = interestRepository.searchByCondition(condition);
+
+    // then
+    assertThat(result)
+        .extracting(Interest::getName)
+        .containsExactly("B", "C", "A");
+  }
+
+  @Test
+  @DisplayName("구독자 수 내림차순으로 정렬된다")
+  void shouldSearchByCondition_orderBySubscriberCountDesc() {
+    // given
+    Interest a = Interest.create("A");
+    Interest b = Interest.create("B");
+    Interest c = Interest.create("C");
+
+    ReflectionTestUtils.setField(a, "subscriberCount", 30);
+    ReflectionTestUtils.setField(b, "subscriberCount", 10);
+    ReflectionTestUtils.setField(c, "subscriberCount", 20);
+
+    em.persist(a);
+    em.persist(b);
+    em.persist(c);
+    em.flush();
+    em.clear();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "subscriberCount",
+        "DESC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    List<Interest> result = interestRepository.searchByCondition(condition);
+
+    // then
+    assertThat(result)
+        .extracting(Interest::getName)
+        .containsExactly("A", "C", "B");
+  }
+
+  @Test
+  @DisplayName("이름 오름차순 정렬에서 커서 이후 데이터만 조회된다")
+  void shouldReturnNextPage_whenCursorIsGivenWithNameAsc() {
+    // given
+    Interest a = Interest.create("A");
+    Interest b = Interest.create("B");
+    Interest c = Interest.create("C");
+    Interest d = Interest.create("D");
+
+    em.persist(a);
+    em.persist(b);
+    em.persist(c);
+    em.persist(d);
+    em.flush();
+    em.clear();
+
+    Interest savedB = interestRepository.findAll().stream()
+        .filter(interest -> interest.getName().equals("B"))
+        .findFirst()
+        .orElseThrow();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(savedB.getName(), savedB.getCreatedAt()),
+        10
+    );
+
+    // when
+    List<Interest> result = interestRepository.searchByCondition(condition);
+
+    // then
+    assertThat(result)
+        .extracting(Interest::getName)
+        .containsExactly("C", "D");
+  }
+
+  @Test
+  @DisplayName("구독자 수 오름차순 정렬에서 커서 이후 데이터만 조회된다")
+  void shouldReturnNextPage_whenCursorIsGivenWithSubscriberCountAsc() {
+    // given
+    Interest a = Interest.create("A");
+    Interest b = Interest.create("B");
+    Interest c = Interest.create("C");
+    Interest d = Interest.create("D");
+
+    ReflectionTestUtils.setField(a, "subscriberCount", 10);
+    ReflectionTestUtils.setField(b, "subscriberCount", 20);
+    ReflectionTestUtils.setField(c, "subscriberCount", 30);
+    ReflectionTestUtils.setField(d, "subscriberCount", 40);
+
+    em.persist(a);
+    em.persist(b);
+    em.persist(c);
+    em.persist(d);
+    em.flush();
+    em.clear();
+
+    Interest savedB = interestRepository.findAll().stream()
+        .filter(interest -> interest.getName().equals("B"))
+        .findFirst()
+        .orElseThrow();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "subscriberCount",
+        "ASC",
+        new InterestCursor(String.valueOf(savedB.getSubscriberCount()), savedB.getCreatedAt()),
+        10
+    );
+
+    // when
+    List<Interest> result = interestRepository.searchByCondition(condition);
+
+    // then
+    assertThat(result)
+        .extracting(Interest::getName)
+        .containsExactly("C", "D");
+  }
+
+  @Test
+  @DisplayName("검색 조건에 맞는 전체 관심사 개수를 반환한다")
+  void shouldCountByCondition() {
+    // given
+    Interest soccer = Interest.create("축구");
+    soccer.addKeyword("손흥민");
+
+    Interest baseball = Interest.create("야구");
+    baseball.addKeyword("류현진");
+
+    Interest basketball = Interest.create("농구");
+
+    em.persist(soccer);
+    em.persist(baseball);
+    em.persist(basketball);
+    em.flush();
+    em.clear();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        "구",
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        10
+    );
+
+    // when
+    long count = interestRepository.countByCondition(condition);
+
+    // then
+    assertThat(count).isEqualTo(3);
   }
 }
