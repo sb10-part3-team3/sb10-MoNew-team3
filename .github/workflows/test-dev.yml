@@ -63,5 +63,6 @@ jobs:
           github.event.pull_request.head.repo.full_name == github.repository
         with:
           token: ${{secrets.CODECOV_TOKEN}}
+          use_gpg: false
           files: build/reports/jacoco/test/jacocoTestReport.xml
           fail_ci_if_error: 'true'
