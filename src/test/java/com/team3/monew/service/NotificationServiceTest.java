@@ -290,7 +290,7 @@ class NotificationServiceTest {
         // 3. 페이징 정보 검증
         () -> assertThat(result.totalElements()).isEqualTo(totalElement),
         () -> assertThat(result.hasNext()).isTrue(),
-        () -> assertThat(result.size()).isEqualTo(4)
+        () -> assertThat(result.size()).isEqualTo(limit)
     );
   }
 
@@ -337,7 +337,7 @@ class NotificationServiceTest {
         // 3. 페이징 정보 검증
         () -> assertThat(result.totalElements()).isEqualTo(totalElement),
         () -> assertThat(result.hasNext()).isFalse(),
-        () -> assertThat(result.size()).isEqualTo(4)
+        () -> assertThat(result.size()).isEqualTo(limit)
     );
   }
 
@@ -384,7 +384,7 @@ class NotificationServiceTest {
         // 3. 페이징 정보 검증
         () -> assertThat(result.totalElements()).isEqualTo(totalElement),
         () -> assertThat(result.hasNext()).isTrue(),
-        () -> assertThat(result.size()).isEqualTo(4)
+        () -> assertThat(result.size()).isEqualTo(limit)
     );
   }
 

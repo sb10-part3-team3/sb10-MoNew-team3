@@ -111,7 +111,7 @@ public class NotificationService {
         content,
         nextCursor == null ? null : nextCursor.toString(),
         nextAfter,
-        content.size(),
+        pages.getSize(),
         totalElements,
         hasNext
     );
