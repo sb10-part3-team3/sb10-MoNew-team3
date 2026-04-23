@@ -16,6 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +37,9 @@ class NotificationRepositoryTest {
 
   @Autowired
   private UserRepository userRepository;
+
+  @Autowired
+  private TestEntityManager em;
 
   private User user1;
   private User user2;
@@ -81,6 +85,15 @@ class NotificationRepositoryTest {
     notificationRepository.saveAndFlush(confirmedNotification);
     notificationRepository.saveAndFlush(interestNotification1);
     notificationRepository.saveAndFlush(interestNotification2);
+
+    em.flush();
+    em.clear();
+
+    likeNotification1 = notificationRepository.findById(likeNotification1.getId()).get();
+    likeNotification2 = notificationRepository.findById(likeNotification2.getId()).get();
+    interestNotification1 = notificationRepository.findById(interestNotification1.getId()).get();
+    interestNotification2 = notificationRepository.findById(interestNotification2.getId()).get();
+
   }
 
   @Test
