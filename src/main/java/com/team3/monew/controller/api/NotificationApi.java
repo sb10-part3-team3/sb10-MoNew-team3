@@ -1,6 +1,7 @@
 package com.team3.monew.controller.api;
 
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto;
+import com.team3.monew.dto.notification.NotificationDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -27,10 +28,10 @@ public interface NotificationApi {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   @GetMapping
-  ResponseEntity<CursorPageResponseNotificationDto> findAllNotConfirmed(
+  ResponseEntity<CursorPageResponseDto<NotificationDto>> findAllNotConfirmed(
       @RequestHeader("Monew-Request-User-ID") UUID requestUserId,
-      @RequestParam(required = false) Instant cursor,
-      @RequestParam(required = false) UUID after,
+      @RequestParam(required = false) UUID cursor,
+      @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "50") Integer limit
   );
 

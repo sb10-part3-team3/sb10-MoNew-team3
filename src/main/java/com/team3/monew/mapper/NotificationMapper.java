@@ -1,6 +1,6 @@
 package com.team3.monew.mapper;
 
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto.NotificationDto;
+import com.team3.monew.dto.notification.NotificationDto;
 import com.team3.monew.entity.Notification;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

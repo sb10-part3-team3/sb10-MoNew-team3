@@ -1,7 +1,8 @@
 package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.NotificationApi;
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto;
+import com.team3.monew.dto.notification.NotificationDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.service.NotificationService;
 import java.time.Instant;
 import java.util.UUID;
@@ -21,13 +22,14 @@ public class NotificationController implements NotificationApi {
   private final NotificationService notificationService;
 
   @GetMapping
-  public ResponseEntity<CursorPageResponseNotificationDto> findAllNotConfirmed(
+  public ResponseEntity<CursorPageResponseDto<NotificationDto>> findAllNotConfirmed(
       @RequestHeader("Monew-Request-User-ID") UUID requestUserId,
-      @RequestParam(required = false) Instant cursor,
-      @RequestParam(required = false) UUID after,
+      @RequestParam(required = false) UUID cursor,
+      @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "50") Integer limit
   ) {
-    CursorPageResponseNotificationDto dto = notificationService.findAllNotConfirmed(requestUserId,
+    CursorPageResponseDto<NotificationDto> dto = notificationService.findAllNotConfirmed(
+        requestUserId,
         cursor, after, limit);
     return ResponseEntity.ok(dto);
   }

@@ -7,8 +7,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto;
-import com.team3.monew.dto.notification.CursorPageResponseNotificationDto.NotificationDto;
+import com.team3.monew.dto.notification.NotificationDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
@@ -130,12 +130,13 @@ class NotificationControllerTest {
   @DisplayName("커서와 보조커서, 크기로 확인 되지 않는 알림 목록을 조회할 수 있다.")
   void shouldFindAllNotConfirmed_whenCursorAndAfterAndLimitIsGiven() throws Exception {
 
-    Instant cursor = Instant.now();
-    UUID after = UUID.randomUUID();
+    UUID cursor = UUID.randomUUID();
+    Instant after = Instant.now();
 
-    CursorPageResponseNotificationDto pageDto = new CursorPageResponseNotificationDto(
-        List.of(notificationDto1, notificationDto2, notificationDto3), notificationDto3.createdAt(),
-        notificationDto3.id(), 3, 4L, true);
+    CursorPageResponseDto<NotificationDto> pageDto = new CursorPageResponseDto<>(
+        List.of(notificationDto1, notificationDto2, notificationDto3),
+        notificationDto3.id().toString(),
+        notificationDto3.createdAt(), 3, 4L, true);
 
     given(notificationService.findAllNotConfirmed(eq(userId1), eq(cursor), eq(after),
         eq(3))).willReturn(pageDto);
@@ -152,8 +153,8 @@ class NotificationControllerTest {
         .andExpect(jsonPath("$.content[0].id").value(notificationDto1.id().toString()))
         .andExpect(jsonPath("$.content[0].resourceType").value(
             notificationDto1.resourceType().name().toLowerCase()))
-        .andExpect(jsonPath("$.nextCursor").value(notificationDto3.createdAt().toString()))
-        .andExpect(jsonPath("$.nextAfter").value(notificationDto3.id().toString()))
+        .andExpect(jsonPath("$.nextCursor").value(notificationDto3.id().toString()))
+        .andExpect(jsonPath("$.nextAfter").value(notificationDto3.createdAt().toString()))
         .andExpect(jsonPath("$.size").value(3))
         .andExpect(jsonPath("$.totalElements").value(4))
         .andExpect(jsonPath("$.hasNext").value(true));
@@ -163,7 +164,7 @@ class NotificationControllerTest {
   @DisplayName("아무 쿼리 파라미터도 없을 때 리미트 디폴트 설정으로 확인 되지 않는 알림 목록을 조회할 수 있다.")
   void shouldFindAllNotConfirmed_whenAnythingIsGiven() throws Exception {
     //given
-    CursorPageResponseNotificationDto pageDto = new CursorPageResponseNotificationDto(
+    CursorPageResponseDto<NotificationDto> pageDto = new CursorPageResponseDto<>(
         List.of(notificationDto1, notificationDto2, notificationDto3, notificationDto4), null, null,
         4, 4L, false);
 
