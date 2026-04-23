@@ -3,6 +3,7 @@ package com.team3.monew.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.team3.monew.config.QueryDslConfig;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @DataJpaTest
 @EnableJpaAuditing
+@Import(QueryDslConfig.class)
 @ActiveProfiles("test")
 class NotificationRepositoryTest {
 
