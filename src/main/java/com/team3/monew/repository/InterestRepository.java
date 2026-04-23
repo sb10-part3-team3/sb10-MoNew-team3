@@ -14,15 +14,11 @@ public interface InterestRepository extends JpaRepository<Interest, UUID>,
 
   boolean existsByName(String name);
 
-  @Modifying
-  @Query("""
-      update Interest i
-      set i.subscriberCount = i.subscriberCount + 1
-      where i.id = :interestId
-      """)
-  int increaseSubscriberCount(@Param("interestId") UUID interestId);
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("update Interest i set i.subscriberCount = i.subscriberCount + 1 where i.id = :interestId")
+  void increaseSubscriberCount(@Param("interestId") UUID interestId);
 
-  @Modifying
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("""
       update Interest i
       set i.subscriberCount = i.subscriberCount - 1
