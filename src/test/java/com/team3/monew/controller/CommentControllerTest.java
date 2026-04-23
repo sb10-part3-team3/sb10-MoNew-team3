@@ -2,12 +2,12 @@ package com.team3.monew.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentLikeDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
-import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.CommentService;
@@ -323,31 +323,13 @@ class CommentControllerTest {
     void shouldDeleteComment_whenRequestIsValid() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-
-      // when & then
-      mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-              .header(REQUEST_USER_ID_HEADER, userId))
-          .andExpect(status().isNoContent());
-
-      then(commentService).should().deleteComment(commentId, userId);
-      then(commentService).shouldHaveNoMoreInteractions();
-    }
-
-    @Test
-    @DisplayName("요청자 ID 헤더가 없으면 댓글 삭제에 실패하고 400 Bad Request로 응답한다.")
-    void shouldReturnBadRequest_whenRequestUserIdHeaderIsMissing() throws Exception {
-      // given
-      UUID commentId = UUID.randomUUID();
 
       // when & then
       mockMvc.perform(delete("/api/comments/{commentId}", commentId))
-          .andExpect(status().isBadRequest())
-          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
-          .andExpect(jsonPath("$.status").value(400))
-          .andExpect(jsonPath("$.details.header").value(REQUEST_USER_ID_HEADER));
+          .andExpect(status().isNoContent());
 
-      then(commentService).shouldHaveNoInteractions();
+      then(commentService).should().deleteComment(commentId);
+      then(commentService).shouldHaveNoMoreInteractions();
     }
 
     @Test
@@ -355,42 +337,38 @@ class CommentControllerTest {
     void shouldReturnNotFound_whenDeleteCommentDoesNotExist() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
       willThrow(new CommentNotFoundException(commentId))
           .given(commentService)
-          .deleteComment(commentId, userId);
+          .deleteComment(commentId);
 
       // when & then
-      mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-              .header(REQUEST_USER_ID_HEADER, userId))
+      mockMvc.perform(delete("/api/comments/{commentId}", commentId))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
           .andExpect(jsonPath("$.status").value(404))
           .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
 
-      then(commentService).should().deleteComment(commentId, userId);
+      then(commentService).should().deleteComment(commentId);
       then(commentService).shouldHaveNoMoreInteractions();
     }
 
     @Test
-    @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 403 Forbidden으로 응답한다.")
-    void shouldReturnForbidden_whenUserIsNotAuthor() throws Exception {
+    @DisplayName("삭제된 댓글을 삭제하면 404 Not Found로 응답한다.")
+    void shouldReturnNotFound_whenDeleteCommentIsAlreadyDeleted() throws Exception {
       // given
       UUID commentId = UUID.randomUUID();
-      UUID userId = UUID.randomUUID();
-      willThrow(new UnauthorizedCommentDeleteException(commentId))
+      willThrow(new DeletedCommentException(commentId))
           .given(commentService)
-          .deleteComment(commentId, userId);
+          .deleteComment(commentId);
 
       // when & then
-      mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-              .header(REQUEST_USER_ID_HEADER, userId))
-          .andExpect(status().isForbidden())
-          .andExpect(jsonPath("$.code").value("COMMENT_DELETE_FORBIDDEN"))
-          .andExpect(jsonPath("$.status").value(403))
+      mockMvc.perform(delete("/api/comments/{commentId}", commentId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_DELETED"))
+          .andExpect(jsonPath("$.status").value(404))
           .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
 
-      then(commentService).should().deleteComment(commentId, userId);
+      then(commentService).should().deleteComment(commentId);
       then(commentService).shouldHaveNoMoreInteractions();
     }
   }
@@ -525,5 +503,151 @@ class CommentControllerTest {
       then(commentService).shouldHaveNoInteractions();
     }
 
+  }
+
+  @Nested
+  @DisplayName("댓글 좋아요 등록 API를 검증한다.")
+  class LikeComment {
+
+    @Test
+    @DisplayName("요청자 ID 헤더와 댓글 ID를 받으면 댓글 좋아요를 등록하고 좋아요 정보를 반환한다.")
+    void shouldLikeComment_whenRequestIsValid() throws Exception {
+      // given
+      UUID commentLikeId = UUID.randomUUID();
+      UUID commentId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+      UUID commentUserId = UUID.randomUUID();
+      Instant likedAt = Instant.parse("2026-04-17T00:00:02Z");
+      Instant commentCreatedAt = Instant.parse("2026-04-17T00:00:00Z");
+      CommentLikeDto response = new CommentLikeDto(
+          commentLikeId,
+          requestUserId,
+          likedAt,
+          commentId,
+          articleId,
+          commentUserId,
+          "댓글작성자",
+          "댓글 내용입니다.",
+          1L,
+          commentCreatedAt
+      );
+
+      given(commentService.likeComment(commentId, requestUserId)).willReturn(response);
+
+      // when & then
+      mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
+              .header(REQUEST_USER_ID_HEADER, requestUserId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(commentLikeId.toString()))
+          .andExpect(jsonPath("$.likedBy").value(requestUserId.toString()))
+          .andExpect(jsonPath("$.createdAt").value("2026-04-17T00:00:02Z"))
+          .andExpect(jsonPath("$.commentId").value(commentId.toString()))
+          .andExpect(jsonPath("$.articleId").value(articleId.toString()))
+          .andExpect(jsonPath("$.commentUserId").value(commentUserId.toString()))
+          .andExpect(jsonPath("$.commentUserNickname").value("댓글작성자"))
+          .andExpect(jsonPath("$.commentContent").value("댓글 내용입니다."))
+          .andExpect(jsonPath("$.commentLikeCount").value(1))
+          .andExpect(jsonPath("$.commentCreatedAt").value("2026-04-17T00:00:00Z"));
+
+      then(commentService).should().likeComment(commentId, requestUserId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("요청자 ID 헤더가 없으면 댓글 좋아요 등록에 실패하고 400 Bad Request로 응답한다.")
+    void shouldReturnBadRequest_whenRequestUserIdHeaderIsMissing() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(jsonPath("$.details.header").value(REQUEST_USER_ID_HEADER));
+
+      then(commentService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 댓글에 좋아요를 등록하면 404 Not Found로 응답한다.")
+    void shouldReturnNotFound_whenLikeCommentDoesNotExist() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+      given(commentService.likeComment(commentId, requestUserId))
+          .willThrow(new CommentNotFoundException(commentId));
+
+      // when & then
+      mockMvc.perform(post("/api/comments/{commentId}/comment-likes", commentId)
+              .header(REQUEST_USER_ID_HEADER, requestUserId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+
+      then(commentService).should().likeComment(commentId, requestUserId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+  }
+
+  @Nested
+  @DisplayName("댓글 좋아요 취소 API를 검증한다.")
+  class UnlikeComment {
+
+    @Test
+    @DisplayName("요청자 ID 헤더와 댓글 ID를 받으면 댓글 좋아요를 취소하고 200 OK로 응답한다.")
+    void shouldUnlikeComment_whenRequestIsValid() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", commentId)
+              .header(REQUEST_USER_ID_HEADER, requestUserId))
+          .andExpect(status().isOk());
+
+      then(commentService).should().unlikeComment(commentId, requestUserId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
+
+    @Test
+    @DisplayName("요청자 ID 헤더가 없으면 댓글 좋아요 취소에 실패하고 400 Bad Request로 응답한다.")
+    void shouldReturnBadRequest_whenRequestUserIdHeaderIsMissing() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", commentId))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(jsonPath("$.details.header").value(REQUEST_USER_ID_HEADER));
+
+      then(commentService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 댓글의 좋아요를 취소하면 404 Not Found로 응답한다.")
+    void shouldReturnNotFound_whenUnlikeCommentDoesNotExist() throws Exception {
+      // given
+      UUID commentId = UUID.randomUUID();
+      UUID requestUserId = UUID.randomUUID();
+      willThrow(new CommentNotFoundException(commentId))
+          .given(commentService)
+          .unlikeComment(commentId, requestUserId);
+
+      // when & then
+      mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", commentId)
+              .header(REQUEST_USER_ID_HEADER, requestUserId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("COMMENT_NOT_FOUND"))
+          .andExpect(jsonPath("$.status").value(404))
+          .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
+
+      then(commentService).should().unlikeComment(commentId, requestUserId);
+      then(commentService).shouldHaveNoMoreInteractions();
+    }
   }
 }

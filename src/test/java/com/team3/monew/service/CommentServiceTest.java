@@ -1,19 +1,21 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.comment.CommentDto;
+import com.team3.monew.dto.comment.CommentLikeDto;
 import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.entity.Comment;
+import com.team3.monew.entity.CommentLike;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
-import com.team3.monew.exception.comment.UnauthorizedCommentDeleteException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -69,6 +72,9 @@ class CommentServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private CommentService commentService;
@@ -332,29 +338,12 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when
-            commentService.deleteComment(commentId, userId);
+            commentService.deleteComment(commentId);
 
             // then
             assertThat(comment.isDeleted()).isTrue();
             assertThat(comment.getDeletedAt()).isNotNull();
             then(newsArticleRepository).should().decrementCommentCountById(articleId);
-        }
-
-        @Test
-        @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 댓글 삭제 권한 없음 예외가 발생한다.")
-        void shouldThrowUnauthorizedCommentDeleteException_whenUserIsNotAuthor() {
-            // given
-            UUID otherUserId = UUID.randomUUID();
-            Comment comment = Comment.create(article, user, content);
-            assignId(comment, commentId);
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
-
-            // when & then
-            assertThatThrownBy(() -> commentService.deleteComment(commentId, otherUserId))
-                    .isInstanceOf(UnauthorizedCommentDeleteException.class);
-
-            assertThat(comment.isDeleted()).isFalse();
-            then(newsArticleRepository).shouldHaveNoInteractions();
         }
 
         @Test
@@ -364,7 +353,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.empty());
 
             // when & then
-            assertThatThrownBy(() -> commentService.deleteComment(commentId, userId))
+            assertThatThrownBy(() -> commentService.deleteComment(commentId))
                     .isInstanceOf(CommentNotFoundException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();
@@ -380,7 +369,7 @@ class CommentServiceTest {
             given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
             // when & then
-            assertThatThrownBy(() -> commentService.deleteComment(commentId, userId))
+            assertThatThrownBy(() -> commentService.deleteComment(commentId))
                     .isInstanceOf(DeletedCommentException.class);
 
             then(newsArticleRepository).shouldHaveNoInteractions();
@@ -554,6 +543,220 @@ class CommentServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("댓글 좋아요 등록 기능을 검증한다.")
+    class LikeComment {
+
+        @Test
+        @DisplayName("다른 사용자가 활성 댓글에 좋아요를 누르면 좋아요를 저장하고 댓글 좋아요 수를 증가시키며 알림 이벤트를 발행한다.")
+        void shouldLikeCommentAndPublishEvent_whenOtherUserLikesActiveComment() {
+            // given
+            User liker = createUser(requestUserId, "liker@example.com", "좋아요사용자");
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 0);
+            assignId(comment, commentId);
+            CommentLike savedLike = createCommentLike(comment, liker);
+            CommentLikeDto expected = commentLikeDto(savedLike, 1L);
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(userRepository.findById(requestUserId)).willReturn(Optional.of(liker));
+            given(commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId))
+                    .willReturn(false);
+            given(commentLikeRepository.save(any(CommentLike.class))).willReturn(savedLike);
+
+            // when
+            CommentLikeDto actual = commentService.likeComment(commentId, requestUserId);
+
+            // then
+            assertThat(actual).isEqualTo(expected);
+            assertThat(comment.getLikeCount()).isEqualTo(1);
+            then(commentLikeRepository).should().save(argThat(commentLike ->
+                    commentLike.getComment() == comment && commentLike.getUser() == liker
+            ));
+            then(eventPublisher).should().publishEvent(new CommentLikedEvent(requestUserId, commentId));
+        }
+
+        @Test
+        @DisplayName("작성자가 자신의 댓글에 좋아요를 누르면 좋아요는 저장하지만 알림 이벤트는 발행하지 않는다.")
+        void shouldLikeCommentWithoutPublishingEvent_whenAuthorLikesOwnComment() {
+            // given
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 0);
+            assignId(comment, commentId);
+            CommentLike savedLike = createCommentLike(comment, user);
+            CommentLikeDto expected = commentLikeDto(savedLike, 1L);
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(userRepository.findById(userId)).willReturn(Optional.of(user));
+            given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId))
+                    .willReturn(false);
+            given(commentLikeRepository.save(any(CommentLike.class))).willReturn(savedLike);
+
+            // when
+            CommentLikeDto actual = commentService.likeComment(commentId, userId);
+
+            // then
+            assertThat(actual).isEqualTo(expected);
+            assertThat(comment.getLikeCount()).isEqualTo(1);
+            then(commentLikeRepository).should().save(any(CommentLike.class));
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("이미 좋아요를 누른 댓글에 다시 좋아요를 누르면 좋아요 등록에 실패한다.")
+        void shouldThrowBusinessException_whenCommentLikeAlreadyExists() {
+            // given
+            User liker = createUser(requestUserId, "liker@example.com", "좋아요사용자");
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
+            assignId(comment, commentId);
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(userRepository.findById(requestUserId)).willReturn(Optional.of(liker));
+            given(commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId))
+                    .willReturn(true);
+
+            // when & then
+            assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
+                    .isInstanceOf(BusinessException.class);
+
+            assertThat(comment.getLikeCount()).isEqualTo(1);
+            then(commentLikeRepository).should().existsByCommentIdAndUserId(commentId, requestUserId);
+            then(commentLikeRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 댓글에 좋아요를 누르면 댓글 없음 예외가 발생한다.")
+        void shouldThrowCommentNotFoundException_whenLikeCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(userRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("삭제된 댓글에 좋아요를 누르면 삭제된 댓글 예외가 발생한다.")
+        void shouldThrowDeletedCommentException_whenLikeDeletedComment() {
+            // given
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 0);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
+                    .isInstanceOf(DeletedCommentException.class);
+
+            then(userRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("삭제된 사용자가 좋아요를 누르면 삭제된 사용자 예외가 발생한다.")
+        void shouldThrowDeletedUserException_whenDeletedUserLikesComment() {
+            // given
+            User liker = createUser(requestUserId, "deleted@example.com", "삭제사용자");
+            markDeleted(liker);
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 0);
+            assignId(comment, commentId);
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(userRepository.findById(requestUserId)).willReturn(Optional.of(liker));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
+                    .isInstanceOf(DeletedUserException.class);
+
+            assertThat(comment.getLikeCount()).isZero();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("댓글 좋아요 취소 기능을 검증한다.")
+    class UnlikeComment {
+
+        @Test
+        @DisplayName("좋아요한 댓글의 좋아요를 취소하면 좋아요를 삭제하고 댓글 좋아요 수를 감소시킨다.")
+        void shouldUnlikeComment_whenCommentLikeExists() {
+            // given
+            User liker = createUser(requestUserId, "liker@example.com", "좋아요사용자");
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
+            assignId(comment, commentId);
+            CommentLike commentLike = createCommentLike(comment, liker);
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentLikeRepository.findByCommentIdAndUserId(commentId, requestUserId))
+                    .willReturn(Optional.of(commentLike));
+
+            // when
+            commentService.unlikeComment(commentId, requestUserId);
+
+            // then
+            assertThat(comment.getLikeCount()).isZero();
+            then(commentLikeRepository).should().delete(commentLike);
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 댓글의 좋아요를 취소하면 댓글 없음 예외가 발생한다.")
+        void shouldThrowCommentNotFoundException_whenUnlikeCommentDoesNotExist() {
+            // given
+            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.unlikeComment(commentId, requestUserId))
+                    .isInstanceOf(CommentNotFoundException.class);
+
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("삭제된 댓글의 좋아요를 취소하면 삭제된 댓글 예외가 발생한다.")
+        void shouldThrowDeletedCommentException_whenUnlikeDeletedComment() {
+            // given
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
+            assignId(comment, commentId);
+            markDeleted(comment);
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+
+            // when & then
+            assertThatThrownBy(() -> commentService.unlikeComment(commentId, requestUserId))
+                    .isInstanceOf(DeletedCommentException.class);
+
+            assertThat(comment.getLikeCount()).isEqualTo(1);
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("좋아요하지 않은 댓글의 좋아요를 취소하면 좋아요 취소에 실패한다.")
+        void shouldThrowBusinessException_whenCommentLikeDoesNotExist() {
+            // given
+            Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
+            assignId(comment, commentId);
+
+            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentLikeRepository.findByCommentIdAndUserId(commentId, requestUserId))
+                    .willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> commentService.unlikeComment(commentId, requestUserId))
+                    .isInstanceOf(BusinessException.class);
+
+            assertThat(comment.getLikeCount()).isEqualTo(1);
+            then(commentLikeRepository).should().findByCommentIdAndUserId(commentId, requestUserId);
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+    }
+
     private void assignId(Object entity, UUID id) {
         ReflectionTestUtils.setField(entity, "id", id);
     }
@@ -605,6 +808,35 @@ class CommentServiceTest {
         ReflectionTestUtils.setField(comment, "createdAt", Instant.parse(createdAt));
         ReflectionTestUtils.setField(comment, "likeCount", likeCount);
         return comment;
+    }
+
+    private User createUser(UUID id, String email, String nickname) {
+        User user = User.create(email, nickname, "encoded-password");
+        assignId(user, id);
+        return user;
+    }
+
+    private CommentLike createCommentLike(Comment comment, User user) {
+        CommentLike commentLike = CommentLike.create(comment, user);
+        assignId(commentLike, UUID.randomUUID());
+        ReflectionTestUtils.setField(commentLike, "createdAt", Instant.parse("2026-04-17T00:00:02Z"));
+        return commentLike;
+    }
+
+    private CommentLikeDto commentLikeDto(CommentLike commentLike, long commentLikeCount) {
+        Comment comment = commentLike.getComment();
+        return new CommentLikeDto(
+                commentLike.getId(),
+                commentLike.getUser().getId(),
+                commentLike.getCreatedAt(),
+                comment.getId(),
+                comment.getArticle().getId(),
+                comment.getUser().getId(),
+                comment.getUser().getNickname(),
+                comment.getContent(),
+                commentLikeCount,
+                comment.getCreatedAt()
+        );
     }
 
     private String cursorOf(Comment comment, String orderBy) {
