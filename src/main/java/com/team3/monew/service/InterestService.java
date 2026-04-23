@@ -1,8 +1,10 @@
 package com.team3.monew.service;
 
+import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
@@ -17,6 +19,7 @@ import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
+import java.time.Instant;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,6 +74,77 @@ public class InterestService {
         savedInterest.getId(), savedInterest.getName());
 
     return interestMapper.toDto(savedInterest, false);
+  }
+
+  public CursorPageResponseInterestDto findAll(InterestSearchCondition condition, UUID userId) {
+    log.debug(
+        "관심사 목록 조회 요청 - userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
+        userId,
+        condition.keyword(),
+        condition.orderBy(),
+        condition.direction(),
+        condition.cursor() == null ? null : condition.cursor().cursor(),
+        condition.cursor() == null ? null : condition.cursor().after(),
+        condition.limit());
+
+    List<Interest> result = interestRepository.searchByCondition(condition);
+    boolean hasNext = result.size() > condition.limit();
+    List<Interest> content = hasNext
+        ? result.subList(0, condition.limit())
+        : result;
+
+    long totalElements = interestRepository.countByCondition(condition);
+
+    if (content.isEmpty()) {
+      log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
+          userId, condition.keyword());
+
+      return new CursorPageResponseInterestDto(
+          List.of(),
+          null,
+          null,
+          condition.limit(),
+          totalElements,
+          false
+      );
+    }
+
+    String nextCursor = null;
+    String nextAfter = null;
+
+    if (hasNext) {
+      Interest last = content.get(content.size() - 1);
+
+      if ("subscriberCount".equals(condition.orderBy())) {
+        nextCursor = String.valueOf(last.getSubscriberCount());
+      } else {
+        nextCursor = last.getName();
+      }
+
+      nextAfter = last.getCreatedAt().toString();
+    }
+
+    List<InterestDto> dtoList = content.stream()
+        .map(interest -> {
+          // N+1 문제 발생 가능성 있지만 추후 성능 개선 시 수정 예정
+          boolean subscribedByMe =
+              subscriptionRepository.existsByUserIdAndInterestId(userId, interest.getId());
+          return interestMapper.toDto(interest, subscribedByMe);
+        })
+        .toList();
+
+    log.debug(
+        "관심사 목록 조회 성공 - userId={}, contentSize={}, totalElements={}, hasNext={}, nextCursor={}, nextAfter={}",
+        userId, dtoList.size(), totalElements, hasNext, nextCursor, nextAfter);
+
+    return new CursorPageResponseInterestDto(
+        dtoList,
+        nextCursor,
+        nextAfter,
+        condition.limit(),
+        totalElements,
+        hasNext
+    );
   }
 
   public InterestDto updateKeyword(UUID userId, UUID interestId, InterestUpdateRequest dto) {

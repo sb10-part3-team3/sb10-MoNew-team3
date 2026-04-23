@@ -1,8 +1,11 @@
 package com.team3.monew.service;
 
+import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.internal.InterestCursor;
+import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
@@ -11,6 +14,8 @@ import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
+import jakarta.persistence.criteria.CriteriaBuilder.In;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -22,9 +27,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
@@ -304,5 +312,139 @@ class InterestServiceTest {
         .isInstanceOf(InterestNotFoundException.class);
 
     then(interestRepository).should(never()).delete(any());
+  }
+
+  @Test
+  @DisplayName("limit + 1개 조회 시 hasNext는 true이고 content는 limit만 반환된다")
+  void shouldFindAllInterest_whenFindRequest() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    Interest i1 = createInterest("가구");
+    Interest i2 = createInterest("나무");
+    Interest i3 = createInterest("다리");
+
+    List<Interest> result = List.of(i1, i2, i3);
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null, "name", "ASC", new InterestCursor(null, null), 2
+    );
+
+    given(interestRepository.searchByCondition(condition)).willReturn(result);
+    given(interestRepository.countByCondition(condition)).willReturn(3L);
+
+    given(subscriptionRepository.existsByUserIdAndInterestId(any(), any()))
+        .willReturn(false);
+
+    given(interestMapper.toDto(any(), anyBoolean()))
+        .willAnswer(invocation ->
+            new InterestDto(
+                ((Interest) invocation.getArgument(0)).getId(),
+                ((Interest) invocation.getArgument(0)).getName(),
+                List.of(),
+                0,
+                false
+            ));
+
+    // when
+    CursorPageResponseInterestDto response
+        = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content()).hasSize(2);
+    assertThat(response.hasNext()).isTrue();
+    assertThat(response.nextCursor()).isEqualTo("나무");
+    assertThat(response.nextAfter()).isNotNull();
+  }
+
+  private Interest createInterest(String name) {
+    Interest interest = Interest.create(name);
+    ReflectionTestUtils.setField(interest, "createdAt", Instant.now());
+    return interest;
+  }
+
+  @Test
+  @DisplayName("limit 이하 조회 시 hasNext는 false이고 nextCursor는 null이다")
+  void shouldFindInterestHasNextIsFalseAndNextCursorIsNull_whenLimit() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    Interest i1 = createInterest("가구");
+    Interest i2 = createInterest("나무");
+
+    List<Interest> result = List.of(i1, i2);
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null, "name", "ASC", new InterestCursor(null, null), 3
+    );
+
+    given(interestRepository.searchByCondition(condition)).willReturn(result);
+    given(interestRepository.countByCondition(condition)).willReturn(2L);
+
+    given(subscriptionRepository.existsByUserIdAndInterestId(any(), any()))
+        .willReturn(false);
+
+    given(interestMapper.toDto(any(), anyBoolean()))
+        .willReturn(new InterestDto(UUID.randomUUID(), "dummy", List.of(), 0, false));
+
+    // when
+    CursorPageResponseInterestDto response =
+        interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.hasNext()).isFalse();
+    assertThat(response.nextCursor()).isNull();
+    assertThat(response.nextAfter()).isNull();
+  }
+
+  @Test
+  @DisplayName("조회 결과가 없으면 빈 리스트를 반환한다")
+  void shouldReturnEmptyList_whenResultIsNone() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null, "name", "ASC", new InterestCursor(null, null), 10
+    );
+
+    given(interestRepository.searchByCondition(condition)).willReturn(List.of());
+    given(interestRepository.countByCondition(condition)).willReturn(0L);
+
+    // when
+    CursorPageResponseInterestDto response
+        = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content()).isEmpty();
+    assertThat(response.hasNext()).isFalse();
+  }
+
+  @Test
+  @DisplayName("subscribedByMe가 true로 반영된다")
+  void shouldSubscribedByMeIsTrue_whenSubscribing() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    Interest interest = createInterest("economy");
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null, "name", "DESC", new InterestCursor(null, null), 10
+    );
+
+    given(interestRepository.searchByCondition(condition)).willReturn(List.of(interest));
+    given(interestRepository.countByCondition(condition)).willReturn(1L);
+
+    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interest.getId()))
+        .willReturn(true);
+
+    given(interestMapper.toDto(any(), eq(true)))
+        .willReturn(new InterestDto(interest.getId(), "economy", List.of(), 0, true));
+
+    // when
+    CursorPageResponseInterestDto response
+        = interestService.findAll(condition, userId);
+
+    // then
+    assertThat(response.content().get(0).subscribedByMe()).isTrue();
   }
 }
