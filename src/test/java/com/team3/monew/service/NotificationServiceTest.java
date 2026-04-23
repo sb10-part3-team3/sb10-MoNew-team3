@@ -390,7 +390,7 @@ class NotificationServiceTest {
 
   @Test
   @DisplayName("매퍼를 사용하여 알림 엔터티를 DTO 형태로 변환한다.")
-  void shouldConvertNotificationEntityTo() {
+  void shouldConvertNotificationEntityToDto() {
     //given
     Notification notification = Notification.create(user1, "ddd", NotificationResourceType.INTEREST,
         resourceId, null);
