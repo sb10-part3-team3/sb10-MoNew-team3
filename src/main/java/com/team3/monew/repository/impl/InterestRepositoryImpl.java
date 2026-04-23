@@ -39,7 +39,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
   }
 
   @Override
-  public int countByCondition(InterestSearchCondition condition) {
+  public long countByCondition(InterestSearchCondition condition) {
     QInterest interest = QInterest.interest;
 
     Long count = queryFactory
@@ -48,7 +48,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
         .where(buildSearchCondition(condition, interest))
         .fetchOne();
 
-    return count == null ? 0 : count.intValue();
+    return count == null ? 0L : count.intValue();
   }
 
   private BooleanBuilder buildSearchCondition(
@@ -119,6 +119,11 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
     boolean isDesc = "DESC".equalsIgnoreCase(condition.direction());
 
     if ("subscriberCount".equals(orderBy)) {
+
+      if (!cursorValue.matches("-?\\d+")) {
+        throw new IllegalArgumentException(
+            "Invalid cursor: subscriberCount cursor must be numeric");
+      }
       int cursorCount = Integer.parseInt(cursorValue);
 
       if (isDesc) {
@@ -132,7 +137,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
       return interest.subscriberCount.gt(cursorCount)
           .or(
               interest.subscriberCount.eq(cursorCount)
-                  .and(interest.createdAt.lt(after))
+                  .and(interest.createdAt.gt(after))
           );
     }
 

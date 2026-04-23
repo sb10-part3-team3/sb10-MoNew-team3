@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -154,6 +155,14 @@ public interface InterestApi {
               mediaType = "application/json",
               schema = @Schema(implementation = CursorPageResponseInterestDto.class)
           )
+      ),
+      @ApiResponse(
+          responseCode = "400",
+          description = "잘못된 요청값입니다. (예: 정렬 조건/페이지 크기 오류)",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
       )
   })
   ResponseEntity<CursorPageResponseInterestDto> findAll(
@@ -176,6 +185,6 @@ public interface InterestApi {
       @RequestParam(value = "after", required = false) Instant after,
 
       @Parameter(description = "페이지 크기", example = "10")
-      @RequestParam(value = "limit", defaultValue = "10") int limit
+      @RequestParam(value = "limit", defaultValue = "10") @Min(1) int limit
   );
 }

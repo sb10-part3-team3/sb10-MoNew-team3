@@ -8,6 +8,6 @@ public interface InterestRepositoryCustom {
 
   List<Interest> searchByCondition(InterestSearchCondition condition);
 
-  int countByCondition(InterestSearchCondition condition);
+  long countByCondition(InterestSearchCondition condition);
 
 }

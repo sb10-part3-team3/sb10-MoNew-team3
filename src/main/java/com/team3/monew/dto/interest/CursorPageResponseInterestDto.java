@@ -7,7 +7,7 @@ public record CursorPageResponseInterestDto(
     String nextCursor,
     String nextAfter,
     int size,
-    int totalElements,
+    long totalElements,
     boolean hasNext
 ) {
 

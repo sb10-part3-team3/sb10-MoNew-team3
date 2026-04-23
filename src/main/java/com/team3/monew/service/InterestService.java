@@ -93,7 +93,7 @@ public class InterestService {
         ? result.subList(0, condition.limit())
         : result;
 
-    int totalElements = interestRepository.countByCondition(condition);
+    long totalElements = interestRepository.countByCondition(condition);
 
     if (content.isEmpty()) {
       log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
