@@ -8,6 +8,7 @@ import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,11 +76,11 @@ class NotificationRepositoryTest {
         interestId2, null);
     ReflectionTestUtils.setField(confirmedNotification, "isConfirmed", true);
 
-    notificationRepository.saveAll(
-        List.of(likeNotification1, likeNotification2, interestNotification1,
-            interestNotification2, confirmedNotification)); //5개 (4개 미확인)
-
-    notificationRepository.flush();
+    notificationRepository.saveAndFlush(likeNotification1);
+    notificationRepository.saveAndFlush(likeNotification2);
+    notificationRepository.saveAndFlush(confirmedNotification);
+    notificationRepository.saveAndFlush(interestNotification1);
+    notificationRepository.saveAndFlush(interestNotification2);
   }
 
   @Test
@@ -105,12 +106,9 @@ class NotificationRepositoryTest {
         // 1. 컨텐츠 검증
         () -> assertTrue(result.hasContent()),
         () -> assertThat(result.getContent().size()).isEqualTo(3),
-        () -> assertThat(result.getContent().get(0).getId()).isEqualTo(
-            interestNotification2.getId()),//나중에 저장(최신)
-        () -> assertThat(result.getContent().get(1).getId()).isEqualTo(
-            interestNotification1.getId()),
-        () -> assertThat(result.getContent().get(2).getId()).isEqualTo(likeNotification2.getId()),
-
+        () -> assertThat(result.getContent()).isSortedAccordingTo(
+            Comparator.comparing(Notification::getCreatedAt).reversed()
+                .thenComparing(Notification::getId)),
         // 2. 페이징 정보 검증
         () -> assertThat(result.getTotalElements()).isEqualTo(4),//전체 미확인 개수
         () -> assertThat(result.hasNext()).isTrue()
