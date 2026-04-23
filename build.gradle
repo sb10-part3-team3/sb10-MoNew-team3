@@ -31,6 +31,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'       // 비동기
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'    // XML 라이브러리
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     // DB
@@ -56,6 +57,11 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
     testImplementation 'io.projectreactor:reactor-test'                 // Reactor 비동기 테스트 모듈
     testImplementation 'com.squareup.okhttp3:mockwebserver:4.12.0'      // MockWebServer 라이브러리
+	// QueryDSL
+	implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
+	annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
+	annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+	annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 }
 
 tasks.named('test') {
@@ -65,8 +71,6 @@ tasks.named('test') {
             excludeTags cliTags.split(',')
         }
     }
-    systemProperty 'spring.profiles.active', 'test'
-    finalizedBy jacocoTestReport
 }
 
 
