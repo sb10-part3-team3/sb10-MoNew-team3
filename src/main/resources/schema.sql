@@ -25,7 +25,7 @@ CREATE TYPE backup_job_statuses AS ENUM (
 
 CREATE TYPE news_source_types AS ENUM (
     'NAVER',
-    'HANKYUNG'
+    'CHOSUN'
 );
 
 -- =========================
