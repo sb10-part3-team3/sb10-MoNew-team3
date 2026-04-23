@@ -196,7 +196,7 @@ class NotificationControllerTest {
   }
 
   @Test
-  @DisplayName("사용자 아이디 헤더가 포함되지 않으면 알림 목록 조회에 실패하고 예외 응답을 반환한다.)")
+  @DisplayName("사용자 아이디 헤더가 포함되지 않으면 알림 목록 조회에 실패하고 예외 응답을 반환한다.")
   void shouldFailToFindAllNotConfirmed_whenUserIdIsNotGiven() throws Exception {
     // when & then
     mockMvc.perform(get(NOTIFICATION_URL)
