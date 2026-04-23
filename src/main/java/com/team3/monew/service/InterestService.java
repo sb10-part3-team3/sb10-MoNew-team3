@@ -77,19 +77,34 @@ public class InterestService {
   }
 
   public CursorPageResponseInterestDto findAll(InterestSearchCondition condition, UUID userId) {
+    log.debug(
+        "관심사 목록 조회 요청 - userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
+        userId,
+        condition.keyword(),
+        condition.orderBy(),
+        condition.direction(),
+        condition.cursor() == null ? null : condition.cursor().cursor(),
+        condition.cursor() == null ? null : condition.cursor().after(),
+        condition.limit());
+
     List<Interest> result = interestRepository.searchByCondition(condition);
     boolean hasNext = result.size() > condition.limit();
     List<Interest> content = hasNext
         ? result.subList(0, condition.limit())
         : result;
 
+    int totalElements = interestRepository.countByCondition(condition);
+
     if (content.isEmpty()) {
+      log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
+          userId, condition.keyword());
+
       return new CursorPageResponseInterestDto(
           List.of(),
           null,
           null,
           condition.limit(),
-          interestRepository.countByCondition(condition),
+          totalElements,
           false
       );
     }
@@ -117,7 +132,10 @@ public class InterestService {
           return interestMapper.toDto(interest, subscribedByMe);
         })
         .toList();
-    int totalElements = interestRepository.countByCondition(condition);
+
+    log.debug(
+        "관심사 목록 조회 성공 - userId={}, contentSize={}, totalElements={}, hasNext={}, nextCursor={}, nextAfter={}",
+        userId, dtoList.size(), totalElements, hasNext, nextCursor, nextAfter);
 
     return new CursorPageResponseInterestDto(
         dtoList,
