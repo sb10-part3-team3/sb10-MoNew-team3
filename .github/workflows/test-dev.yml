@@ -57,7 +57,7 @@ jobs:
           files: build/test-results/test/*.xml
 
       - name: 테스트 커버리지 업로드
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: >
           github.event_name == 'push' ||
           github.event.pull_request.head.repo.full_name == github.repository
