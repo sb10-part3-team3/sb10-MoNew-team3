@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Validated
 public interface NotificationApi {
 
+  String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";
+
   @Operation(summary = "알림 목록 조회", description = "알림 목록을 조회합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "조회 성공"),
@@ -33,7 +35,7 @@ public interface NotificationApi {
   })
   @GetMapping
   ResponseEntity<CursorPageResponseDto<NotificationDto>> findAllNotConfirmed(
-      @RequestHeader("Monew-Request-User-ID") UUID requestUserId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
       @RequestParam(required = false) UUID cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "50") @Min(1) @Max(100) Integer limit

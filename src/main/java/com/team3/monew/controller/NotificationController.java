@@ -27,7 +27,7 @@ public class NotificationController implements NotificationApi {
 
   @GetMapping
   public ResponseEntity<CursorPageResponseDto<NotificationDto>> findAllNotConfirmed(
-      @RequestHeader("Monew-Request-User-ID") UUID requestUserId,
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
       @RequestParam(required = false) UUID cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam(defaultValue = "50") @Min(1) @Max(100) Integer limit
