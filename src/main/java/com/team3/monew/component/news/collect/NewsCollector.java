@@ -1,14 +1,15 @@
 package com.team3.monew.component.news.collect;
 
 import com.team3.monew.component.news.record.ParsedData;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.news.NewsIllegalBeanException;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
@@ -41,7 +42,8 @@ public class NewsCollector {
   }
 
 
-  public Flux<ParsedData> collectRawNews(NewsSourceType sourceType, Set<String> keywords) {
+  public Flux<ParsedData> collectRawNews(NewsSourceType sourceType,
+      Collection<InterestKeyword> interestKeywords) {
     String beanName = sourceType.name().toLowerCase() + "NewsCollect";
     NewsCollect collector = newsCollect.get(beanName);
     if (collector == null) {
@@ -49,6 +51,6 @@ public class NewsCollector {
     }
 
     log.debug("NewsCollector: {} 시작", beanName);
-    return collector.collect(webClient, sourceType, keywords);
+    return collector.collect(webClient, sourceType, interestKeywords);
   }
 }

@@ -3,9 +3,10 @@ package com.team3.monew.component.news.client;
 import com.team3.monew.component.news.collect.NewsCollector;
 import com.team3.monew.component.news.filter.NewsFilter;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,10 +26,11 @@ public class ChosunNewsClient implements NewsClient {
   }
 
   @Override
-  public Mono<List<ParsedNewsArticle>> fetchAndProcess(Set<String> keywords) {
+  public Mono<List<ParsedNewsArticle>> fetchAndProcess(
+      Collection<InterestKeyword> interestKeywords) {
     // CHOSUN은 단일 쿼리만 있음
-    return newsCollector.collectRawNews(getSourceType(), keywords)
-        .map(newsFilter::filterKeyword)
+    return newsCollector.collectRawNews(getSourceType(), interestKeywords)
+        .map(parsedData -> newsFilter.filterKeyword(parsedData, interestKeywords))
         .flatMapIterable(list -> list)       // 단일 쿼리지만 구조를 맞추기 위해 사용
         .collectList();
   }

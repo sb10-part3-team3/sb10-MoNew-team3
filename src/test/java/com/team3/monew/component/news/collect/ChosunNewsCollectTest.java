@@ -67,7 +67,7 @@ class ChosunNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, null, null))
+    StepVerifier.create(newsCollect.collect(webClient, null, List.of()))
         .expectNext(parsedData)
         .verifyComplete();
   }
@@ -88,7 +88,7 @@ class ChosunNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, null, null))
+    StepVerifier.create(newsCollect.collect(webClient, null, List.of()))
         .expectNextCount(0) // 데이터 0개
         .verifyComplete();
   }
@@ -108,7 +108,7 @@ class ChosunNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, null, null))
+    StepVerifier.create(newsCollect.collect(webClient, null, List.of()))
         .expectNextCount(0) // 데이터 0개
         .verifyComplete();
     assertThat(webServer.getRequestCount()).isEqualTo(1); // 횟수 호출 1
@@ -131,7 +131,7 @@ class ChosunNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, null, null))
+    StepVerifier.create(newsCollect.collect(webClient, null, List.of()))
         .expectNextCount(0) // 데이터 0개
         .verifyComplete();
     assertThat(webServer.getRequestCount()).isEqualTo(3); // 횟수 호출 3(재시도2)

@@ -6,10 +6,11 @@ import static org.mockito.BDDMockito.given;
 
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
+import com.team3.monew.entity.Interest;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
 import java.util.ArrayList;
 import java.util.List;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -37,22 +38,23 @@ class NewsFilterTest {
         new ParsedNewsArticle(null, null, "애플", null, "폴더블", new ArrayList<>())
     );
     ParsedData parsedData = new ParsedData(NewsSourceType.NAVER, null, 0, newsArticles);
+    List<InterestKeyword> samsungKeywordList = List.of(
+        InterestKeyword.create(Interest.create("삼성"), "메모리"));
 
     given(keywordMatch.findMatches(any()))
-        .willReturn(List.of("삼성"))
-        .willReturn(List.of("메모리"))
-        .willReturn(List.of())
+        .willReturn(List.of("삼성", "메모리"))
         .willReturn(List.of());
 
     // when
-    List<ParsedNewsArticle> actualData = newsFilter.filterKeyword(parsedData);
+    List<ParsedNewsArticle> actualData = newsFilter.filterKeyword(parsedData, samsungKeywordList);
 
     // then
     assertThat(actualData)
         .hasSize(1)
         .first()
-        .extracting(ParsedNewsArticle::keywords)
-        .asInstanceOf(InstanceOfAssertFactories.LIST)
-        .contains("삼성", "메모리");
+        .satisfies(article -> {
+          assertThat(article.summary()).isEqualTo(" HBM 메모리..");
+          assertThat(article.interestKeywords()).containsExactly(samsungKeywordList.get(0));
+        });
   }
 }
