@@ -95,6 +95,8 @@ public class CommentService {
     Comment savedComment = commentRepository.save(comment);
     newsArticleRepository.incrementCommentCountById(request.articleId());
 
+    log.info("Comment registered: commentId={}, articleId={}, userId={}",
+        savedComment.getId(), request.articleId(), request.userId());
     return commentMapper.toDto(savedComment, false);
   }
 
@@ -106,6 +108,7 @@ public class CommentService {
     validateCommentAuthor(comment, requestUserId, new UnauthorizedCommentUpdateException(commentId));
 
     comment.updateContent(request.content());
+    log.info("Comment updated: commentId={}, requestUserId={}", commentId, requestUserId);
     return commentMapper.toDto(comment, false);
   }
 
@@ -116,6 +119,7 @@ public class CommentService {
     Comment comment = findActiveComment(commentId);
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
+    log.info("Comment deleted: commentId={}", commentId);
   }
 
   @Transactional
@@ -134,6 +138,7 @@ public class CommentService {
         commentId
     );
     commentRepository.delete(comment);
+    log.info("Comment hard deleted: commentId={}", commentId);
   }
 
   public CursorPageResponseCommentDto findComments(
@@ -145,7 +150,8 @@ public class CommentService {
       int limit,
       UUID requestUserId
   ) {
-    CommentSearchCondition condition = createSearchCondition(
+    log.debug(
+        "Find comments request: articleId={}, orderBy={}, direction={}, cursor={}, after={}, limit={}, requestUserId={}",
         articleId,
         orderBy,
         direction,
@@ -155,8 +161,7 @@ public class CommentService {
         requestUserId
     );
 
-    log.debug(
-        "Find comments request: articleId={}, orderBy={}, direction={}, cursor={}, after={}, limit={}, requestUserId={}",
+    CommentSearchCondition condition = createSearchCondition(
         articleId,
         orderBy,
         direction,
@@ -170,8 +175,11 @@ public class CommentService {
 
     List<Comment> comments = findCommentPage(condition);
     long totalElements = commentRepository.countActiveComments(articleId);
+    CursorPageResponseCommentDto response = buildCommentPageResponse(condition, comments, totalElements);
 
-    return buildCommentPageResponse(condition, comments, totalElements);
+    log.debug("Find comments completed: articleId={}, size={}, totalElements={}, hasNext={}",
+        articleId, response.size(), response.totalElements(), response.hasNext());
+    return response;
   }
 
   @Transactional
@@ -182,6 +190,8 @@ public class CommentService {
     User user = findActiveUser(requestUserId);
 
     if (commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId)) {
+      log.debug("Like comment rejected: commentId={}, requestUserId={}, reason=alreadyExists",
+          commentId, requestUserId);
       throw new CommentLikeAlreadyExistsException();
     }
 
@@ -190,8 +200,11 @@ public class CommentService {
 
     if (!comment.getUser().getId().equals(requestUserId)) {
       eventPublisher.publishEvent(new CommentLikedEvent(requestUserId, commentId));
+      log.debug("Comment liked event published: commentId={}, requestUserId={}",
+          commentId, requestUserId);
     }
 
+    log.info("Comment liked: commentId={}, requestUserId={}", commentId, requestUserId);
     return toCommentLikeDto(savedCommentLike);
   }
 
@@ -201,12 +214,18 @@ public class CommentService {
 
     Comment comment = findActiveComment(commentId);
     CommentLike commentLike = commentLikeRepository.findByCommentIdAndUserId(commentId, requestUserId)
-        .orElseThrow(CommentLikeNotFoundException::new);
+        .orElseThrow(() -> {
+          log.debug("Unlike comment rejected: commentId={}, requestUserId={}, reason=notFound",
+              commentId, requestUserId);
+          return new CommentLikeNotFoundException();
+        });
 
     comment.decreaseLikeCount();
     commentLikeRepository.delete(commentLike);
+    log.info("Comment unliked: commentId={}, requestUserId={}", commentId, requestUserId);
   }
 
+  // 조회 파라미터를 검증하고 내부 검색 조건으로 변환한다.
   private CommentSearchCondition createSearchCondition(
       UUID articleId,
       String orderBy,
@@ -229,6 +248,7 @@ public class CommentService {
     );
   }
 
+  // 정렬 기준 문자열을 내부 enum으로 변환한다.
   private CommentOrderBy parseOrderBy(String orderBy) {
     if ("createdAt".equals(orderBy)) {
       return CommentOrderBy.CREATED_AT;
@@ -241,6 +261,7 @@ public class CommentService {
     throw invalidInput("orderBy", orderBy);
   }
 
+  // 정렬 방향 문자열을 내부 enum으로 변환한다.
   private CommentDirection parseDirection(String direction) {
     if (direction == null || direction.isBlank() || "DESC".equalsIgnoreCase(direction)) {
       return CommentDirection.DESC;
@@ -249,6 +270,7 @@ public class CommentService {
     throw invalidInput("direction", direction);
   }
 
+  // 요청 커서를 정렬 기준에 맞는 값으로 해석한다.
   private CommentCursor parseCursor(CommentOrderBy orderBy, String cursor, Instant after) {
     String[] cursorValues = splitCursor(cursor);
 
@@ -262,6 +284,7 @@ public class CommentService {
     );
   }
 
+  // 정렬 조건에 맞는 댓글 목록 쿼리를 선택한다.
   private List<Comment> findCommentPage(CommentSearchCondition condition) {
     Pageable pageable = PageRequest.of(0, condition.limit() + 1);
 
@@ -281,6 +304,7 @@ public class CommentService {
     );
   }
 
+  // 조회 결과를 커서 페이지 응답으로 조립한다.
   private CursorPageResponseCommentDto buildCommentPageResponse(
       CommentSearchCondition condition,
       List<Comment> comments,
@@ -306,6 +330,7 @@ public class CommentService {
     );
   }
 
+  // 요청 사용자 기준 likedByMe 값을 계산해 댓글 DTO로 변환한다.
   private List<CommentDto> toCommentDtos(List<Comment> comments, UUID requestUserId) {
     List<UUID> commentIds = comments.stream()
         .map(Comment::getId)
@@ -318,6 +343,7 @@ public class CommentService {
         .toList();
   }
 
+  // 마지막 댓글을 기준으로 다음 페이지 커서를 만든다.
   private String resolveNextCursor(Comment comment, CommentOrderBy orderBy) {
     if (orderBy == CommentOrderBy.LIKE_COUNT) {
       return String.join(
@@ -330,6 +356,7 @@ public class CommentService {
     return comment.getCreatedAt().toString();
   }
 
+  // 좋아요 엔티티를 응답 DTO로 변환한다.
   private CommentLikeDto toCommentLikeDto(CommentLike commentLike) {
     Comment comment = commentLike.getComment();
 
@@ -347,14 +374,17 @@ public class CommentService {
     );
   }
 
+  // 등록 시 사용할 활성 기사인지 확인한다.
   private NewsArticle findActiveArticle(UUID articleId) {
     return findArticle(articleId, () -> new ArticleNotFoundException(articleId));
   }
 
+  // 조회 시 읽을 수 있는 기사인지 확인한다.
   private NewsArticle findReadableArticle(UUID articleId) {
     return findArticle(articleId, () -> invalidInput("articleId", articleId));
   }
 
+  // 기사 존재 여부와 삭제 상태를 함께 확인한다.
   private NewsArticle findArticle(
       UUID articleId,
       Supplier<? extends RuntimeException> notFoundException
@@ -369,6 +399,7 @@ public class CommentService {
     return article;
   }
 
+  // 활성 사용자만 반환한다.
   private User findActiveUser(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
@@ -380,6 +411,7 @@ public class CommentService {
     return user;
   }
 
+  // 활성 댓글만 반환한다.
   private Comment findActiveComment(UUID commentId) {
     Comment comment = findComment(commentId);
 
@@ -390,11 +422,13 @@ public class CommentService {
     return comment;
   }
 
+  // 삭제 여부와 무관하게 댓글 존재 여부만 확인한다.
   private Comment findComment(UUID commentId) {
     return commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
   }
 
+  // 요청 사용자와 댓글 작성자가 같은지 확인한다.
   private void validateCommentAuthor(
       Comment comment,
       UUID requestUserId,
@@ -411,12 +445,14 @@ public class CommentService {
     }
   }
 
+  // 페이지 크기 파라미터를 검증한다.
   private void validateLimit(int limit) {
     if (limit < 1) {
       throw invalidInput("limit", limit);
     }
   }
 
+  // 커서 문자열을 구분자로 분리한다.
   private String[] splitCursor(String cursor) {
     if (cursor == null || cursor.isBlank()) {
       return new String[0];
@@ -425,6 +461,7 @@ public class CommentService {
     return cursor.split(Pattern.quote(CURSOR_DELIMITER));
   }
 
+  // 분리된 커서 배열에서 필요한 위치의 값을 꺼낸다.
   private String cursorValue(String[] cursorValues, int index) {
     if (cursorValues.length <= index) {
       return null;
@@ -433,6 +470,7 @@ public class CommentService {
     return cursorValues[index];
   }
 
+  // 문자열 시간을 Instant로 변환한다.
   private Instant parseInstant(String value, String field, Instant defaultValue) {
     if (value == null || value.isBlank()) {
       return defaultValue;
@@ -445,6 +483,7 @@ public class CommentService {
     }
   }
 
+  // 문자열 숫자를 Integer로 변환한다.
   private Integer parseInteger(String value, String field) {
     if (value == null || value.isBlank()) {
       return null;
@@ -457,6 +496,7 @@ public class CommentService {
     }
   }
 
+  // 공통 입력값 오류 예외를 만든다.
   private BusinessException invalidInput(String field, Object value) {
     return new BusinessException(
         ErrorCode.INVALID_INPUT_VALUE,
