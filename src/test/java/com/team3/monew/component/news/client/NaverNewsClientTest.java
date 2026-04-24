@@ -133,8 +133,7 @@ class NaverNewsClientTest {
         .assertNext(list -> {
           assertThat(list).hasSize(1);
           assertThat(list.get(0).link()).isEqualTo("link1");
-          assertThat(list.get(0).interestKeywords()).containsExactlyInAnyOrder(samsungKeyword,
-              appleKeyword);
+          assertThat(list.get(0).interestKeywords()).containsExactly(samsungKeyword, appleKeyword);
         })
         .verifyComplete();
   }

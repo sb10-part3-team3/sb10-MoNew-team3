@@ -7,8 +7,11 @@ import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -39,10 +42,27 @@ public class NaverNewsClient implements NewsClient {
             article -> article,
             (existing, replacement) -> {
               // 키워드별 쿼리에 중복 가능성이 있는데 더 많은 관심사 있는 쪽을 살림
-              if (existing.interestKeywords().size() >= replacement.interestKeywords().size()) {
-                return existing;
-              }
-              return replacement;
+
+              List<InterestKeyword> merged = Stream.concat(
+                      existing.interestKeywords().stream(),
+                      replacement.interestKeywords().stream())
+                  .collect(Collectors.toMap(
+                      ik -> ik.getInterest().getId() + ":" + ik.getKeyword(), // 중복기준 Key
+                      ik -> ik,
+                      (oldValue, newValue) -> oldValue
+                  ))
+                  .values()
+                  .stream()
+                  .toList();
+
+              return new ParsedNewsArticle(
+                  existing.sourceType(),
+                  existing.link(),
+                  existing.title(),
+                  existing.publishedAt(),
+                  existing.summary(),
+                  merged
+              );
             }
         ))
         .map(value -> new ArrayList<>(value.values()));
