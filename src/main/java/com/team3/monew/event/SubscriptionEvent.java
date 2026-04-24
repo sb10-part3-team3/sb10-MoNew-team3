@@ -1,5 +1,6 @@
 package com.team3.monew.event;
 
+import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import java.time.Instant;
 import java.util.List;
@@ -14,14 +15,14 @@ public record SubscriptionEvent(
     Integer interestSubscriberCount,
     Instant createdAt
 ) {
-  public static SubscriptionEvent from(Subscription subscription) {
+  public static SubscriptionEvent from(Subscription subscription, Interest interest) {
     return new SubscriptionEvent(
       subscription.getId(),
-      subscription.getInterest().getId(),
+      interest.getId(),
       subscription.getUser().getId(),
-      subscription.getInterest().getName(),
-      subscription.getInterest().getStringKeywords(),
-      subscription.getInterest().getSubscriberCount(),
+      interest.getName(),
+      interest.getStringKeywords(),
+      interest.getSubscriberCount(),
       subscription.getCreatedAt()
     );
   }
