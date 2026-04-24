@@ -2,6 +2,7 @@ package com.team3.monew.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +17,8 @@ public class JacksonConfig {
   public ObjectMapper createObjectMapper() {    // json Parsing용
     return new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)  // 예상못한 필드 무시
-        .registerModule(new JavaTimeModule());
+        .registerModule(new JavaTimeModule())
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
   }
 
   @Bean

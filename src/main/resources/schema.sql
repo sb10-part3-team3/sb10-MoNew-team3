@@ -2,263 +2,276 @@
 -- ENUMS
 -- =========================
 
-CREATE TYPE delete_statuses AS ENUM (
-    'ACTIVE',
-    'DELETED'
-);
+-- CREATE TYPE delete_statuses AS ENUM (
+--     'ACTIVE',
+--     'DELETED'
+-- );
+--
+-- CREATE TYPE notification_resource_types AS ENUM (
+--     'INTEREST',
+--     'COMMENT'
+-- );
+--
+-- CREATE TYPE backup_job_types AS ENUM (
+--     'ARTICLE_DAILY_BACKUP',
+--     'ARTICLE_RESTORE'
+-- );
+--
+-- CREATE TYPE backup_job_statuses AS ENUM (
+--     'PENDING',
+--     'SUCCESS',
+--     'FAILED'
+-- );
 
-CREATE TYPE notification_resource_types AS ENUM (
-    'INTEREST',
-    'COMMENT'
-);
-
-CREATE TYPE backup_job_types AS ENUM (
-    'ARTICLE_DAILY_BACKUP',
-    'ARTICLE_RESTORE'
-);
-
-CREATE TYPE backup_job_statuses AS ENUM (
-    'PENDING',
-    'SUCCESS',
-    'FAILED'
-);
-
-CREATE TYPE news_source_types AS ENUM (
-    'NAVER',
-    'CHOSUN'
-);
+-- CREATE TYPE news_source_types AS ENUM (
+--     'NAVER',
+--     'CHOSUN'
+-- );
 
 -- =========================
 -- USERS
 -- =========================
 
-CREATE TABLE users (
-                       id UUID PRIMARY KEY,
-                       email VARCHAR(255) NOT NULL UNIQUE,
-                       nickname VARCHAR(100) NOT NULL,
-                       password VARCHAR(255) NOT NULL,
+CREATE TABLE users
+(
+    id                 UUID PRIMARY KEY,
+    email              VARCHAR(255)             NOT NULL UNIQUE,
+    nickname           VARCHAR(100)             NOT NULL,
+    password           VARCHAR(255)             NOT NULL,
 
-                       delete_status delete_statuses NOT NULL DEFAULT 'ACTIVE',
-                       deleted_at TIMESTAMP WITH TIME ZONE,
-                       purge_scheduled_at TIMESTAMP WITH TIME ZONE,
+    delete_status      VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE' CHECK (delete_status IN ('ACTIVE', 'DELETED')),
+    deleted_at         TIMESTAMP WITH TIME ZONE,
+    purge_scheduled_at TIMESTAMP WITH TIME ZONE,
 
-                       created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                       updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at         TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 -- =========================
 -- INTERESTS
 -- =========================
 
-CREATE TABLE interests (
-                           id UUID PRIMARY KEY,
-                           name VARCHAR(100) NOT NULL UNIQUE,
-                           subscriber_count INT NOT NULL DEFAULT 0,
+CREATE TABLE interests
+(
+    id               UUID PRIMARY KEY,
+    name             VARCHAR(100)             NOT NULL UNIQUE,
+    subscriber_count INT                      NOT NULL DEFAULT 0,
 
-                           created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                           updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    created_at       TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at       TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
-CREATE TABLE interest_keywords (
-                                   id UUID PRIMARY KEY,
-                                   interest_id UUID NOT NULL,
-                                   keyword VARCHAR(100) NOT NULL,
+CREATE TABLE interest_keywords
+(
+    id          UUID PRIMARY KEY,
+    interest_id UUID                     NOT NULL,
+    keyword     VARCHAR(100)             NOT NULL,
 
-                                   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                                   updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at  TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                                   CONSTRAINT fk_interest_keywords_interest_id
-                                       FOREIGN KEY (interest_id) REFERENCES interests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_interest_keywords_interest_id
+        FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
 
-                                   CONSTRAINT uk_interest_keywords_interest_id_keyword
-                                       UNIQUE (interest_id, keyword)
+    CONSTRAINT uk_interest_keywords_interest_id_keyword
+        UNIQUE (interest_id, keyword)
 );
 
 -- =========================
 -- SUBSCRIPTIONS
 -- =========================
 
-CREATE TABLE subscriptions (
-                               id UUID PRIMARY KEY,
-                               user_id UUID NOT NULL,
-                               interest_id UUID NOT NULL,
+CREATE TABLE subscriptions
+(
+    id          UUID PRIMARY KEY,
+    user_id     UUID                     NOT NULL,
+    interest_id UUID                     NOT NULL,
 
-                               created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                               CONSTRAINT fk_subscriptions_user_id
-                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_subscriptions_user_id
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
 
-                               CONSTRAINT fk_subscriptions_interest_id
-                                   FOREIGN KEY (interest_id) REFERENCES interests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_subscriptions_interest_id
+        FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
 
-                               CONSTRAINT uk_subscriptions_user_id_interest_id
-                                   UNIQUE (user_id, interest_id)
+    CONSTRAINT uk_subscriptions_user_id_interest_id
+        UNIQUE (user_id, interest_id)
 );
 
 -- =========================
 -- NEWS SOURCES
 -- =========================
 
-CREATE TABLE news_sources (
-                              id UUID PRIMARY KEY,
-                              name VARCHAR(100) NOT NULL UNIQUE,
-                              source_type news_source_types NOT NULL,
-                              base_url VARCHAR(500),
+CREATE TABLE news_sources
+(
+    id          UUID PRIMARY KEY,
+    name        VARCHAR(100)             NOT NULL UNIQUE,
+    source_type VARCHAR(20)              NOT NULL,
+    base_url    VARCHAR(500),
 
-                              created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                              updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    created_at  TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at  TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 -- =========================
 -- NEWS ARTICLES
 -- =========================
 
-CREATE TABLE news_articles (
-                               id UUID PRIMARY KEY,
-                               source_id UUID NOT NULL,
-                               original_link VARCHAR(1000) NOT NULL UNIQUE,
-                               title VARCHAR(500) NOT NULL,
-                               published_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                               summary TEXT,
+CREATE TABLE news_articles
+(
+    id            UUID PRIMARY KEY,
+    source_id     UUID                     NOT NULL,
+    original_link VARCHAR(1000)            NOT NULL UNIQUE,
+    title         VARCHAR(500)             NOT NULL,
+    published_at  TIMESTAMP WITH TIME ZONE NOT NULL,
+    summary       TEXT,
 
-                               comment_count INT NOT NULL DEFAULT 0,
-                               view_count INT NOT NULL DEFAULT 0,
+    comment_count INT                      NOT NULL DEFAULT 0,
+    view_count    INT                      NOT NULL DEFAULT 0,
 
-                               delete_status delete_statuses NOT NULL DEFAULT 'ACTIVE',
-                               deleted_at TIMESTAMP WITH TIME ZONE,
+    delete_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE' CHECK (delete_status IN ('ACTIVE', 'DELETED')),
+    deleted_at    TIMESTAMP WITH TIME ZONE,
 
-                               created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                               updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                               CONSTRAINT fk_news_articles_source_id
-                                   FOREIGN KEY (source_id) REFERENCES news_sources(id) ON DELETE RESTRICT
+    CONSTRAINT fk_news_articles_source_id
+        FOREIGN KEY (source_id) REFERENCES news_sources (id) ON DELETE RESTRICT
 );
 
-CREATE TABLE article_interests (
-                                   id UUID PRIMARY KEY,
-                                   article_id UUID NOT NULL,
-                                   interest_id UUID NOT NULL,
-                                   matched_keyword VARCHAR(100) NOT NULL,
 
-                                   created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+CREATE TABLE article_interests
+(
+    id              UUID PRIMARY KEY,
+    article_id      UUID                     NOT NULL,
+    interest_id     UUID                     NOT NULL,
+    matched_keyword VARCHAR(100)             NOT NULL,
 
-                                   CONSTRAINT fk_article_interests_article_id
-                                       FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE,
+    created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                                   CONSTRAINT fk_article_interests_interest_id
-                                       FOREIGN KEY (interest_id) REFERENCES interests(id) ON DELETE CASCADE,
+    CONSTRAINT fk_article_interests_article_id
+        FOREIGN KEY (article_id) REFERENCES news_articles (id) ON DELETE CASCADE,
 
-                                   CONSTRAINT uk_article_interests_article_id_interest_id_matched_keyword
-                                       UNIQUE (article_id, interest_id, matched_keyword)
+    CONSTRAINT fk_article_interests_interest_id
+        FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
+
+    CONSTRAINT uk_article_interests_article_id_interest_id_matched_keyword
+        UNIQUE (article_id, interest_id, matched_keyword)
 );
 
-CREATE TABLE article_views (
-                               id UUID PRIMARY KEY,
-                               article_id UUID NOT NULL,
-                               user_id UUID NOT NULL,
+CREATE TABLE article_views
+(
+    id              UUID PRIMARY KEY,
+    article_id      UUID                     NOT NULL,
+    user_id         UUID                     NOT NULL,
 
-                               first_viewed_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                               last_viewed_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    first_viewed_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    last_viewed_at  TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                               CONSTRAINT fk_article_views_article_id
-                                   FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_article_views_article_id
+        FOREIGN KEY (article_id) REFERENCES news_articles (id) ON DELETE CASCADE,
 
-                               CONSTRAINT fk_article_views_user_id
-                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_article_views_user_id
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
 
-                               CONSTRAINT uk_article_views_article_id_user_id
-                                   UNIQUE (article_id, user_id)
+    CONSTRAINT uk_article_views_article_id_user_id
+        UNIQUE (article_id, user_id)
 );
 
 -- =========================
 -- COMMENTS
 -- =========================
 
-CREATE TABLE comments (
-                          id UUID PRIMARY KEY,
-                          article_id UUID NOT NULL,
-                          user_id UUID NOT NULL,
-                          content VARCHAR(10000) NOT NULL,
+CREATE TABLE comments
+(
+    id            UUID PRIMARY KEY,
+    article_id    UUID                     NOT NULL,
+    user_id       UUID                     NOT NULL,
+    content       VARCHAR(10000)           NOT NULL,
 
-                          like_count INT NOT NULL DEFAULT 0,
+    like_count    INT                      NOT NULL DEFAULT 0,
 
-                          delete_status delete_statuses NOT NULL DEFAULT 'ACTIVE',
-                          deleted_at TIMESTAMP WITH TIME ZONE,
+    delete_status VARCHAR(20)              NOT NULL DEFAULT 'ACTIVE' CHECK (delete_status IN ('ACTIVE', 'DELETED')),
+    deleted_at    TIMESTAMP WITH TIME ZONE,
 
-                          created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                          updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                          CONSTRAINT fk_comments_article_id
-                              FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comments_article_id
+        FOREIGN KEY (article_id) REFERENCES news_articles (id) ON DELETE CASCADE,
 
-                          CONSTRAINT fk_comments_user_id
-                              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    CONSTRAINT fk_comments_user_id
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
-CREATE TABLE comment_likes (
-                               id UUID PRIMARY KEY,
-                               comment_id UUID NOT NULL,
-                               user_id UUID NOT NULL,
+CREATE TABLE comment_likes
+(
+    id         UUID PRIMARY KEY,
+    comment_id UUID                     NOT NULL,
+    user_id    UUID                     NOT NULL,
 
-                               created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                               CONSTRAINT fk_comment_likes_comment_id
-                                   FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comment_likes_comment_id
+        FOREIGN KEY (comment_id) REFERENCES comments (id) ON DELETE CASCADE,
 
-                               CONSTRAINT fk_comment_likes_user_id
-                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_comment_likes_user_id
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
 
-                               CONSTRAINT uk_comment_likes_comment_id_user_id
-                                   UNIQUE (comment_id, user_id)
+    CONSTRAINT uk_comment_likes_comment_id_user_id
+        UNIQUE (comment_id, user_id)
 );
 
 -- =========================
 -- NOTIFICATIONS
 -- =========================
 
-CREATE TABLE notifications (
-                               id UUID PRIMARY KEY,
-                               user_id UUID NOT NULL,
+CREATE TABLE notifications
+(
+    id            UUID PRIMARY KEY,
+    user_id       UUID                     NOT NULL,
 
-                               content VARCHAR(500) NOT NULL,
+    content       VARCHAR(500)             NOT NULL,
 
-                               resource_type notification_resource_types NOT NULL,
-                               resource_id UUID NOT NULL,
+    resource_type VARCHAR(30)              NOT NULL,
+    resource_id   UUID                     NOT NULL,
 
-                               actor_user_id UUID,
+    actor_user_id UUID,
 
-                               is_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
-                               confirmed_at TIMESTAMP WITH TIME ZONE,
+    is_confirmed  BOOLEAN                  NOT NULL DEFAULT FALSE,
+    confirmed_at  TIMESTAMP WITH TIME ZONE,
 
-                               created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                               updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL,
 
-                               CONSTRAINT fk_notifications_user_id
-                                   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notifications_user_id
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
 
-                               CONSTRAINT fk_notifications_actor_user_id
-                                   FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+    CONSTRAINT fk_notifications_actor_user_id
+        FOREIGN KEY (actor_user_id) REFERENCES users (id) ON DELETE SET NULL
 );
 
 -- =========================
 -- ARTICLE BACKUP JOBS
 -- =========================
 
-CREATE TABLE article_backup_jobs (
-                                     id UUID PRIMARY KEY,
-                                     backup_date DATE NOT NULL,
-                                     job_type backup_job_types NOT NULL,
-                                     status backup_job_statuses NOT NULL,
+CREATE TABLE article_backup_jobs
+(
+    id            UUID PRIMARY KEY,
+    backup_date   DATE                     NOT NULL,
+    job_type      VARCHAR(50)              NOT NULL,
+    status        VARCHAR(20)              NOT NULL,
 
-                                     s3_bucket VARCHAR(255),
-                                     s3_key VARCHAR(500),
-                                     article_count INT NOT NULL DEFAULT 0,
-                                     started_at TIMESTAMP WITH TIME ZONE,
-                                     finished_at TIMESTAMP WITH TIME ZONE,
-                                     error_message TEXT,
+    s3_bucket     VARCHAR(255),
+    s3_key        VARCHAR(500),
+    article_count INT                      NOT NULL DEFAULT 0,
+    started_at    TIMESTAMP WITH TIME ZONE,
+    finished_at   TIMESTAMP WITH TIME ZONE,
+    error_message TEXT,
 
-                                     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-                                     updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    created_at    TIMESTAMP WITH TIME ZONE NOT NULL,
+    updated_at    TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 -- =========================
