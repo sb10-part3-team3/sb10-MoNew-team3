@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 
 import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
 import com.team3.monew.dto.notification.InterestNotificationRequest;
@@ -19,6 +20,8 @@ import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.comment.CommentNotFoundException;
+import com.team3.monew.exception.notification.NotificationConfirmForbiddenException;
+import com.team3.monew.exception.notification.NotificationNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.NotificationMapper;
 import com.team3.monew.repository.CommentRepository;
@@ -408,5 +411,80 @@ class NotificationServiceTest {
     assertEquals(dto.confirmed(), notification.isConfirmed());
     assertEquals(dto.createdAt(), notification.getCreatedAt());
     assertEquals(dto.updatedAt(), notification.getUpdatedAt());
+  }
+
+  @Test
+  @DisplayName("사용자 아이디가 존재하지 않을 때 알림 확인 상태 변경에 실패한다.")
+  void shouldFailToConfirmNotification_whenUserNotFound() {
+    // given
+    given(userRepository.existsById(userId1))
+        .willReturn(false);
+
+    // when & then
+    assertThrows(UserNotFoundException.class, () -> {
+      notificationService.confirm(userId1, likeNotification1.getId());
+    });
+  }
+
+  @Test
+  @DisplayName("알림이 존재하지 않을 때 알림 확인 상태 변경에 실패한다.")
+  void shouldFailToConfirmNotification_whenNotificationNotFound() {
+    // given
+    given(userRepository.existsById(userId1)).willReturn(true);
+    given(notificationRepository.findById(likeNotification1.getId()))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThrows(NotificationNotFoundException.class, () -> {
+      notificationService.confirm(userId1, likeNotification1.getId());
+    });
+  }
+
+  @Test
+  @DisplayName("알림이 존재하지만 권한이 없는 사용자 일때, 알림 확인 상태 변경에 실패한다.")
+  void shouldFailToConfirmNotification_whenUnAuthorized() {
+    // given
+    given(userRepository.existsById(userId2)).willReturn(true);
+    given(notificationRepository.findById(likeNotification1.getId()))
+        .willReturn(Optional.of(likeNotification1));
+
+    // when & then
+    assertThrows(NotificationConfirmForbiddenException.class, () -> {
+      notificationService.confirm(userId2, likeNotification1.getId());
+    });
+  }
+
+  @Test
+  @DisplayName("사용자 아이디와 알림 아이디로 미확인 알림의 확인 상태 변경에 성공한다.")
+  void shouldConfirmNotification() {
+    // given
+    given(userRepository.existsById(userId1)).willReturn(true);
+    given(notificationRepository.findById(likeNotification1.getId()))
+        .willReturn(Optional.of(likeNotification1));
+
+    // when
+    notificationService.confirm(userId1, likeNotification1.getId());
+
+    assertTrue(likeNotification1.isConfirmed());
+  }
+
+  @Test
+  @DisplayName("이미 확인된 알림은 확인 상태를 변경하지 않고 성공 응답을 보낸다.")
+  void shouldConfirmNotificationWithNoCommit_WhenNotificationAlreadyConfirmed() {
+    // given
+    ReflectionTestUtils.setField(likeNotification1, "isConfirmed", true);
+    ReflectionTestUtils.setField(likeNotification1, "confirmedAt",
+        Instant.parse("2026-03-01T12:00:00Z"));
+
+    given(userRepository.existsById(userId1)).willReturn(true);
+    given(notificationRepository.findById(likeNotification1.getId()))
+        .willReturn(Optional.of(likeNotification1));
+
+    // when
+    notificationService.confirm(userId1, likeNotification1.getId());
+
+    assertTrue(likeNotification1.isConfirmed());
+    assertEquals(likeNotification1.getConfirmedAt(),
+        Instant.parse("2026-03-01T12:00:00Z"));//기존 확인 시간과 동일
   }
 }

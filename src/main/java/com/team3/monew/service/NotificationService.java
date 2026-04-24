@@ -9,6 +9,8 @@ import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.comment.CommentNotFoundException;
+import com.team3.monew.exception.notification.NotificationConfirmForbiddenException;
+import com.team3.monew.exception.notification.NotificationNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.NotificationMapper;
 import com.team3.monew.repository.CommentRepository;
@@ -115,6 +117,23 @@ public class NotificationService {
         totalElements,
         hasNext
     );
+  }
+
+  public void confirm(UUID requestUserId, UUID notificationId) {
+    log.debug("개별 알림 확인 시작: userId={}, notificationId={}", requestUserId, notificationId);
+    if (!userRepository.existsById(requestUserId)) {
+      throw new UserNotFoundException(requestUserId);
+    }
+    log.debug("개별 알림 확인에서 사용자 유효성 확인 완료: userId={}, notificationId={}", requestUserId,
+        notificationId);
+    Notification notification = notificationRepository.findById(notificationId)
+        .orElseThrow(() -> new NotificationNotFoundException(notificationId));
+    log.debug("개별 알림 확인에서 알림 조회 성공: notificationId={}", notificationId);
+    if (!notification.getUser().getId().equals(requestUserId)) {
+      throw new NotificationConfirmForbiddenException(notificationId, requestUserId);
+    }
+    notification.confirm();
+    log.info("개별 알림 확인 요청 성공: userId={}, notificationId={}", requestUserId, notificationId);
   }
 
   private String generateCommentLikedContent(String actorUserNickname) {
