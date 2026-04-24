@@ -11,7 +11,6 @@ public class TestcontainersConfig {
 
   private static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
       "postgres:15-alpine")
-      .withReuse(true)
       .withStartupTimeout(Duration.ofSeconds(120));
 
   // 컨테이너 한 개만
