@@ -277,7 +277,7 @@ public interface InterestApi {
       @RequestHeader("Monew-Request-User-Id") UUID userId,
 
       @Parameter(
-          description = "구독할 관심사 ID",
+          description = "구독을 취소할 관심사 ID",
           required = true
       )
       @PathVariable UUID interestId
