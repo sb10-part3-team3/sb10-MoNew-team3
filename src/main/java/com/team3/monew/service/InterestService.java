@@ -71,7 +71,7 @@ public class InterestService {
       throw new InterestDuplicateNameException();
     }
 
-    log.debug("관심사 등록 성공 - interestId={}, name={}",
+    log.info("관심사 등록 성공 - interestId={}, name={}",
         savedInterest.getId(), savedInterest.getName());
 
     return interestMapper.toDto(savedInterest, false);
@@ -194,7 +194,7 @@ public class InterestService {
 
     interest.updateKeywords(keywords);
 
-    log.debug("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
+    log.info("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
         interestId, keywords.size(), subscribedByMe);
 
     return interestMapper.toDto(interest, subscribedByMe);
@@ -206,7 +206,7 @@ public class InterestService {
 
     interestRepository.delete(interest);
 
-    log.debug("관심사 삭제 성공 - interestId={}", interestId);
+    log.info("관심사 삭제 성공 - interestId={}", interestId);
   }
 
   public SubscriptionDto subscribe(UUID userId, UUID interestId) {
@@ -228,7 +228,7 @@ public class InterestService {
       interestRepository.increaseSubscriberCount(interestId);
       Interest updatedInterest = findInterestOrElseThrow(interestId);
 
-      log.debug("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
+      log.info("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
       return interestMapper.toSubscriptionDto(savedSubscription, updatedInterest);
     } catch (DataIntegrityViolationException e) {
       if (isDuplicateSubscriptionViolation(e)) {
@@ -250,7 +250,7 @@ public class InterestService {
     subscriptionRepository.delete(subscription);
     interestRepository.decreaseSubscriberCount(interestId);
 
-    log.debug("관심사 구독 취소 성공 - interestId={}", interestId);
+    log.info("관심사 구독 취소 성공 - interestId={}", interestId);
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {
