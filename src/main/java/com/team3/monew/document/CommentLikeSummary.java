@@ -12,7 +12,7 @@ public record CommentLikeSummary(
     UUID commentUserId,
     String commentUserNickname,
     String commentContent,
-    Long commentLikeCount,
+    Integer commentLikeCount,
     Instant commentCreatedAt
 ) {
 
