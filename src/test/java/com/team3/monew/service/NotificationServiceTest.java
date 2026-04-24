@@ -441,7 +441,7 @@ class NotificationServiceTest {
   }
 
   @Test
-  @DisplayName("알림이 존제하지만 권한이 없는 사용자 일때, 알림 확인 상태 변경에 실패한다.")
+  @DisplayName("알림이 존재하지만 권한이 없는 사용자 일때, 알림 확인 상태 변경에 실패한다.")
   void shouldFailToConfirmNotification_whenUnAuthorized() {
     // given
     given(userRepository.existsById(userId2)).willReturn(true);

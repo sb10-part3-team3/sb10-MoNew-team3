@@ -393,7 +393,7 @@ public class NotificationIntegrationTest {
     }
 
     @Test
-    @DisplayName("이미 확인되 알림을 확인하면 성공응답이되, 확인 시간이 변경되지 않는다.")
+    @DisplayName("이미 확인되 알림을 확인하면 성공응답이지만, 확인 시간이 변경되지 않는다.")
     void shouldConfirmNotificationAlreadyConfirmed_whenUserIdAndNotificationIdAreGiven()
         throws Exception {
       //given

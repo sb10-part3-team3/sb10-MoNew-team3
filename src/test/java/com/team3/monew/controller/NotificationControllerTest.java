@@ -229,7 +229,7 @@ class NotificationControllerTest {
   void shouldFailConfirmNotification_whenUserIdNotGiven() throws Exception {
     // given
     UUID notificationId = UUID.randomUUID();
-    // when & theb
+    // when & then
     mockMvc.perform(patch(NOTIFICATION_URL + "/" + notificationId))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"))

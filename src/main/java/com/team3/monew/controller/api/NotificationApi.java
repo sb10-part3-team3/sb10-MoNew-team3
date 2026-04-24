@@ -46,6 +46,8 @@ public interface NotificationApi {
   @Operation(summary = "알림 확인", description = "알림을 확인합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "204", description = "알림 확인 성공"),
+      @ApiResponse(responseCode = "403", description = "해당 알림에 대한 확인 권한 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "404", description = "사용자 정보 없음/알림정보 없음",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패)",
