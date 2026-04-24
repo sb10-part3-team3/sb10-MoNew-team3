@@ -137,7 +137,10 @@ public class NotificationService {
   }
 
   public void confirmAll(UUID requestUserId) {
-
+    log.debug("전체 알림 확인 시작: userId={}", requestUserId);
+    checkUserAvailable(requestUserId);
+    int count = notificationRepository.confirmAllByUserId(requestUserId, Instant.now());
+    log.info("전체 알림 확인 성공: userId={}, updatedNotificationsCount={}", requestUserId, count);
   }
 
   private String generateCommentLikedContent(String actorUserNickname) {
@@ -146,5 +149,12 @@ public class NotificationService {
 
   private String generateInterestNotificationContent(String interestName, Integer articleCount) {
     return interestName + "와 관련된 기사가 " + articleCount + "건 등록되었습니다.";
+  }
+
+  private void checkUserAvailable(UUID requestUserId) {
+    if (!userRepository.existsById(requestUserId)) {
+      throw new UserNotFoundException(requestUserId);
+    }
+    log.debug("유효한 사용자 검증 완료");
   }
 }

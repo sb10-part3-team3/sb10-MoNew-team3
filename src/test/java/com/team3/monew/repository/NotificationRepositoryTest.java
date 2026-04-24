@@ -79,6 +79,7 @@ class NotificationRepositoryTest {
         NotificationResourceType.INTEREST,
         interestId2, null);
     ReflectionTestUtils.setField(confirmedNotification, "isConfirmed", true);
+    ReflectionTestUtils.setField(confirmedNotification, "confirmedAt", Instant.now());
 
     notificationRepository.saveAndFlush(likeNotification1);
     notificationRepository.saveAndFlush(likeNotification2);
@@ -159,5 +160,27 @@ class NotificationRepositoryTest {
         () -> assertThat(result.hasNext()).isFalse()
 
     );
+  }
+
+  @Test
+  @DisplayName("미확인 알림들만 확인으로 변경하고 변경된 행 개수를 반환한다.")
+  void shouldConfirmAllNotificationsUnConfirmedByUserId() {
+    // given
+    Instant now = Instant.now();
+
+    //when
+    int count = notificationRepository.confirmAllByUserId(user1.getId(), now);
+
+    em.flush();
+    em.clear();
+
+    assertAll(
+        () -> assertEquals(4, count),
+        () -> assertThat(notificationRepository.findAll().stream()
+            .filter(n -> n.getConfirmedAt() != null)
+            .filter(Notification::isConfirmed)
+            .count()).isEqualTo(5)//전체 확인 알람은 5개
+    );
+
   }
 }

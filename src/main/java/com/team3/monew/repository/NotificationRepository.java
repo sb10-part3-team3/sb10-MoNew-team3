@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
@@ -26,4 +27,13 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       Instant after, Pageable pageable);
 
   Long countByUserIdAndIsConfirmedFalse(UUID userId);
+
+  @Modifying(clearAutomatically = true)
+  @Query("update Notification n "
+      + "set n.isConfirmed = true, "
+      + "n.confirmedAt = :confirmedAt, "
+      + "n.updatedAt = :confirmedAt "
+      + "where n.user.id = :userId and n.isConfirmed = false")
+  int confirmAllByUserId(UUID userId, Instant confirmedAt);
+
 }
