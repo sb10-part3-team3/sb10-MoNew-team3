@@ -241,4 +241,45 @@ public interface InterestApi {
       )
       @PathVariable UUID interestId
   );
+
+  @Operation(
+      summary = "관심사 구독 취소",
+      description = "관심사 구독을 취소합니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "구독 취소 성공"
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 사용자 또는 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      )
+  })
+  @DeleteMapping("/{interestId}/subscriptions")
+  ResponseEntity<Void> cancelSubscribe(
+      @Parameter(
+          description = "요청 사용자 ID",
+          required = true
+      )
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+
+      @Parameter(
+          description = "구독을 취소할 관심사 ID",
+          required = true
+      )
+      @PathVariable UUID interestId
+  );
 }

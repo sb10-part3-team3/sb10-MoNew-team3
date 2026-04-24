@@ -31,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -52,6 +54,8 @@ class InterestControllerTest {
 
   @MockitoBean
   private InterestService interestService;
+
+  private static final String REQUEST_USER_HEADER = "Monew-Request-User-Id";
 
   @Test
   @DisplayName("내가 구독하지 않은 상태인 관심사를 등록할 수 있다")
@@ -144,7 +148,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(patch("/api/interests/{interestId}", interestId)
-            .header("Monew-Request-User-Id", userId.toString())
+            .header(REQUEST_USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -172,7 +176,7 @@ class InterestControllerTest {
     UUID interestId = UUID.randomUUID();
 
     mockMvc.perform(patch("/api/interests/{interestId}", interestId)
-            .header("Monew-Request-User-Id", userId.toString())
+            .header(REQUEST_USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isBadRequest());
   }
@@ -204,7 +208,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(patch("/api/interests/{interestId}", interestId)
-            .header("Monew-Request-User-Id", "not-uuid")
+            .header(REQUEST_USER_HEADER, "not-uuid")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
@@ -283,7 +287,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(get("/api/interests")
-            .header("Monew-Request-User-Id", userId.toString())
+            .header(REQUEST_USER_HEADER, userId.toString())
             .param("keyword", "구")
             .param("orderBy", "name")
             .param("direction", "ASC")
@@ -330,7 +334,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(get("/api/interests")
-            .header("Monew-Request-User-Id", userId.toString())
+            .header(REQUEST_USER_HEADER, userId.toString())
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("limit", "10"))
@@ -373,7 +377,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(get("/api/interests")
-            .header("Monew-Request-User-Id", userId.toString())
+            .header(REQUEST_USER_HEADER, userId.toString())
             .param("orderBy", "name")
             .param("direction", "ASC")
             .param("cursor", "나무")
@@ -425,7 +429,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
-            .header("Monew-Request-User-Id", userId))
+            .header(REQUEST_USER_HEADER, userId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value(subscriptionId.toString()))
         .andExpect(jsonPath("$.interestId").value(interestId.toString()))
@@ -448,7 +452,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
-            .header("Monew-Request-User-Id", userId))
+            .header(REQUEST_USER_HEADER, userId))
         .andExpect(status().isNotFound());
   }
 
@@ -464,7 +468,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
-            .header("Monew-Request-User-Id", userId))
+            .header(REQUEST_USER_HEADER, userId))
         .andExpect(status().isNotFound());
   }
 
@@ -480,7 +484,7 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
-            .header("Monew-Request-User-Id", userId))
+            .header(REQUEST_USER_HEADER, userId))
         .andExpect(status().isConflict());
   }
 
@@ -503,7 +507,87 @@ class InterestControllerTest {
 
     // when & then
     mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
-            .header("Monew-Request-User-Id", "invalid-uuid"))
+            .header(REQUEST_USER_HEADER, "invalid-uuid"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사 구독을 취소할 수 있다")
+  void shouldCancelSubscribe() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willDoNothing()
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header(REQUEST_USER_HEADER, userId))
+        .andExpect(status().isOk());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
+  }
+
+  @Test
+  @DisplayName("구독하지 않은 관심사는 구독 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenNotSubscribing() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willThrow(new InterestException(ErrorCode.INTEREST_NOT_SUBSCRIBING))
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header(REQUEST_USER_HEADER, userId))
+        .andExpect(status().isBadRequest());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자는 관심사 구독을 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenUserNotFound() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willThrow(new UserNotFoundException(userId))
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header(REQUEST_USER_HEADER, userId))
+        .andExpect(status().isNotFound());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사는 구독을 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenInterestNotFound() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willThrow(new InterestNotFoundException())
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header(REQUEST_USER_HEADER, userId))
+        .andExpect(status().isNotFound());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
   }
 }

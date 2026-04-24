@@ -24,6 +24,7 @@ public enum ErrorCode {
   INTEREST_KEYWORD_LIST_IS_BLANK(HttpStatus.BAD_REQUEST, "관심사 키워드가 비어있습니다."),
   INTEREST_KEYWORD_DUPLICATED(HttpStatus.BAD_REQUEST, "중복된 관심사 키워드가 존재합니다."),
   INTEREST_ALREADY_SUBSCRIBING(HttpStatus.CONFLICT, "이미 구독중인 관심사입니다."),
+  INTEREST_NOT_SUBSCRIBING(HttpStatus.BAD_REQUEST, "구독하지 않은 관심사입니다."),
 
   // NOTIFICATION
   NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 알림입니다."),
