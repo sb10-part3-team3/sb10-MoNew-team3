@@ -72,4 +72,12 @@ public class Notification extends BaseEntity {
     this.isConfirmed = false;
   }
 
+  public void confirm() {
+    if (this.isConfirmed) {
+      return; // 이미 확인된건 변경X
+    }
+    this.isConfirmed = true;
+    this.confirmedAt = Instant.now();
+  }
+
 }

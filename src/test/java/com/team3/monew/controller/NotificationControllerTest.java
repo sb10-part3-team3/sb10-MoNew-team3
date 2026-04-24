@@ -4,7 +4,10 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,10 +16,12 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.exception.notification.NotificationConfirmForbiddenException;
+import com.team3.monew.exception.notification.NotificationNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.NotificationService;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -205,5 +210,92 @@ class NotificationControllerTest {
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"))
         .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"));
+  }
+
+  @Test
+  @DisplayName("사용자 아이디 헤더와 알림 아이디로 특정 알림 확인에 성공한다.(204)")
+  void shouldConfirmNotification_whenUserIdAndNotificationIdAreGiven() throws Exception {
+    // given
+    UUID notificationId = UUID.randomUUID();
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL + "/" + notificationId)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isNoContent());
+    then(notificationService).should().confirm(eq(userId1), eq(notificationId));
+  }
+
+  @Test
+  @DisplayName("사용자 아이디 헤더가 없을 때, 알림 확인 실패 응답을 보낸다.")
+  void shouldFailConfirmNotification_whenUserIdNotGiven() throws Exception {
+    // given
+    UUID notificationId = UUID.randomUUID();
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL + "/" + notificationId))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"))
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"));
+  }
+
+  @Test
+  @DisplayName("알림 아이디 형식이 잘못되면, 알림 확인 실패 응답을 보낸다.")
+  void shouldResponseErrorResponse_whenNotificationIdIsNotUUID() throws Exception {
+    // given
+    long wrongNotificationId = 1234;
+    // when & theb
+    mockMvc.perform(patch(NOTIFICATION_URL + "/" + wrongNotificationId)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.details.parameter").value("notificationId"))
+        .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_TYPE"));
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 알림 아이디로 확인을 시도하면, 알림 확인 실패 응답을 보낸다.")
+  void shouldResponseErrorResponse_whenNotificationIdNotFound() throws Exception {
+    // given
+    UUID notificationId = UUID.randomUUID();
+    willThrow(new NotificationNotFoundException(notificationId))
+        .given(notificationService)
+        .confirm(eq(userId1), eq(notificationId));
+
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL + "/" + notificationId)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.details.notificationId").value(notificationId.toString()))
+        .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자 아이디로 확인을 시도하면, 알림 확인 실패 응답을 보낸다.")
+  void shouldResponseErrorResponse_whenUserNotFound() throws Exception {
+    // given
+    UUID notificationId = UUID.randomUUID();
+    willThrow(new UserNotFoundException(userId1))
+        .given(notificationService)
+        .confirm(eq(userId1), eq(notificationId));
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL + "/" + notificationId)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.details.userId").value(userId1.toString()))
+        .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("해당 알림의 소유자가 아닌 사용자가 알림 확인 요청을 보내면, 알림 확인 실패 응답을 보낸다.")
+  void shouldResponseErrorResponse_whenUserNotAuthorized() throws Exception {
+    // given
+    UUID notificationId = UUID.randomUUID();
+    willThrow(new NotificationConfirmForbiddenException(notificationId, userId1))
+        .given(notificationService)
+        .confirm(eq(userId1), eq(notificationId));
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL + "/" + notificationId)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.details.notificationId").value(notificationId.toString()))
+        .andExpect(jsonPath("$.details.userId").value(userId1.toString()))
+        .andExpect(jsonPath("$.code").value("NOTIFICATION_CONFIRM_FORBIDDEN"));
   }
 }
