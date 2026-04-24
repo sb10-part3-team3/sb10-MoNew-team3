@@ -131,10 +131,10 @@ class NaverNewsClientTest {
     // when, then
     StepVerifier.create(naverNewsClient.fetchAndProcess(List.of(samsungKeyword, appleKeyword)))
         .assertNext(list -> {
-          assertThat(list)
-              .hasSize(1)
-              .extracting("link")
-              .containsExactly("link1");
+          assertThat(list).hasSize(1);
+          assertThat(list.get(0).link()).isEqualTo("link1");
+          assertThat(list.get(0).interestKeywords()).containsExactlyInAnyOrder(samsungKeyword,
+              appleKeyword);
         })
         .verifyComplete();
   }

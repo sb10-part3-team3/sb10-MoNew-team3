@@ -146,10 +146,7 @@ CREATE TABLE article_interests (
                                        FOREIGN KEY (article_id) REFERENCES news_articles(id) ON DELETE CASCADE,
 
                                    CONSTRAINT fk_article_interests_interest_id
-                                       FOREIGN KEY (interest_id) REFERENCES interests(id) ON DELETE CASCADE,
-
-                                   CONSTRAINT uk_article_interests_article_id_interest_id
-                                       UNIQUE (article_id, interest_id)
+                                       FOREIGN KEY (interest_id) REFERENCES interests(id) ON DELETE CASCADE
 );
 
 CREATE TABLE article_views (
