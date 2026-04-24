@@ -43,7 +43,7 @@ public class ChosunNewsParse implements NewsParse {
               sourceType,
               item.link(),
               item.title(),
-              Optional.of(item.pubDate()).orElse(Instant.now()),
+              Optional.ofNullable(item.pubDate()).orElse(Instant.now()),
               item.description(),
               new ArrayList<>()))
           // 발행시간 역순 정렬
