@@ -3,6 +3,8 @@ package com.team3.monew.controller.api;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import java.time.Instant;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -134,6 +138,146 @@ public interface InterestApi {
   ResponseEntity<Void> delete(
       @Parameter(
           description = "삭제할 관심사 ID",
+          required = true
+      )
+      @PathVariable UUID interestId
+  );
+
+  @GetMapping
+  @Operation(
+      summary = "관심사 목록 조회",
+      description = "관심사를 검색하고 정렬 및 커서 기반 페이지네이션으로 조회합니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "조회 성공",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = CursorPageResponseDto.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "400",
+          description = "잘못된 요청값입니다. (예: 정렬 조건/페이지 크기 오류)",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      )
+  })
+  ResponseEntity<CursorPageResponseDto<InterestDto>> findAll(
+      @Parameter(description = "요청 사용자 ID", required = true)
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+
+      @Parameter(description = "검색어 (관심사 이름 또는 키워드)")
+      @RequestParam(value = "keyword", required = false) String keyword,
+
+      @Parameter(description = "정렬 기준 (name, subscriberCount)")
+      @RequestParam(value = "orderBy", defaultValue = "name") String orderBy,
+
+      @Parameter(description = "정렬 방향 (ASC, DESC)")
+      @RequestParam(value = "direction", defaultValue = "ASC") String direction,
+
+      @Parameter(description = "다음 페이지 커서 값")
+      @RequestParam(value = "cursor", required = false) String cursor,
+
+      @Parameter(description = "다음 페이지 기준 시간")
+      @RequestParam(value = "after", required = false) Instant after,
+
+      @Parameter(description = "페이지 크기", example = "10")
+      @RequestParam(value = "limit", defaultValue = "10") @Min(1) int limit
+  );
+
+  @Operation(
+      summary = "관심사 구독",
+      description = "사용자 ID와 관심사 ID를 통해 특정 관심사를 구독합니다. 구독한 관심사와 관련된 뉴스 기사가 등록되면 알림을 수신할 수 있습니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "구독 성공",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = SubscriptionDto.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 사용자 또는 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "409",
+          description = "이미 구독 중인 관심사입니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      )
+  })
+  @PostMapping("/{interestId}/subscriptions")
+  ResponseEntity<SubscriptionDto> subscribe(
+      @Parameter(
+          description = "요청 사용자 ID",
+          required = true
+      )
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+
+      @Parameter(
+          description = "구독할 관심사 ID",
+          required = true
+      )
+      @PathVariable UUID interestId
+  );
+
+  @Operation(
+      summary = "관심사 구독 취소",
+      description = "관심사 구독을 취소합니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "구독 취소 성공"
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 사용자 또는 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      )
+  })
+  @DeleteMapping("/{interestId}/subscriptions")
+  ResponseEntity<Void> cancelSubscribe(
+      @Parameter(
+          description = "요청 사용자 ID",
+          required = true
+      )
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+
+      @Parameter(
+          description = "구독을 취소할 관심사 ID",
           required = true
       )
       @PathVariable UUID interestId
