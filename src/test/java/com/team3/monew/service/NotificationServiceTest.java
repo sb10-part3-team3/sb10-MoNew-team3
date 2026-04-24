@@ -500,6 +500,8 @@ class NotificationServiceTest {
     assertThrows(UserNotFoundException.class, () -> {
       notificationService.confirmAll(userId1);
     });
+    then(notificationRepository).should(never())
+        .confirmAllByUserId(eq(userId1), any(Instant.class));
   }
 
   @Test
