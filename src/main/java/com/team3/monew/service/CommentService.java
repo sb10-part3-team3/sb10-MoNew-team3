@@ -187,7 +187,7 @@ public class CommentService {
     comment.increaseLikeCount();
 
     if (!comment.getUser().getId().equals(requestUserId)) {
-      eventPublisher.publishEvent(new CommentLikedEvent(requestUserId, commentId));
+      eventPublisher.publishEvent(CommentLikedEvent.from(savedCommentLike));
     }
 
     log.debug("댓글 좋아요 등록 완료: commentId={}, requestUserId={}", commentId, requestUserId);
