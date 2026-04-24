@@ -1,12 +1,12 @@
 package com.team3.monew.integration;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
-import com.team3.monew.entity.ArticleInterest;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
@@ -14,7 +14,7 @@ import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
-import com.team3.monew.repository.ArticleInterestRepository;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
@@ -22,7 +22,6 @@ import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.InterestService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -332,7 +331,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response =
+    CursorPageResponseDto<InterestDto> response =
         interestService.findAll(condition, user.getId());
 
     // then
@@ -383,18 +382,19 @@ public class InterestServiceIntegrationTest {
         2
     );
 
-    CursorPageResponseInterestDto firstPage = interestService.findAll(firstCondition, userId);
+    CursorPageResponseDto<InterestDto> firstPage = interestService.findAll(firstCondition, userId);
 
     InterestSearchCondition secondCondition = new InterestSearchCondition(
         null,
         "name",
         "ASC",
-        new InterestCursor(firstPage.nextCursor(), Instant.parse(firstPage.nextAfter())),
+        new InterestCursor(firstPage.nextCursor(), firstPage.nextAfter()),
         2
     );
 
     // when
-    CursorPageResponseInterestDto secondPage = interestService.findAll(secondCondition, userId);
+    CursorPageResponseDto<InterestDto> secondPage = interestService.findAll(secondCondition,
+        userId);
 
     // then
     assertThat(secondPage.content()).hasSize(2);
@@ -433,28 +433,29 @@ public class InterestServiceIntegrationTest {
         2
     );
 
-    CursorPageResponseInterestDto firstPage = interestService.findAll(firstCondition, userId);
+    CursorPageResponseDto<InterestDto> firstPage = interestService.findAll(firstCondition, userId);
 
     InterestSearchCondition secondCondition = new InterestSearchCondition(
         null,
         "name",
         "ASC",
-        new InterestCursor(firstPage.nextCursor(), Instant.parse(firstPage.nextAfter())),
+        new InterestCursor(firstPage.nextCursor(), firstPage.nextAfter()),
         2
     );
 
-    CursorPageResponseInterestDto secondPage = interestService.findAll(secondCondition, userId);
+    CursorPageResponseDto<InterestDto> secondPage = interestService.findAll(secondCondition,
+        userId);
 
     InterestSearchCondition thirdCondition = new InterestSearchCondition(
         null,
         "name",
         "ASC",
-        new InterestCursor(secondPage.nextCursor(), Instant.parse(secondPage.nextAfter())),
+        new InterestCursor(secondPage.nextCursor(), secondPage.nextAfter()),
         2
     );
 
     // when
-    CursorPageResponseInterestDto thirdPage = interestService.findAll(thirdCondition, userId);
+    CursorPageResponseDto<InterestDto> thirdPage = interestService.findAll(thirdCondition, userId);
 
     // then
     assertThat(thirdPage.content()).hasSize(1);
@@ -489,7 +490,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content())
@@ -528,7 +529,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content()).hasSize(1);
@@ -560,7 +561,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content()).hasSize(2);
@@ -593,7 +594,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content()).isEmpty();
@@ -601,5 +602,89 @@ public class InterestServiceIntegrationTest {
     assertThat(response.hasNext()).isFalse();
     assertThat(response.nextCursor()).isNull();
     assertThat(response.nextAfter()).isNull();
+  }
+
+  @Test
+  @DisplayName("관심사를 구독할 수 있다")
+  void shouldSubscribeInterest_whenSubscribeRequest() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+
+    Interest interest = interestRepository.save(Interest.create("주식"));
+
+    // when
+    SubscriptionDto response = interestService.subscribe(user.getId(), interest.getId());
+
+    // then
+    Interest foundInterest = interestRepository.findById(interest.getId()).orElseThrow();
+    List<Subscription> subscriptions = subscriptionRepository.findAll();
+
+    assertThat(response.interestId()).isEqualTo(interest.getId());
+    assertThat(response.interestName()).isEqualTo("주식");
+    assertThat(response.interestSubscriberCount()).isEqualTo(1);
+    assertThat(response.createdAt()).isNotNull();
+
+    assertThat(foundInterest.getSubscriberCount()).isEqualTo(1);
+    assertThat(subscriptions).hasSize(1);
+    assertThat(subscriptions.get(0).getUser().getId()).isEqualTo(user.getId());
+    assertThat(subscriptions.get(0).getInterest().getId()).isEqualTo(interest.getId());
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자는 관심사를 구독할 수 없다")
+  void shouldFailToSubscribe_whenUserNotFound() {
+    // given
+    UUID invalidUserId = UUID.randomUUID();
+    Interest interest = interestRepository.save(Interest.create("주식"));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(invalidUserId, interest.getId()))
+        .isInstanceOf(UserNotFoundException.class);
+
+    Interest foundInterest = interestRepository.findById(interest.getId()).orElseThrow();
+    assertThat(foundInterest.getSubscriberCount()).isEqualTo(0);
+    assertThat(subscriptionRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사는 구독할 수 없다")
+  void shouldFailToSubscribe_whenInterestNotFound() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID invalidInterestId = UUID.randomUUID();
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(user.getId(), invalidInterestId))
+        .isInstanceOf(InterestNotFoundException.class);
+
+    assertThat(subscriptionRepository.findAll()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("이미 구독 중인 관심사는 다시 구독할 수 없다")
+  void shouldFailToSubscribe_whenAlreadySubscribing() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    Interest interest = interestRepository.save(Interest.create("주식"));
+
+    subscriptionRepository.save(Subscription.create(user, interest));
+    interestRepository.increaseSubscriberCount(interest.getId());
+
+    entityManager.flush();
+    entityManager.clear();
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(user.getId(), interest.getId()))
+        .isInstanceOf(InterestException.class);
+
+    Interest foundInterest = interestRepository.findById(interest.getId()).orElseThrow();
+    assertThat(foundInterest.getSubscriberCount()).isEqualTo(1);
+    assertThat(subscriptionRepository.findAll()).hasSize(1);
   }
 }
