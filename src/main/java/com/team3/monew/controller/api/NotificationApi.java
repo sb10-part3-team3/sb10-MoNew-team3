@@ -85,7 +85,7 @@ public interface NotificationApi {
   })
   @Parameter(name = REQUEST_USER_ID_HEADER, description = "요청자 ID")
   @PatchMapping()
-  public ResponseEntity<?> confirmAll(
+  ResponseEntity<?> confirmAll(
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 }
