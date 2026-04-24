@@ -239,6 +239,20 @@ public class InterestService {
     }
   }
 
+  public void cancelSubscribe(UUID userId, UUID interestId) {
+    log.debug("관심사 구독 취소 요청 - interestId={}", interestId);
+    findUserOrElseThrow(userId);
+    findInterestOrElseThrow(interestId);
+    Subscription subscription
+        = subscriptionRepository.findByUserIdAndInterestId(userId, interestId)
+        .orElseThrow(() -> new InterestException(ErrorCode.INTEREST_NOT_SUBSCRIBING));
+
+    subscriptionRepository.delete(subscription);
+    interestRepository.decreaseSubscriberCount(interestId);
+
+    log.debug("관심사 구독 취소 성공 - interestId={}", interestId);
+  }
+
   private Interest findInterestOrElseThrow(UUID interestId) {
     return interestRepository.findById(interestId)
         .orElseThrow(InterestNotFoundException::new);
