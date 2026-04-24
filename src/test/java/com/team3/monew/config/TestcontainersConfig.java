@@ -22,7 +22,6 @@ public class TestcontainersConfig {
   @Bean
   @ServiceConnection
   public PostgreSQLContainer<?> postgresContainer() {
-    System.out.println("컨테이너 실행 중! 🐳");
     return postgres;
   }
 }

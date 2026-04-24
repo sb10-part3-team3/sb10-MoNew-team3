@@ -20,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -61,7 +60,6 @@ class NewsCollectIntegrationTest extends IntegrationTestSupport {
     interestRepository.save(apple);
     InterestKeyword keyword3 = InterestKeyword.create(apple, "아이폰");
 
-
     List<InterestKeyword> interestKeywordList = List.of(keyword, keyword2, keyword3);
     interestKeywordRepository.saveAll(interestKeywordList);
 
@@ -93,8 +91,10 @@ class NewsCollectIntegrationTest extends IntegrationTestSupport {
         .filteredOn(na -> na.getSource().getSourceType() == NewsSourceType.NAVER)
         .hasSizeGreaterThanOrEqualTo(100)
         .allSatisfy(article -> {
-          boolean inTitle = keywords.stream().anyMatch(keyword -> article.getTitle().contains(keyword));
-          boolean inSummary = keywords.stream().anyMatch(keyword -> article.getSummary().contains(keyword));
+          boolean inTitle = keywords.stream()
+              .anyMatch(keyword -> article.getTitle().contains(keyword));
+          boolean inSummary = keywords.stream()
+              .anyMatch(keyword -> article.getSummary().contains(keyword));
 
           assertThat(inTitle || inSummary)
               .as("기사의 제목이나 내용 중에 해당하는 키워드가 없습니다")
