@@ -10,6 +10,7 @@ import com.team3.monew.entity.CommentLike;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
@@ -75,6 +76,9 @@ public class CommentService {
     newsArticleRepository.incrementCommentCountById(request.articleId());
 
     CommentDto commentDto = commentMapper.toDto(savedComment, false);
+
+    // 댓글 등록 이벤트 발행
+    eventPublisher.publishEvent(CommentRegisteredEvent.from(savedComment));
     log.debug(
         "댓글 등록 서비스 종료: articleId={}, userId={}, commentId={}",
         request.articleId(),
