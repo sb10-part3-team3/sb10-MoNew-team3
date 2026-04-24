@@ -87,4 +87,11 @@ public class InterestController implements InterestApi {
 
     return ResponseEntity.ok(response);
   }
+
+  @Override
+  public ResponseEntity<Void> cancelSubscribe(UUID userId, UUID interestId) {
+    interestService.cancelSubscribe(userId, interestId);
+
+    return ResponseEntity.noContent().build();
+  }
 }
