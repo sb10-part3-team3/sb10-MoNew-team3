@@ -1,14 +1,18 @@
 package com.team3.monew.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
+import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.service.InterestService;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
@@ -258,12 +262,12 @@ class InterestControllerTest {
         false
     );
 
-    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(first, second),
         "나무",
-        after.toString(),
+        after,
         2,
-        5,
+        5L,
         true
     );
 
@@ -305,12 +309,12 @@ class InterestControllerTest {
     // given
     UUID userId = UUID.randomUUID();
 
-    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(),
         null,
         null,
         10,
-        0,
+        0L,
         false
     );
 
@@ -348,12 +352,12 @@ class InterestControllerTest {
     UUID userId = UUID.randomUUID();
     Instant after = Instant.parse("2026-04-22T10:00:00Z");
 
-    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(),
         "다리",
-        "2026-04-22T10:05:00Z",
+        after,
         2,
-        5,
+        5L,
         true
     );
 
@@ -398,5 +402,108 @@ class InterestControllerTest {
         .andExpect(status().isBadRequest());
 
     then(interestService).should(never()).createInterest(request);
+  }
+
+  @Test
+  @DisplayName("관심사를 구독할 수 있다")
+  void shouldSubscribeInterest_whenSubscribeRequest() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+    UUID subscriptionId = UUID.randomUUID();
+
+    SubscriptionDto response = new SubscriptionDto(
+        subscriptionId,
+        interestId,
+        "주식",
+        List.of("코스피", "삼성전자"),
+        1,
+        Instant.parse("2026-04-23T12:00:00Z")
+    );
+
+    given(interestService.subscribe(userId, interestId)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
+            .header("Monew-Request-User-Id", userId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(subscriptionId.toString()))
+        .andExpect(jsonPath("$.interestId").value(interestId.toString()))
+        .andExpect(jsonPath("$.interestName").value("주식"))
+        .andExpect(jsonPath("$.interestKeywords[0]").value("코스피"))
+        .andExpect(jsonPath("$.interestKeywords[1]").value("삼성전자"))
+        .andExpect(jsonPath("$.interestSubscriberCount").value(1))
+        .andExpect(jsonPath("$.createdAt").value("2026-04-23T12:00:00Z"));
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자는 관심사를 구독할 수 없다")
+  void shouldFailToSubscribe_whenUserNotFound() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    given(interestService.subscribe(userId, interestId))
+        .willThrow(new UserNotFoundException(userId));
+
+    // when & then
+    mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
+            .header("Monew-Request-User-Id", userId))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사는 구독할 수 없다")
+  void shouldFailToSubscribe_whenInterestNotFound() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    given(interestService.subscribe(userId, interestId))
+        .willThrow(new InterestNotFoundException());
+
+    // when & then
+    mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
+            .header("Monew-Request-User-Id", userId))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("이미 구독 중인 관심사는 다시 구독할 수 없다")
+  void shouldFailToSubscribe_whenAlreadySubscribing() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    given(interestService.subscribe(userId, interestId))
+        .willThrow(new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING));
+
+    // when & then
+    mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
+            .header("Monew-Request-User-Id", userId))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  @DisplayName("요청 헤더의 사용자 ID가 없으면 관심사를 구독할 수 없다")
+  void shouldFailToSubscribe_whenUserIdHeaderIsMissing() throws Exception {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    // when & then
+    mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("잘못된 형식의 사용자 ID 헤더로는 관심사를 구독할 수 없다")
+  void shouldFailToSubscribe_whenUserIdHeaderIsInvalid() throws Exception {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    // when & then
+    mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
+            .header("Monew-Request-User-Id", "invalid-uuid"))
+        .andExpect(status().isBadRequest());
   }
 }

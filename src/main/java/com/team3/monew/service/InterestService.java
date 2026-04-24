@@ -1,21 +1,20 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
-import com.team3.monew.entity.ArticleInterest;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
-import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.InterestMapper;
-import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
@@ -23,6 +22,7 @@ import java.time.Instant;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +39,7 @@ public class InterestService {
   private final InterestRepository interestRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
+  private final UserRepository userRepository;
 
   public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
@@ -76,7 +77,8 @@ public class InterestService {
     return interestMapper.toDto(savedInterest, false);
   }
 
-  public CursorPageResponseInterestDto findAll(InterestSearchCondition condition, UUID userId) {
+  public CursorPageResponseDto<InterestDto> findAll(InterestSearchCondition condition,
+      UUID userId) {
     log.debug(
         "관심사 목록 조회 요청 - userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
         userId,
@@ -99,7 +101,7 @@ public class InterestService {
       log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
           userId, condition.keyword());
 
-      return new CursorPageResponseInterestDto(
+      return new CursorPageResponseDto<InterestDto>(
           List.of(),
           null,
           null,
@@ -110,7 +112,7 @@ public class InterestService {
     }
 
     String nextCursor = null;
-    String nextAfter = null;
+    Instant nextAfter = null;
 
     if (hasNext) {
       Interest last = content.get(content.size() - 1);
@@ -121,7 +123,7 @@ public class InterestService {
         nextCursor = last.getName();
       }
 
-      nextAfter = last.getCreatedAt().toString();
+      nextAfter = last.getCreatedAt();
     }
 
     List<InterestDto> dtoList = content.stream()
@@ -137,7 +139,7 @@ public class InterestService {
         "관심사 목록 조회 성공 - userId={}, contentSize={}, totalElements={}, hasNext={}, nextCursor={}, nextAfter={}",
         userId, dtoList.size(), totalElements, hasNext, nextCursor, nextAfter);
 
-    return new CursorPageResponseInterestDto(
+    return new CursorPageResponseDto<InterestDto>(
         dtoList,
         nextCursor,
         nextAfter,
@@ -207,9 +209,56 @@ public class InterestService {
     log.debug("관심사 삭제 성공 - interestId={}", interestId);
   }
 
+  public SubscriptionDto subscribe(UUID userId, UUID interestId) {
+    log.debug("관심사 구독 요청 - interestId={}", interestId);
+    User user = findUserOrElseThrow(userId);
+    Interest interest = findInterestOrElseThrow(interestId);
+
+    boolean isSubscribed = subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
+
+    if (isSubscribed) {
+      log.warn("관심사 구독 실패 - 이미 구독중인 관심사, interestId={}", interestId);
+      throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+    }
+
+    try {
+      Subscription subscription = Subscription.create(user, interest);
+      Subscription savedSubscription = subscriptionRepository.save(subscription);
+
+      interestRepository.increaseSubscriberCount(interestId);
+      Interest updatedInterest = findInterestOrElseThrow(interestId);
+
+      log.debug("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
+      return interestMapper.toSubscriptionDto(savedSubscription, updatedInterest);
+    } catch (DataIntegrityViolationException e) {
+      if (isDuplicateSubscriptionViolation(e)) {
+        log.warn("관심사 구독 실패 - 중복 구독 충돌, userId={}, interestId={}", userId, interestId);
+        throw new InterestException(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+      }
+      throw e;
+    }
+  }
+
   private Interest findInterestOrElseThrow(UUID interestId) {
     return interestRepository.findById(interestId)
         .orElseThrow(InterestNotFoundException::new);
+  }
+
+  private User findUserOrElseThrow(UUID userId) {
+    return userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+  }
+
+  // 유니크 제약 위반 검증
+  private boolean isDuplicateSubscriptionViolation(DataIntegrityViolationException e) {
+    Throwable cause = e;
+    while (cause != null) {
+      if (cause instanceof ConstraintViolationException cve) {
+        return "uk_subscriptions_user_id_interest_id".equals(cve.getConstraintName());
+      }
+      cause = cause.getCause();
+    }
+    return false;
   }
 
   // 유사도 계산 메서드

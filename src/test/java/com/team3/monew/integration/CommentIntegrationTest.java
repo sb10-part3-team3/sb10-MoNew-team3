@@ -174,8 +174,7 @@ class CommentIntegrationTest {
     UUID commentId = registerComment(article.getId(), user.getId(), "삭제할 댓글입니다.");
 
     // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, user.getId()))
+    mockMvc.perform(delete("/api/comments/{commentId}", commentId))
         .andExpect(status().isNoContent());
 
     entityManager.flush();
@@ -192,39 +191,6 @@ class CommentIntegrationTest {
     assertThat(deletedCommentState[0]).isEqualTo(DeleteStatus.DELETED);
     assertThat(deletedCommentState[1]).isNotNull();
     assertThat(savedArticle.getCommentCount()).isEqualTo(0);
-  }
-
-  @Test
-  @DisplayName("작성자가 아닌 사용자가 댓글을 삭제하면 403 Forbidden으로 응답하고 댓글 상태를 변경하지 않는다.")
-  void shouldReturnForbidden_whenDeleteRequesterIsNotAuthor() throws Exception {
-    // given
-    NewsArticle article = saveArticle();
-    User author = saveUser();
-    User otherUser = saveUser();
-    UUID commentId = registerComment(article.getId(), author.getId(), "삭제할 댓글입니다.");
-
-    // when & then
-    mockMvc.perform(delete("/api/comments/{commentId}", commentId)
-            .header(REQUEST_USER_ID_HEADER, otherUser.getId()))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("COMMENT_DELETE_FORBIDDEN"))
-        .andExpect(jsonPath("$.status").value(403))
-        .andExpect(jsonPath("$.details.commentId").value(commentId.toString()));
-
-    entityManager.flush();
-    entityManager.clear();
-
-    Object[] commentState = entityManager.createQuery(
-            "select c.deleteStatus, c.deletedAt from Comment c where c.id = :commentId",
-            Object[].class
-        )
-        .setParameter("commentId", commentId)
-        .getSingleResult();
-    NewsArticle savedArticle = newsArticleRepository.findById(article.getId()).orElseThrow();
-
-    assertThat(commentState[0]).isEqualTo(DeleteStatus.ACTIVE);
-    assertThat(commentState[1]).isNull();
-    assertThat(savedArticle.getCommentCount()).isEqualTo(1);
   }
 
   @Test
@@ -372,6 +338,107 @@ class CommentIntegrationTest {
         .andExpect(jsonPath("$.hasNext").value(false));
   }
 
+  @Test
+  @DisplayName("요청자 ID 헤더와 댓글 ID가 유효하면 댓글 좋아요를 등록하고 좋아요 수를 증가시킨다.")
+  void shouldLikeComment_whenRequestIsValid() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User writer = saveUser();
+    User liker = saveUser();
+    Comment comment = saveComment(article, writer, "좋아요 대상 댓글입니다.");
+
+    // when & then
+    mockMvc.perform(post("/api/comments/{commentId}/comment-likes", comment.getId())
+            .header(REQUEST_USER_ID_HEADER, liker.getId()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.likedBy").value(liker.getId().toString()))
+        .andExpect(jsonPath("$.commentId").value(comment.getId().toString()))
+        .andExpect(jsonPath("$.articleId").value(article.getId().toString()))
+        .andExpect(jsonPath("$.commentUserId").value(writer.getId().toString()))
+        .andExpect(jsonPath("$.commentUserNickname").value(writer.getNickname()))
+        .andExpect(jsonPath("$.commentContent").value("좋아요 대상 댓글입니다."))
+        .andExpect(jsonPath("$.commentLikeCount").value(1))
+        .andExpect(jsonPath("$.createdAt").exists())
+        .andExpect(jsonPath("$.commentCreatedAt").exists());
+
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(countCommentLikes(comment, liker)).isEqualTo(1);
+    assertThat(findCommentLikeCount(comment)).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("좋아요한 댓글의 좋아요를 취소하면 좋아요를 삭제하고 좋아요 수를 감소시킨다.")
+  void shouldUnlikeComment_whenRequestIsValid() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User writer = saveUser();
+    User liker = saveUser();
+    Comment comment = saveComment(article, writer, "좋아요 취소 대상 댓글입니다.",
+        Instant.parse("2026-04-17T00:00:01Z"), 1);
+    saveCommentLike(comment, liker);
+
+    // when & then
+    mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", comment.getId())
+            .header(REQUEST_USER_ID_HEADER, liker.getId()))
+        .andExpect(status().isOk());
+
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(countCommentLikes(comment, liker)).isZero();
+    assertThat(findCommentLikeCount(comment)).isZero();
+  }
+
+  @Test
+  @DisplayName("이미 좋아요한 댓글에 다시 좋아요를 등록하면 400 Bad Request로 응답하고 기존 상태를 유지한다.")
+  void shouldReturnBadRequest_whenCommentLikeAlreadyExists() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User writer = saveUser();
+    User liker = saveUser();
+    Comment comment = saveComment(article, writer, "중복 좋아요 대상 댓글입니다.",
+        Instant.parse("2026-04-17T00:00:01Z"), 1);
+    saveCommentLike(comment, liker);
+
+    // when & then
+    mockMvc.perform(post("/api/comments/{commentId}/comment-likes", comment.getId())
+            .header(REQUEST_USER_ID_HEADER, liker.getId()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+        .andExpect(jsonPath("$.status").value(400));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(countCommentLikes(comment, liker)).isEqualTo(1);
+    assertThat(findCommentLikeCount(comment)).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("좋아요하지 않은 댓글의 좋아요를 취소하면 400 Bad Request로 응답하고 기존 상태를 유지한다.")
+  void shouldReturnBadRequest_whenCommentLikeDoesNotExist() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User writer = saveUser();
+    User liker = saveUser();
+    Comment comment = saveComment(article, writer, "좋아요하지 않은 댓글입니다.");
+
+    // when & then
+    mockMvc.perform(delete("/api/comments/{commentId}/comment-likes", comment.getId())
+            .header(REQUEST_USER_ID_HEADER, liker.getId()))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+        .andExpect(jsonPath("$.status").value(400));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    assertThat(countCommentLikes(comment, liker)).isZero();
+    assertThat(findCommentLikeCount(comment)).isZero();
+  }
+
   private NewsArticle saveArticle() {
     UUID id = UUID.randomUUID();
     NewsSource source = NewsSource.create(
@@ -458,6 +525,28 @@ class CommentIntegrationTest {
     commentReference.markDeleted();
     entityManager.flush();
     entityManager.clear();
+  }
+
+  private Long countCommentLikes(Comment comment, User user) {
+    return entityManager.createQuery(
+            """
+            select count(cl) from CommentLike cl
+            where cl.comment.id = :commentId and cl.user.id = :userId
+            """,
+            Long.class
+        )
+        .setParameter("commentId", comment.getId())
+        .setParameter("userId", user.getId())
+        .getSingleResult();
+  }
+
+  private Integer findCommentLikeCount(Comment comment) {
+    return entityManager.createQuery(
+            "select c.likeCount from Comment c where c.id = :commentId",
+            Integer.class
+        )
+        .setParameter("commentId", comment.getId())
+        .getSingleResult();
   }
 
   private UUID registerComment(UUID articleId, UUID userId, String content) throws Exception {

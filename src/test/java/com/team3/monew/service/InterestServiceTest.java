@@ -1,19 +1,25 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
+import com.team3.monew.entity.Subscription;
+import com.team3.monew.entity.User;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
+import com.team3.monew.exception.user.UserNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
+import com.team3.monew.repository.UserRepository;
 import jakarta.persistence.criteria.CriteriaBuilder.In;
 import java.time.Instant;
 import java.util.Optional;
@@ -27,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,6 +44,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +55,9 @@ class InterestServiceTest {
 
   @Mock
   private SubscriptionRepository subscriptionRepository;
+
+  @Mock
+  private UserRepository userRepository;
 
   @Mock
   private InterestMapper interestMapper;
@@ -347,7 +358,7 @@ class InterestServiceTest {
             ));
 
     // when
-    CursorPageResponseInterestDto response
+    CursorPageResponseDto<InterestDto> response
         = interestService.findAll(condition, userId);
 
     // then
@@ -388,7 +399,7 @@ class InterestServiceTest {
         .willReturn(new InterestDto(UUID.randomUUID(), "dummy", List.of(), 0, false));
 
     // when
-    CursorPageResponseInterestDto response =
+    CursorPageResponseDto<InterestDto> response =
         interestService.findAll(condition, userId);
 
     // then
@@ -411,7 +422,7 @@ class InterestServiceTest {
     given(interestRepository.countByCondition(condition)).willReturn(0L);
 
     // when
-    CursorPageResponseInterestDto response
+    CursorPageResponseDto<InterestDto> response
         = interestService.findAll(condition, userId);
 
     // then
@@ -441,10 +452,156 @@ class InterestServiceTest {
         .willReturn(new InterestDto(interest.getId(), "economy", List.of(), 0, true));
 
     // when
-    CursorPageResponseInterestDto response
+    CursorPageResponseDto<InterestDto> response
         = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content().get(0).subscribedByMe()).isTrue();
+  }
+
+  @Test
+  @DisplayName("관심사를 구독할 수 있다")
+  void shouldSubscribeInterest_whenSubscribeRequest() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = User.create("test@example.com", "password", "tester");
+    Interest interest = Interest.create("주식");
+    ReflectionTestUtils.setField(interest, "id", interestId);
+
+    Subscription savedSubscription = Subscription.create(user, interest);
+    ReflectionTestUtils.setField(savedSubscription, "id", UUID.randomUUID());
+
+    SubscriptionDto response = new SubscriptionDto(
+        savedSubscription.getId(),
+        interestId,
+        "주식",
+        List.of(),
+        1,
+        savedSubscription.getCreatedAt()
+    );
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
+    given(subscriptionRepository.save(any(Subscription.class))).willReturn(savedSubscription);
+    given(interestMapper.toSubscriptionDto(savedSubscription, interest)).willReturn(response);
+
+    // when
+    SubscriptionDto result = interestService.subscribe(userId, interestId);
+
+    // then
+    assertThat(result.interestId()).isEqualTo(interestId);
+    assertThat(result.interestName()).isEqualTo("주식");
+    assertThat(result.interestSubscriberCount()).isEqualTo(1);
+
+    then(userRepository).should().findById(userId);
+    then(interestRepository).should(times(2)).findById(interestId);
+    then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
+    then(subscriptionRepository).should().save(any(Subscription.class));
+    then(interestMapper).should().toSubscriptionDto(savedSubscription, interest);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자는 관심사를 구독할 수 없다")
+  void shouldFailToSubscribe_whenUserNotFound() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
+        .isInstanceOf(UserNotFoundException.class);
+
+    then(interestRepository).should(never()).findById(any());
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(subscriptionRepository).should(never()).save(any());
+    then(interestMapper).should(never()).toSubscriptionDto(any(), any());
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사는 구독할 수 없다")
+  void shouldFailToSubscribe_whenInterestNotFound() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = User.create("test@example.com", "password", "tester");
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
+        .isInstanceOf(InterestNotFoundException.class);
+
+    then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
+    then(subscriptionRepository).should(never()).save(any());
+    then(interestMapper).should(never()).toSubscriptionDto(any(), any());
+  }
+
+  @Test
+  @DisplayName("이미 구독 중인 관심사는 다시 구독할 수 없다")
+  void shouldFailToSubscribe_whenAlreadySubscribing() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = User.create("test@example.com", "password", "tester");
+    Interest interest = Interest.create("주식");
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(true);
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
+        .isInstanceOf(InterestException.class)
+        .hasMessage(ErrorCode.INTEREST_ALREADY_SUBSCRIBING.getMessage());
+
+    then(subscriptionRepository).should(never()).save(any());
+    then(interestMapper).should(never()).toSubscriptionDto(any(), any());
+  }
+
+  @Test
+  @DisplayName("구독 저장 중 DB unique 제약 위반이 발생하면 중복 구독 예외로 변환된다")
+  void shouldFailToSubscribe_whenDataIntegrityViolationOccurs() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = User.create("test@example.com", "password", "tester");
+    Interest interest = Interest.create("주식");
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
+
+    org.hibernate.exception.ConstraintViolationException cause =
+        new org.hibernate.exception.ConstraintViolationException(
+            "unique constraint violation",
+            null,
+            "uk_subscriptions_user_id_interest_id"
+        );
+
+    given(subscriptionRepository.save(any(Subscription.class)))
+        .willThrow(new DataIntegrityViolationException("unique constraint violation", cause));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
+        .isInstanceOfSatisfying(InterestException.class, e -> {
+          assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INTEREST_ALREADY_SUBSCRIBING);
+          assertThat(e.getMessage()).isEqualTo(ErrorCode.INTEREST_ALREADY_SUBSCRIBING.getMessage());
+        });
+
+    then(userRepository).should().findById(userId);
+    then(interestRepository).should().findById(interestId);
+    then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
+    then(subscriptionRepository).should().save(any(Subscription.class));
+    then(interestRepository).should(never()).increaseSubscriberCount(any(UUID.class));
+    then(interestMapper).should(never()).toSubscriptionDto(any(), any());
   }
 }

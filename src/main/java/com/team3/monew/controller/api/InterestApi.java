@@ -1,9 +1,10 @@
 package com.team3.monew.controller.api;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
+import com.team3.monew.dto.interest.SubscriptionDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -153,7 +154,7 @@ public interface InterestApi {
           description = "조회 성공",
           content = @Content(
               mediaType = "application/json",
-              schema = @Schema(implementation = CursorPageResponseInterestDto.class)
+              schema = @Schema(implementation = CursorPageResponseDto.class)
           )
       ),
       @ApiResponse(
@@ -165,7 +166,7 @@ public interface InterestApi {
           )
       )
   })
-  ResponseEntity<CursorPageResponseInterestDto> findAll(
+  ResponseEntity<CursorPageResponseDto<InterestDto>> findAll(
       @Parameter(description = "요청 사용자 ID", required = true)
       @RequestHeader("Monew-Request-User-Id") UUID userId,
 
@@ -186,5 +187,58 @@ public interface InterestApi {
 
       @Parameter(description = "페이지 크기", example = "10")
       @RequestParam(value = "limit", defaultValue = "10") @Min(1) int limit
+  );
+
+  @Operation(
+      summary = "관심사 구독",
+      description = "사용자 ID와 관심사 ID를 통해 특정 관심사를 구독합니다. 구독한 관심사와 관련된 뉴스 기사가 등록되면 알림을 수신할 수 있습니다."
+  )
+  @ApiResponses({
+      @ApiResponse(
+          responseCode = "200",
+          description = "구독 성공",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = SubscriptionDto.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "404",
+          description = "해당 사용자 또는 관심사를 찾을 수 없습니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "409",
+          description = "이미 구독 중인 관심사입니다.",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      ),
+      @ApiResponse(
+          responseCode = "500",
+          description = "서버 내부 오류",
+          content = @Content(
+              mediaType = "application/json",
+              schema = @Schema(implementation = ErrorResponse.class)
+          )
+      )
+  })
+  @PostMapping("/{interestId}/subscriptions")
+  ResponseEntity<SubscriptionDto> subscribe(
+      @Parameter(
+          description = "요청 사용자 ID",
+          required = true
+      )
+      @RequestHeader("Monew-Request-User-Id") UUID userId,
+
+      @Parameter(
+          description = "구독할 관심사 ID",
+          required = true
+      )
+      @PathVariable UUID interestId
   );
 }
