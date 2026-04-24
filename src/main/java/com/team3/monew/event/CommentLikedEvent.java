@@ -11,6 +11,7 @@ public record CommentLikedEvent(
     UUID id,
     UUID articleId,
     String articleTitle,
+    UUID commentUserId,
     String commentUserNickname,
     String commentContent,
     Integer commentLikeCount,
@@ -20,6 +21,7 @@ public record CommentLikedEvent(
     return new CommentLikedEvent(
         actorUserId,
         commentId,
+        null,
         null,
         null,
         null,
@@ -39,6 +41,7 @@ public record CommentLikedEvent(
         commentLike.getId(),
         comment.getArticle().getId(),
         comment.getArticle().getTitle(),
+        comment.getUser().getId(),
         comment.getUser().getNickname(),
         comment.getContent(),
         comment.getLikeCount(),

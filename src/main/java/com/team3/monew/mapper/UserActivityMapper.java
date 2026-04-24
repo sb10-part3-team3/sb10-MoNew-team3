@@ -39,7 +39,6 @@ public interface UserActivityMapper {
   @Mapping(target = "id", source = "subscriptionId")
   SubscriptionSummary toSubscriptionSummary(SubscriptionEvent event);
 
-  @Mapping(target = "commentUserId", source = "actorUserId")
   @Mapping(target = "createdAt", source = "commentCreatedAt")
   CommentLikeSummary toCommentLikeSummary(CommentLikedEvent event);
 
