@@ -77,6 +77,7 @@ public class InterestService {
     return interestMapper.toDto(savedInterest, false);
   }
 
+  @Transactional(readOnly = true)
   public CursorPageResponseDto<InterestDto> findAll(InterestSearchCondition condition,
       UUID userId) {
     log.debug(
