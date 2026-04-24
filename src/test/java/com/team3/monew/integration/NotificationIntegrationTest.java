@@ -269,6 +269,7 @@ public class NotificationIntegrationTest {
     private Notification notification2;
     private Notification notification3;
     private Notification notification4;
+    private Notification notificationActor;
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
 
@@ -301,12 +302,16 @@ public class NotificationIntegrationTest {
           interest2.getId(), null);
       notification4 = Notification.create(subscriber, "content4", NotificationResourceType.COMMENT,
           comment.getId(), actor);//이미 확인된
+      notificationActor = Notification.create(actor, "content3", NotificationResourceType.INTEREST,
+          interest2.getId(), null);
       ReflectionTestUtils.setField(notification4, "isConfirmed", true);
+      ReflectionTestUtils.setField(notification4, "confirmedAt", Instant.now());
 
       notificationRepository.saveAndFlush(notification1);
       notificationRepository.saveAndFlush(notification2);
       notificationRepository.saveAndFlush(notification3);
       notificationRepository.saveAndFlush(notification4);
+      notificationRepository.saveAndFlush(notificationActor);
 
       em.clear();
       // 새로가져오기
@@ -393,7 +398,7 @@ public class NotificationIntegrationTest {
     }
 
     @Test
-    @DisplayName("이미 확인되 알림을 확인하면 성공응답이지만, 확인 시간이 변경되지 않는다.")
+    @DisplayName("이미 확인된 알림을 확인하면 성공응답이지만, 확인 시간이 변경되지 않는다.")
     void shouldConfirmNotificationAlreadyConfirmed_whenUserIdAndNotificationIdAreGiven()
         throws Exception {
       //given
@@ -470,5 +475,44 @@ public class NotificationIntegrationTest {
       assertFalse(updatedNotification.isConfirmed());
     }
 
+    @Test
+    @DisplayName("유효하지 않은 사용자 아이디로 전체 알림 확인에 실패한다.")
+    void shouldFailToConfirmAllNotifications_whenUserNotFound() throws Exception {
+      // given
+      UUID wrongUserId = UUID.randomUUID();
+
+      //when & then
+      mockMvc.perform(patch("/api/notifications")
+              .header("Monew-Request-User-ID", wrongUserId))
+          .andExpectAll(
+              status().isNotFound(),
+              jsonPath("$.details.userId").value(wrongUserId.toString())
+          );
+      Notification updatedNotification = notificationRepository.findById(notification1.getId())
+          .orElseThrow();
+      assertFalse(updatedNotification.isConfirmed());
+    }
+
+    @Test
+    @DisplayName("사용자 아이디로 전체 알림을 확인한다.")
+    void shouldConfirmAllNotifications_whenUserIdIsGiven() throws Exception {
+      // when & then
+      mockMvc.perform(patch("/api/notifications")
+              .header("Monew-Request-User-ID", subscriber.getId()))
+          .andExpect(status().isNoContent());
+
+      List<Notification> notifications = notificationRepository.findAll();
+
+      assertAll(
+          () -> assertThat(notifications.stream()
+              .filter(n -> n.getUser().getId().equals(subscriber.getId())))
+              .allMatch(Notification::isConfirmed),
+
+          //actor유저는 확인안됨 상태 유지
+          () -> assertThat(notifications.stream()
+              .filter(n -> n.getUser().getId().equals(actor.getId())))
+              .allMatch(n -> !n.isConfirmed())
+      );
+    }
   }
 }
