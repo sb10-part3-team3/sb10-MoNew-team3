@@ -314,7 +314,6 @@ class NotificationControllerTest {
   @DisplayName("존재하지 않는 사용자 아이디로 전체 알림 확인을 시도하면, 전체 알림 확인 실패 응답을 보낸다.")
   void shouldResponseErrorResponseToConfirmAll_whenUserNotFound() throws Exception {
     // given
-    UUID notificationId = UUID.randomUUID();
     willThrow(new UserNotFoundException(userId1))
         .given(notificationService)
         .confirmAll(eq(userId1));
