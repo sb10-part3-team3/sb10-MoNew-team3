@@ -28,7 +28,7 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
   Long countByUserIdAndIsConfirmedFalse(UUID userId);
 
-  @Modifying(clearAutomatically = true)
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("update Notification n "
       + "set n.isConfirmed = true, "
       + "n.confirmedAt = :confirmedAt, "
