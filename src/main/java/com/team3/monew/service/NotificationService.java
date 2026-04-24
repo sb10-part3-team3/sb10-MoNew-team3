@@ -136,6 +136,10 @@ public class NotificationService {
     log.info("개별 알림 확인 요청 성공: userId={}, notificationId={}", requestUserId, notificationId);
   }
 
+  public void confirmAll(UUID requestUserId) {
+
+  }
+
   private String generateCommentLikedContent(String actorUserNickname) {
     return actorUserNickname + "님이 나의 댓글을 좋아합니다.";
   }

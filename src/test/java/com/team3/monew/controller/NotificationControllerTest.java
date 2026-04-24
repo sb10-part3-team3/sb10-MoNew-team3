@@ -298,4 +298,31 @@ class NotificationControllerTest {
         .andExpect(jsonPath("$.details.userId").value(userId1.toString()))
         .andExpect(jsonPath("$.code").value("NOTIFICATION_CONFIRM_FORBIDDEN"));
   }
+
+  @Test
+  @DisplayName("사용자 아이디 헤더로 전체 알림 확인에 성공한다.(204)")
+  void shouldConfirmAllNotifications_whenUserIdIsGiven() throws Exception {
+
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isNoContent());
+    then(notificationService).should().confirmAll(eq(userId1));
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자 아이디로 전체 알림 확인을 시도하면, 전체 알림 확인 실패 응답을 보낸다.")
+  void shouldResponseErrorResponseToConfirmAll_whenUserNotFound() throws Exception {
+    // given
+    UUID notificationId = UUID.randomUUID();
+    willThrow(new UserNotFoundException(userId1))
+        .given(notificationService)
+        .confirmAll(eq(userId1));
+    // when & then
+    mockMvc.perform(patch(NOTIFICATION_URL)
+            .header("Monew-Request-User-ID", userId1))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.details.userId").value(userId1.toString()))
+        .andExpect(jsonPath("$.code").value("USER_NOT_FOUND"));
+  }
 }
