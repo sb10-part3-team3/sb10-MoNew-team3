@@ -44,6 +44,16 @@ public class UserActivityDocument {
     return userActivityDocument;
   }
 
+  // 이벤트 순서 꼬일 시 임시 생성 용
+  public static UserActivityDocument empty(UUID userId) {
+    UserActivityDocument userActivityDocument = new UserActivityDocument();
+    userActivityDocument.id = userId;
+    userActivityDocument.email = null;
+    userActivityDocument.nickname = null;
+    userActivityDocument.createdAt = Instant.now();
+    return userActivityDocument;
+  }
+
   public void addSubscriptionSummary(SubscriptionSummary subscriptionSummary) {
     subscriptions.add(subscriptionSummary);
   }
@@ -58,6 +68,12 @@ public class UserActivityDocument {
 
   public void addArticleViewSummary(ArticleViewSummary articleViewSummary) {
     addToRecentList(articleViews, articleViewSummary, ArticleViewSummary::id);
+  }
+
+  public void updateUserInfo(String email, String nickname, Instant createdAt) {
+    this.email = email;
+    this.nickname = nickname;
+    this.createdAt = createdAt;
   }
 
   // 삭제는 추후 구현
