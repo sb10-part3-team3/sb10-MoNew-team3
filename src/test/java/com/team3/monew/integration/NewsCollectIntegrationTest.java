@@ -11,6 +11,7 @@ import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.service.NewsCollectService;
+import com.team3.monew.support.IntegrationTestSupport;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -29,7 +31,7 @@ import reactor.test.StepVerifier;
 @ActiveProfiles("test")
 @Tag("external-api")
 @TestPropertySource(locations = "file:.env")
-class NewsCollectIntegrationTest {
+class NewsCollectIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private InterestKeywordRepository interestKeywordRepository;

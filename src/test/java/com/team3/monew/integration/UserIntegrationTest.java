@@ -12,6 +12,7 @@ import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
 import com.team3.monew.repository.UserRepository;
+import com.team3.monew.support.IntegrationTestSupport;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -26,7 +27,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Tag("integration")
-class UserIntegrationTest {
+class UserIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private MockMvc mockMvc;

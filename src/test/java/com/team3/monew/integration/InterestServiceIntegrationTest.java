@@ -21,6 +21,7 @@ import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.InterestService;
+import com.team3.monew.support.IntegrationTestSupport;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.Map;
@@ -42,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @Tag("integration")
-public class InterestServiceIntegrationTest {
+public class InterestServiceIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private InterestService interestService;
