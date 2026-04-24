@@ -1,6 +1,5 @@
 package com.team3.monew.service;
 
-import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 
 import com.team3.monew.component.news.record.ParsedNewsArticle;
@@ -48,8 +47,7 @@ public class NewsSaveService {
     // 새로운 뉴스 Link
     List<String> links = data.stream().map(ParsedNewsArticle::link).toList();
     // repository에 이미 저장된 뉴스 Link
-    Set<String> existingLinks = newsArticleRepository.findExistingOriginalLinks(
-        data.get(data.size() - 1).publishedAt(), links);    // data는 발행일자 역순정렬됨
+    Set<String> existingLinks = newsArticleRepository.findExistingOriginalLinks(links);
 
     // 중복이 걸러진 뉴스기사
     List<ParsedNewsArticle> newNewsArticles = data.stream()
@@ -90,14 +88,6 @@ public class NewsSaveService {
     // Repository에 데이터 저장
     newsArticleRepository.saveAll(savedArticles);
     log.info("뉴스 기사 저장 완료 - articleSize={}", savedArticles.size());
-
-    // 기사별 관심사
-    Map<String, Set<Interest>> InterestsByArticle = savedArticles.stream()
-        .flatMap(article -> article.getArticleInterests().stream())
-        .collect(Collectors.groupingBy(
-            ai -> ai.getArticle().getOriginalLink(),
-            mapping(ArticleInterest::getInterest, toSet())
-        ));
 
     // 관심사별 기사 갯수
     Map<Interest, Integer> articlesByInterest = savedArticles.stream()

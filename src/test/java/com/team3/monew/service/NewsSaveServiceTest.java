@@ -71,7 +71,7 @@ class NewsSaveServiceTest {
             samsungKeywordList)
     );
     String existingLink = "link3";
-    given(newsArticleRepository.findExistingOriginalLinks(any(), anyList()))
+    given(newsArticleRepository.findExistingOriginalLinks(anyList()))
         .willReturn(Set.of(existingLink));
 
     NewsSource naver = NewsSource.create("NAVER", NewsSourceType.NAVER, "baseUrl1");
@@ -124,7 +124,7 @@ class NewsSaveServiceTest {
         new ParsedNewsArticle(NewsSourceType.NAVER, "Link2", "삼성 파업", null, "메모리 노동자..",
             samsungKeywordList)
     );
-    given(newsArticleRepository.findExistingOriginalLinks(any(), anyList()))
+    given(newsArticleRepository.findExistingOriginalLinks(anyList()))
         .willReturn(Set.of("Link1", "Link2"));
 
     // when

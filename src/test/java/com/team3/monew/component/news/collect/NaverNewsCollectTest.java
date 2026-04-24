@@ -119,7 +119,7 @@ class NaverNewsCollectTest {
 
     // 키워드별 검색시간 수정
     Map<String, Instant> testAtMap = new HashMap<>();
-    testAtMap.put("삼성 메모리", Instant.now().minusSeconds(300));
+    testAtMap.put("삼성__메모리", Instant.now().minusSeconds(300));
     ReflectionTestUtils.setField(newsCollect, "lastCollectedAt", testAtMap);
 
     List<ParsedNewsArticle> articles = List.of(
@@ -153,7 +153,7 @@ class NaverNewsCollectTest {
 
     // 키워드별 검색시간 수정
     Map<String, Instant> testAtMap = new HashMap<>();
-    testAtMap.put("삼성 메모리", Instant.now().minusSeconds(300));
+    testAtMap.put("삼성__메모리", Instant.now().minusSeconds(300));
     ReflectionTestUtils.setField(newsCollect, "lastCollectedAt", testAtMap);
 
     List<ParsedNewsArticle> articles = List.of(

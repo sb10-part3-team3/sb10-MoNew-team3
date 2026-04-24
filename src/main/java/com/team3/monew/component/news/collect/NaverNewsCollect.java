@@ -10,9 +10,7 @@ import com.team3.monew.exception.news.NewsClientException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +43,7 @@ public class NaverNewsCollect implements NewsCollect {
 
   private static final int NAVER_CONCURRENCY_SIZE = 5;
 
-  // keyword별 검색시간
+  // keyword별 검색시간(Key형태: '관심사__키워드')
   private final Map<String, Instant> lastCollectedAt = new ConcurrentHashMap<>();
 
   @Override
@@ -54,9 +52,8 @@ public class NaverNewsCollect implements NewsCollect {
 
     return Flux.fromIterable(interestKeywords)
         .flatMap(interestKeyword -> {
-              String keyword = resolveKeyword(interestKeyword);
 
-              return fetchNewsData(webClient, keyword, 1)
+              return fetchNewsData(webClient, interestKeyword, 1)
                   .flatMap(raw -> {
                     ParsedData parsedData = newsParser.parse(sourceType, raw);
                     return parsedData.isEmpty() ? Mono.empty() : Mono.just(parsedData);
@@ -69,6 +66,7 @@ public class NaverNewsCollect implements NewsCollect {
                     }
 
                     // 키워드의 첫 다운로드면 통과
+                    String keyword = resolveKeyword(interestKeyword);
                     if (!lastCollectedAt.containsKey(keyword)) {
                       lastCollectedAt.put(keyword, data.lastBuildDate());
                       log.info("Naver 뉴스기사 collect 성공 - interest={}, keyword={}",
@@ -83,7 +81,7 @@ public class NaverNewsCollect implements NewsCollect {
                     if (lastCollectedAt.get(keyword).isBefore(lastPublishedAt) ||
                         lastCollectedAt.get(keyword).equals(lastPublishedAt)) {
                       log.debug("{}번째 페이지 요청", data.page() + 1);
-                      return fetchNewsData(webClient, keyword, data.page() + 1)
+                      return fetchNewsData(webClient, interestKeyword, data.page() + 1)
                           .map(raw -> newsParser.parse(sourceType, raw))
                           .filter(nextData -> !nextData.articles().isEmpty());
                     }
@@ -101,13 +99,16 @@ public class NaverNewsCollect implements NewsCollect {
 
 
   private Mono<RawArticleResult> fetchNewsData(
-      WebClient webClient, String keyword, int page) {
+      WebClient webClient, InterestKeyword interestKeyword, int page) {
     String fullBaseUrl = naverBaseUrl.contains("://") ? naverBaseUrl : "http://" + naverBaseUrl;
+
+    String queryKeyword =
+        interestKeyword.getInterest().getName() + " " + interestKeyword.getKeyword();
 
     return webClient.get().uri(builder ->
             URI.create(fullBaseUrl + builder
                 .path(NAVER_QUERY_PATH)
-                .queryParam("query", keyword)
+                .queryParam("query", queryKeyword)
                 .queryParam("display", NAVER_QUERY_DISPLAY)
                 .queryParam("start", NAVER_QUERY_DISPLAY * (page - 1) + 1)
                 .queryParam("sort", NAVER_QUERY_SORT)
@@ -138,25 +139,25 @@ public class NaverNewsCollect implements NewsCollect {
             )
         )
         .onErrorResume(e -> {
-          List<String> interestKeyword = splitKeyword(keyword);
           log.error("Naver 기사 수집 실패: interest={}, keyword={}, error={}",
-              interestKeyword.get(0), interestKeyword.get(1), e.getMessage());
+              interestKeyword.getInterest().getName(),
+              interestKeyword.getKeyword(),
+              e.getMessage());
+
           return Mono.empty();
         })
         .map(rawData -> {
-          List<String> interestKeyword = splitKeyword(keyword);
           log.info("Naver 뉴스기사 rawData 받기 성공 - interest={}, keyword={}, page={}",
-              interestKeyword.get(0), interestKeyword.get(1), page);
-          return new RawArticleResult(rawData, keyword, page);
+              interestKeyword.getInterest().getName(),
+              interestKeyword.getKeyword(),
+              page);
+
+          return new RawArticleResult(rawData, queryKeyword, page);
         });
   }
 
   private String resolveKeyword(InterestKeyword interestKeyword) {
-    return String.format("%s %s",
+    return String.format("%s__%s",
         interestKeyword.getInterest().getName(), interestKeyword.getKeyword());
-  }
-
-  private List<String> splitKeyword(String combinedKeyword) {
-    return Arrays.stream(combinedKeyword.split(" ")).toList();
   }
 }

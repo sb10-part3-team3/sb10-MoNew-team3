@@ -52,7 +52,9 @@ class NewsFilterTest {
     assertThat(actualData)
         .hasSize(1)
         .first()
-        .extracting("summary")
-        .isEqualTo(" HBM 메모리..");
+        .satisfies(article -> {
+          assertThat(article.summary()).isEqualTo(" HBM 메모리..");
+          assertThat(article.interestKeywords()).containsExactly(samsungKeywordList.get(0));
+        });
   }
 }

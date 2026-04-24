@@ -1,7 +1,6 @@
 package com.team3.monew.repository;
 
 import com.team3.monew.entity.NewsArticle;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
@@ -28,10 +27,7 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID> 
   @Query("""
       SELECT article.originalLink FROM NewsArticle article
       WHERE article.deleteStatus = com.team3.monew.entity.enums.DeleteStatus.ACTIVE
-      AND article.publishedAt >= :since
       AND article.originalLink IN :originalLinks
       """)
-  Set<String> findExistingOriginalLinks(
-      @Param("since") Instant since,
-      @Param("originalLinks") Collection<String> originalLinks);
+  Set<String> findExistingOriginalLinks(@Param("originalLinks") Collection<String> originalLinks);
 }
