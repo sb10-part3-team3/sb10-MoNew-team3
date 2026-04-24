@@ -7,6 +7,7 @@ import com.team3.monew.document.SubscriptionSummary;
 import com.team3.monew.document.UserActivityDocument;
 import com.team3.monew.document.UserActivityRequest;
 import com.team3.monew.dto.useractivity.UserActivityDto;
+import com.team3.monew.exception.useractivity.UserActivityNotFoundException;
 import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.repository.UserActivityRepository;
 import java.util.UUID;
@@ -21,7 +22,8 @@ public class UserActivityService {
   private final UserActivityMapper userActivityMapper;
 
   public UserActivityDto findUserActivity(UUID userId) {
-    UserActivityDocument userActivityDocument = getOrCreate(userId);
+    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+        .orElseThrow(() -> new UserActivityNotFoundException(userId));
     return userActivityMapper.toDto(userActivityDocument);
   }
 
