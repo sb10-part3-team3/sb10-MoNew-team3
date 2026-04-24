@@ -516,6 +516,7 @@ class NotificationServiceTest {
     notificationService.confirmAll(userId1);
 
     //then
+    then(userRepository).should(times(1)).existsById(userId1);
     then(notificationRepository).should(times(1))
         .confirmAllByUserId(eq(userId1), any(Instant.class));
   }
