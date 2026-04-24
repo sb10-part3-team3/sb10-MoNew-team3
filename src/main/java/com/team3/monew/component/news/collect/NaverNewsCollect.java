@@ -4,13 +4,16 @@ import com.team3.monew.component.news.parse.NewsParser;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.RawArticleResult;
 import com.team3.monew.config.NaverProperties;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.news.NewsClientException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,46 +50,51 @@ public class NaverNewsCollect implements NewsCollect {
 
   @Override
   public Flux<ParsedData> collect(WebClient webClient, NewsSourceType sourceType,
-      Set<String> keywords) {
+      Collection<InterestKeyword> interestKeywords) {
 
-    return Flux.fromIterable(keywords)
-        .flatMap(keyword ->
-                fetchNewsData(webClient, keyword, 1)
-                    .flatMap(raw -> {
-                      ParsedData parsedData = newsParser.parse(sourceType, raw);
-                      return parsedData.isEmpty() ? Mono.empty() : Mono.just(parsedData);
-                    })
-                    // 재귀 확장용
-                    .expand(data -> {
-                      // 파싱 오류로 나온 빈값 검사
-                      if (data.articles().isEmpty()) {
-                        return Mono.empty();
-                      }
+    return Flux.fromIterable(interestKeywords)
+        .flatMap(interestKeyword -> {
+              String keyword = resolveKeyword(interestKeyword);
 
-                      // 키워드의 첫 다운로드면 통과
-                      if (!lastCollectedAt.containsKey(keyword)) {
-                        lastCollectedAt.put(keyword, data.lastBuildDate());
-                        log.info("Naver 뉴스기사 collect 성공 - keyword={}", keyword);
-                        return Mono.empty();
-                      }
-
-                      Instant lastPublishedAt = data.articles().get(data.articles().size() - 1)
-                          .publishedAt();
-                      // API 호출시간이 마지막 기사 발행시간보다 과거거나
-                      // 같다면 재귀호출(네이버는 기사발행시간이 분단위로 절삭되어 비교해야 함)
-                      if (lastCollectedAt.get(keyword).isBefore(lastPublishedAt)
-                          || lastCollectedAt.get(keyword).equals(lastPublishedAt)) {
-                        log.debug("{}번째 페이지 요청", data.page() + 1);
-                        return fetchNewsData(webClient, keyword, data.page() + 1)
-                            .map(raw -> newsParser.parse(sourceType, raw))
-                            .filter(nextData -> !nextData.articles().isEmpty());
-                      }
-
-                      // API 호출시간이 기사 리스트 안쪽에 포함되어있다면, 즉 이미 봤다고 가정하면
-                      lastCollectedAt.put(keyword, data.lastBuildDate());
-                      log.info("Naver 뉴스기사 collect 성공 - keyword={}", keyword);
+              return fetchNewsData(webClient, keyword, 1)
+                  .flatMap(raw -> {
+                    ParsedData parsedData = newsParser.parse(sourceType, raw);
+                    return parsedData.isEmpty() ? Mono.empty() : Mono.just(parsedData);
+                  })
+                  // 재귀 확장용
+                  .expand(data -> {
+                    // 파싱 오류로 나온 빈값 검사
+                    if (data.articles().isEmpty()) {
                       return Mono.empty();
-                    })
+                    }
+
+                    // 키워드의 첫 다운로드면 통과
+                    if (!lastCollectedAt.containsKey(keyword)) {
+                      lastCollectedAt.put(keyword, data.lastBuildDate());
+                      log.info("Naver 뉴스기사 collect 성공 - interest={}, keyword={}",
+                          interestKeyword.getInterest().getName(), interestKeyword.getKeyword());
+                      return Mono.empty();
+                    }
+
+                    Instant lastPublishedAt = data.articles().get(data.articles().size() - 1)
+                        .publishedAt();
+                    // API 호출시간이 마지막 기사 발행시간보다 과거거나
+                    // 같다면 재귀호출(네이버는 기사발행시간이 분단위로 절삭되어 비교해야 함)
+                    if (lastCollectedAt.get(keyword).isBefore(lastPublishedAt) ||
+                        lastCollectedAt.get(keyword).equals(lastPublishedAt)) {
+                      log.debug("{}번째 페이지 요청", data.page() + 1);
+                      return fetchNewsData(webClient, keyword, data.page() + 1)
+                          .map(raw -> newsParser.parse(sourceType, raw))
+                          .filter(nextData -> !nextData.articles().isEmpty());
+                    }
+
+                    // API 호출시간이 기사 리스트 안쪽에 포함되어있다면, 즉 이미 봤다고 가정하면
+                    lastCollectedAt.put(keyword, data.lastBuildDate());
+                    log.info("Naver 뉴스기사 collect 성공 - interest={}, keyword={}",
+                        interestKeyword.getInterest().getName(), interestKeyword.getKeyword());
+                    return Mono.empty();
+                  });
+            }
             , NAVER_CONCURRENCY_SIZE); // 동시성 제한
 
   }
@@ -130,12 +138,25 @@ public class NaverNewsCollect implements NewsCollect {
             )
         )
         .onErrorResume(e -> {
-          log.error("Naver 기사 수집 실패: keyword={}, error={}", keyword, e.getMessage());
+          List<String> interestKeyword = splitKeyword(keyword);
+          log.error("Naver 기사 수집 실패: interest={}, keyword={}, error={}",
+              interestKeyword.get(0), interestKeyword.get(1), e.getMessage());
           return Mono.empty();
         })
         .map(rawData -> {
-          log.info("Naver 뉴스기사 rawData 받기 성공 - keyword={}, page={}", keyword, page);
+          List<String> interestKeyword = splitKeyword(keyword);
+          log.info("Naver 뉴스기사 rawData 받기 성공 - interest={}, keyword={}, page={}",
+              interestKeyword.get(0), interestKeyword.get(1), page);
           return new RawArticleResult(rawData, keyword, page);
         });
+  }
+
+  private String resolveKeyword(InterestKeyword interestKeyword) {
+    return String.format("%s %s",
+        interestKeyword.getInterest().getName(), interestKeyword.getKeyword());
+  }
+
+  private List<String> splitKeyword(String combinedKeyword) {
+    return Arrays.stream(combinedKeyword.split(" ")).toList();
   }
 }

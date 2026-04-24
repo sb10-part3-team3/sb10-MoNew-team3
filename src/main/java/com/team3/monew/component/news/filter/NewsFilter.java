@@ -2,7 +2,10 @@ package com.team3.monew.component.news.filter;
 
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
+import com.team3.monew.entity.InterestKeyword;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,20 +20,37 @@ public class NewsFilter {
 
   private final KeywordMatch keywordMatch;
 
-  public List<ParsedNewsArticle> filterKeyword(ParsedData parsedData) {
+  public List<ParsedNewsArticle> filterKeyword(ParsedData parsedData,
+      Collection<InterestKeyword> interestKeywords) {
+
+    // 관심사별 묶기
+    Map<String, List<InterestKeyword>> interestMap = interestKeywords.stream()
+        .collect(Collectors.groupingBy(ik -> ik.getInterest().getName()));
+
     List<ParsedNewsArticle> parsedNewsArticles = parsedData.articles().stream()
-        .map(article -> {
+        .filter(article -> {
+
           Set<String> matchedKeywords = Stream.of(
                   keywordMatch.findMatches(article.title()),
                   keywordMatch.findMatches(article.summary()))
               .flatMap(List::stream)
               .collect(Collectors.toSet());
 
-          // set에 데이터가 있어서 article에 저장되면 true
-          article.keywords().addAll(matchedKeywords);
-          return article;
+          boolean isMatched = false;
+          // 관심사 비교
+          for (String interestName : interestMap.keySet()) {
+            if (matchedKeywords.contains(interestName)) {
+              // 키워드 비교
+              for (InterestKeyword ik : interestMap.get(interestName)) {
+                if (matchedKeywords.contains(ik.getKeyword())) {
+                  article.interestKeywords().add(ik);
+                  isMatched = true;
+                }
+              }
+            }
+          }
+          return isMatched;
         })
-        .filter(article -> !article.keywords().isEmpty())
         .toList();
 
     log.info("{} 기사 filter 처리 결과 - beforeSize={}, afterSize={}",

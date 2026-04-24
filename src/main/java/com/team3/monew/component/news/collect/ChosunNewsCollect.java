@@ -3,10 +3,11 @@ package com.team3.monew.component.news.collect;
 import com.team3.monew.component.news.parse.NewsParser;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.RawArticleResult;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.news.NewsClientException;
 import java.time.Duration;
-import java.util.Set;
+import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +32,7 @@ public class ChosunNewsCollect implements NewsCollect {
 
   @Override
   public Flux<ParsedData> collect(WebClient webClient, NewsSourceType sourceType,
-      Set<String> keywords) {
+      Collection<InterestKeyword> interestKeywords) {
     String fullBaseUrl = chosunBaseUrl.contains("://") ? chosunBaseUrl : "http://" + chosunBaseUrl;
     String fullUrl = fullBaseUrl + CHOSUN_QUERY_PATH;
 
