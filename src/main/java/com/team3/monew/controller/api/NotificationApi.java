@@ -16,6 +16,8 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -41,4 +43,19 @@ public interface NotificationApi {
       @RequestParam(defaultValue = "50") @Min(1) @Max(100) Integer limit
   );
 
+  @Operation(summary = "알림 확인", description = "알림을 확인합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "알림 확인 성공"),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음/알림정보 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패)",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @PatchMapping("/{notificationId}")
+  ResponseEntity<?> confirm(
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
+      @PathVariable UUID notificationId
+  );
 }

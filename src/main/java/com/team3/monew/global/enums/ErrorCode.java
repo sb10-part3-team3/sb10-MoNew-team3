@@ -25,10 +25,14 @@ public enum ErrorCode {
   INTEREST_KEYWORD_DUPLICATED(HttpStatus.BAD_REQUEST, "중복된 관심사 키워드가 존재합니다."),
   INTEREST_ALREADY_SUBSCRIBING(HttpStatus.CONFLICT, "이미 구독중인 관심사입니다."),
 
+  // NOTIFICATION
+  NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 알림입니다."),
+  NOTIFICATION_CONFIRM_FORBIDDEN(HttpStatus.FORBIDDEN, "해당 알림에 대한 확인 권한이 없습니다."),
   //COMMON
   INVALID_PARAMETER_TYPE(HttpStatus.BAD_REQUEST, "해당 파라미터가 유효하지 않습니다."),
   INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "입력 형식이 올바르지 않습니다."),
   INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다."),
+
   ;
 
   private final HttpStatus status;
