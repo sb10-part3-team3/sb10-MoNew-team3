@@ -1,13 +1,13 @@
 package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.InterestApi;
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.service.InterestService;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -53,7 +53,7 @@ public class InterestController implements InterestApi {
   }
 
   @Override
-  public ResponseEntity<CursorPageResponseInterestDto> findAll(
+  public ResponseEntity<CursorPageResponseDto<InterestDto>> findAll(
       UUID userId,
       String keyword,
       String orderBy,
@@ -75,7 +75,7 @@ public class InterestController implements InterestApi {
         limit
     );
 
-    CursorPageResponseInterestDto response =
+    CursorPageResponseDto<InterestDto> response =
         interestService.findAll(condition, userId);
 
     return ResponseEntity.ok(response);

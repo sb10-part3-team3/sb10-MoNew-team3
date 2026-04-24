@@ -1,10 +1,10 @@
 package com.team3.monew.controller.api;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -154,7 +154,7 @@ public interface InterestApi {
           description = "조회 성공",
           content = @Content(
               mediaType = "application/json",
-              schema = @Schema(implementation = CursorPageResponseInterestDto.class)
+              schema = @Schema(implementation = CursorPageResponseDto.class)
           )
       ),
       @ApiResponse(
@@ -166,7 +166,7 @@ public interface InterestApi {
           )
       )
   })
-  ResponseEntity<CursorPageResponseInterestDto> findAll(
+  ResponseEntity<CursorPageResponseDto<InterestDto>> findAll(
       @Parameter(description = "요청 사용자 ID", required = true)
       @RequestHeader("Monew-Request-User-Id") UUID userId,
 

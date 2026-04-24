@@ -1,13 +1,12 @@
 package com.team3.monew.integration;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
-import com.team3.monew.entity.ArticleInterest;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
@@ -16,7 +15,6 @@ import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
-import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
@@ -24,7 +22,6 @@ import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.InterestService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -334,7 +331,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response =
+    CursorPageResponseDto<InterestDto> response =
         interestService.findAll(condition, user.getId());
 
     // then
@@ -385,18 +382,19 @@ public class InterestServiceIntegrationTest {
         2
     );
 
-    CursorPageResponseInterestDto firstPage = interestService.findAll(firstCondition, userId);
+    CursorPageResponseDto<InterestDto> firstPage = interestService.findAll(firstCondition, userId);
 
     InterestSearchCondition secondCondition = new InterestSearchCondition(
         null,
         "name",
         "ASC",
-        new InterestCursor(firstPage.nextCursor(), Instant.parse(firstPage.nextAfter())),
+        new InterestCursor(firstPage.nextCursor(), firstPage.nextAfter()),
         2
     );
 
     // when
-    CursorPageResponseInterestDto secondPage = interestService.findAll(secondCondition, userId);
+    CursorPageResponseDto<InterestDto> secondPage = interestService.findAll(secondCondition,
+        userId);
 
     // then
     assertThat(secondPage.content()).hasSize(2);
@@ -435,28 +433,29 @@ public class InterestServiceIntegrationTest {
         2
     );
 
-    CursorPageResponseInterestDto firstPage = interestService.findAll(firstCondition, userId);
+    CursorPageResponseDto<InterestDto> firstPage = interestService.findAll(firstCondition, userId);
 
     InterestSearchCondition secondCondition = new InterestSearchCondition(
         null,
         "name",
         "ASC",
-        new InterestCursor(firstPage.nextCursor(), Instant.parse(firstPage.nextAfter())),
+        new InterestCursor(firstPage.nextCursor(), firstPage.nextAfter()),
         2
     );
 
-    CursorPageResponseInterestDto secondPage = interestService.findAll(secondCondition, userId);
+    CursorPageResponseDto<InterestDto> secondPage = interestService.findAll(secondCondition,
+        userId);
 
     InterestSearchCondition thirdCondition = new InterestSearchCondition(
         null,
         "name",
         "ASC",
-        new InterestCursor(secondPage.nextCursor(), Instant.parse(secondPage.nextAfter())),
+        new InterestCursor(secondPage.nextCursor(), secondPage.nextAfter()),
         2
     );
 
     // when
-    CursorPageResponseInterestDto thirdPage = interestService.findAll(thirdCondition, userId);
+    CursorPageResponseDto<InterestDto> thirdPage = interestService.findAll(thirdCondition, userId);
 
     // then
     assertThat(thirdPage.content()).hasSize(1);
@@ -491,7 +490,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content())
@@ -530,7 +529,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content()).hasSize(1);
@@ -562,7 +561,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content()).hasSize(2);
@@ -595,7 +594,7 @@ public class InterestServiceIntegrationTest {
     );
 
     // when
-    CursorPageResponseInterestDto response = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response = interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content()).isEmpty();

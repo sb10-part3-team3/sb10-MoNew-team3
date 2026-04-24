@@ -1,12 +1,12 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
@@ -358,7 +358,7 @@ class InterestServiceTest {
             ));
 
     // when
-    CursorPageResponseInterestDto response
+    CursorPageResponseDto<InterestDto> response
         = interestService.findAll(condition, userId);
 
     // then
@@ -399,7 +399,7 @@ class InterestServiceTest {
         .willReturn(new InterestDto(UUID.randomUUID(), "dummy", List.of(), 0, false));
 
     // when
-    CursorPageResponseInterestDto response =
+    CursorPageResponseDto<InterestDto> response =
         interestService.findAll(condition, userId);
 
     // then
@@ -422,7 +422,7 @@ class InterestServiceTest {
     given(interestRepository.countByCondition(condition)).willReturn(0L);
 
     // when
-    CursorPageResponseInterestDto response
+    CursorPageResponseDto<InterestDto> response
         = interestService.findAll(condition, userId);
 
     // then
@@ -452,7 +452,7 @@ class InterestServiceTest {
         .willReturn(new InterestDto(interest.getId(), "economy", List.of(), 0, true));
 
     // when
-    CursorPageResponseInterestDto response
+    CursorPageResponseDto<InterestDto> response
         = interestService.findAll(condition, userId);
 
     // then

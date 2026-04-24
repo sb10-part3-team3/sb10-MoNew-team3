@@ -1,13 +1,13 @@
 package com.team3.monew.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
@@ -262,12 +262,12 @@ class InterestControllerTest {
         false
     );
 
-    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(first, second),
         "나무",
-        after.toString(),
+        after,
         2,
-        5,
+        5L,
         true
     );
 
@@ -309,12 +309,12 @@ class InterestControllerTest {
     // given
     UUID userId = UUID.randomUUID();
 
-    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(),
         null,
         null,
         10,
-        0,
+        0L,
         false
     );
 
@@ -352,12 +352,12 @@ class InterestControllerTest {
     UUID userId = UUID.randomUUID();
     Instant after = Instant.parse("2026-04-22T10:00:00Z");
 
-    CursorPageResponseInterestDto response = new CursorPageResponseInterestDto(
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(),
         "다리",
-        "2026-04-22T10:05:00Z",
+        after,
         2,
-        5,
+        5L,
         true
     );
 

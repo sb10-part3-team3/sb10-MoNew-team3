@@ -1,11 +1,11 @@
 package com.team3.monew.service;
 
-import com.team3.monew.dto.interest.CursorPageResponseInterestDto;
 import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
@@ -18,6 +18,7 @@ import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
+import java.time.Instant;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,7 +77,8 @@ public class InterestService {
     return interestMapper.toDto(savedInterest, false);
   }
 
-  public CursorPageResponseInterestDto findAll(InterestSearchCondition condition, UUID userId) {
+  public CursorPageResponseDto<InterestDto> findAll(InterestSearchCondition condition,
+      UUID userId) {
     log.debug(
         "관심사 목록 조회 요청 - userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
         userId,
@@ -99,7 +101,7 @@ public class InterestService {
       log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
           userId, condition.keyword());
 
-      return new CursorPageResponseInterestDto(
+      return new CursorPageResponseDto<InterestDto>(
           List.of(),
           null,
           null,
@@ -110,7 +112,7 @@ public class InterestService {
     }
 
     String nextCursor = null;
-    String nextAfter = null;
+    Instant nextAfter = null;
 
     if (hasNext) {
       Interest last = content.get(content.size() - 1);
@@ -121,7 +123,7 @@ public class InterestService {
         nextCursor = last.getName();
       }
 
-      nextAfter = last.getCreatedAt().toString();
+      nextAfter = last.getCreatedAt();
     }
 
     List<InterestDto> dtoList = content.stream()
@@ -137,7 +139,7 @@ public class InterestService {
         "관심사 목록 조회 성공 - userId={}, contentSize={}, totalElements={}, hasNext={}, nextCursor={}, nextAfter={}",
         userId, dtoList.size(), totalElements, hasNext, nextCursor, nextAfter);
 
-    return new CursorPageResponseInterestDto(
+    return new CursorPageResponseDto<InterestDto>(
         dtoList,
         nextCursor,
         nextAfter,
