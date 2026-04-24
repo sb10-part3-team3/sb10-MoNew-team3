@@ -121,9 +121,7 @@ public class NotificationService {
 
   public void confirm(UUID requestUserId, UUID notificationId) {
     log.debug("개별 알림 확인 시작: userId={}, notificationId={}", requestUserId, notificationId);
-    if (!userRepository.existsById(requestUserId)) {
-      throw new UserNotFoundException(requestUserId);
-    }
+    checkUserAvailable(requestUserId);
     log.debug("개별 알림 확인에서 사용자 유효성 확인 완료: userId={}, notificationId={}", requestUserId,
         notificationId);
     Notification notification = notificationRepository.findById(notificationId)
