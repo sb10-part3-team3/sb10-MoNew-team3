@@ -41,8 +41,8 @@ public class NaverNewsClient implements NewsClient {
             ParsedNewsArticle::link,
             article -> article,
             (existing, replacement) -> {
-              // 키워드별 쿼리에 중복 가능성이 있는데 더 많은 관심사 있는 쪽을 살림
 
+              // 관심사 합치기
               List<InterestKeyword> merged = Stream.concat(
                       existing.interestKeywords().stream(),
                       replacement.interestKeywords().stream())
