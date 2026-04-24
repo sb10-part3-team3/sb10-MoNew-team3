@@ -32,7 +32,7 @@ public class ArticleInterest {
   @JoinColumn(name = "interest_id", nullable = false)
   private Interest interest;
 
-  @Column(length = 100)
+  @Column(length = 100, nullable = false)
   private String matchedKeyword;
 
   @Column(nullable = false)

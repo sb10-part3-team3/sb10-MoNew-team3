@@ -138,7 +138,7 @@ CREATE TABLE article_interests (
                                    id UUID PRIMARY KEY,
                                    article_id UUID NOT NULL,
                                    interest_id UUID NOT NULL,
-                                   matched_keyword VARCHAR(100),
+                                   matched_keyword VARCHAR(100) NOT NULL,
 
                                    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 

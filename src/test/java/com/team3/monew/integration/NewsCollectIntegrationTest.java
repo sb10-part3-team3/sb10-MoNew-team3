@@ -43,6 +43,9 @@ class NewsCollectIntegrationTest {
   @Autowired
   private NewsCollectService newsCollectService;
 
+  @Autowired
+  private ArticleInterestRepository articleInterestRepository;
+
   private Set<String> keywords;
 
   @BeforeEach
@@ -66,7 +69,10 @@ class NewsCollectIntegrationTest {
 
   @AfterEach
   void tearDown() {
+    articleInterestRepository.deleteAll();
     newsArticleRepository.deleteAll();
+    interestKeywordRepository.deleteAll();
+    interestRepository.deleteAll();
   }
 
   @Test
