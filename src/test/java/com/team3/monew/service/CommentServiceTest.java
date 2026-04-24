@@ -572,7 +572,7 @@ class CommentServiceTest {
             then(commentLikeRepository).should().save(argThat(commentLike ->
                     commentLike.getComment() == comment && commentLike.getUser() == liker
             ));
-            then(eventPublisher).should().publishEvent(new CommentLikedEvent(requestUserId, commentId));
+            then(eventPublisher).should().publishEvent(CommentLikedEvent.from(savedLike));
         }
 
         @Test
