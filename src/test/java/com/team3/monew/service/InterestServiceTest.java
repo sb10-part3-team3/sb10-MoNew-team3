@@ -43,6 +43,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
@@ -603,5 +604,92 @@ class InterestServiceTest {
     then(subscriptionRepository).should().save(any(Subscription.class));
     then(interestRepository).should(never()).increaseSubscriberCount(any(UUID.class));
     then(interestMapper).should(never()).toSubscriptionDto(any(), any());
+  }
+
+  @Test
+  @DisplayName("관심사 구독을 취소할 수 있다")
+  void shouldCancelSubscribe() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = mock(User.class);
+    Interest interest = mock(Interest.class);
+    Subscription subscription = mock(Subscription.class);
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(subscriptionRepository.findByUserIdAndInterestId(userId, interestId))
+        .willReturn(Optional.of(subscription));
+
+    // when
+    interestService.cancelSubscribe(userId, interestId);
+
+    // then
+    then(subscriptionRepository).should().delete(subscription);
+    then(interestRepository).should().decreaseSubscriberCount(interestId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자면 구독 취소에 실패한다")
+  void shouldFailToCancelSubscribe_whenUserNotFound() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.cancelSubscribe(userId, interestId))
+        .isInstanceOf(UserNotFoundException.class);
+
+    then(interestRepository).should(never()).findById(any());
+    then(subscriptionRepository).should(never()).findByUserIdAndInterestId(any(), any());
+    then(subscriptionRepository).should(never()).delete(any());
+    then(interestRepository).should(never()).decreaseSubscriberCount(any());
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사면 구독 취소에 실패한다")
+  void shouldFailToCancelSubscribe_whenInterestNotFound() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = mock(User.class);
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.cancelSubscribe(userId, interestId))
+        .isInstanceOf(InterestNotFoundException.class);
+
+    then(subscriptionRepository).should(never()).findByUserIdAndInterestId(any(), any());
+    then(subscriptionRepository).should(never()).delete(any());
+    then(interestRepository).should(never()).decreaseSubscriberCount(any());
+  }
+
+  @Test
+  @DisplayName("구독하지 않은 관심사는 구독 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenNotSubscribing() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    User user = mock(User.class);
+    Interest interest = mock(Interest.class);
+
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(subscriptionRepository.findByUserIdAndInterestId(userId, interestId))
+        .willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> interestService.cancelSubscribe(userId, interestId))
+        .isInstanceOf(InterestException.class);
+
+    then(subscriptionRepository).should(never()).delete(any());
+    then(interestRepository).should(never()).decreaseSubscriberCount(any());
   }
 }

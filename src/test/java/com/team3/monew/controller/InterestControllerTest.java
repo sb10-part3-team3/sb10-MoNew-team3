@@ -31,6 +31,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -505,5 +507,85 @@ class InterestControllerTest {
     mockMvc.perform(post("/api/interests/{interestId}/subscriptions", interestId)
             .header("Monew-Request-User-Id", "invalid-uuid"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("관심사 구독을 취소할 수 있다")
+  void shouldCancelSubscribe() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willDoNothing()
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header("MoNew-Request-User-Id", userId))
+        .andExpect(status().isNoContent());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
+  }
+
+  @Test
+  @DisplayName("구독하지 않은 관심사는 구독 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenNotSubscribing() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willThrow(new InterestException(ErrorCode.INTEREST_NOT_SUBSCRIBING))
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header("MoNew-Request-User-Id", userId))
+        .andExpect(status().isBadRequest());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 사용자는 관심사 구독을 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenUserNotFound() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willThrow(new UserNotFoundException(userId))
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header("MoNew-Request-User-Id", userId))
+        .andExpect(status().isNotFound());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 관심사는 구독을 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenInterestNotFound() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    willThrow(new InterestNotFoundException())
+        .given(interestService)
+        .cancelSubscribe(userId, interestId);
+
+    // when & then
+    mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
+            .header("MoNew-Request-User-Id", userId))
+        .andExpect(status().isNotFound());
+
+    then(interestService).should()
+        .cancelSubscribe(userId, interestId);
   }
 }
