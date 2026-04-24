@@ -4,6 +4,8 @@ import com.team3.monew.dto.notification.NotificationDto;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.global.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -35,6 +37,12 @@ public interface NotificationApi {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
+  @Parameters({
+      @Parameter(name = REQUEST_USER_ID_HEADER, description = "요청자 ID"),
+      @Parameter(name = "cursor", description = "커서 값(알림 ID)"),
+      @Parameter(name = "after", description = "보조 커서 값(createdAt)"),
+      @Parameter(name = "limit", description = "커서 페이지 크기")
+  })
   @GetMapping
   ResponseEntity<CursorPageResponseDto<NotificationDto>> findAllNotConfirmed(
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
@@ -55,9 +63,29 @@ public interface NotificationApi {
       @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
+  @Parameters({
+      @Parameter(name = REQUEST_USER_ID_HEADER, description = "요청자 ID"),
+      @Parameter(name = "notificationId", description = "알림 ID")
+  })
   @PatchMapping("/{notificationId}")
   ResponseEntity<?> confirm(
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
       @PathVariable UUID notificationId
+  );
+
+  @Operation(summary = "전체 알림 확인", description = "전체 알림을 한번에 확인합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "전체 알림 확인 성공"),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (입력값 검증 실패)",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  @Parameter(name = REQUEST_USER_ID_HEADER, description = "요청자 ID")
+  @PatchMapping()
+  ResponseEntity<?> confirmAll(
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 }
