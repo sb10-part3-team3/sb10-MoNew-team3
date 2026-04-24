@@ -36,11 +36,13 @@ public class NaverNewsClient implements NewsClient {
         .flatMapIterable(list -> list)       // 여러개의 쿼리 결과값을 하나로 합침
         .collect(Collectors.toMap(
             ParsedNewsArticle::link,
-            article -> article,                   // 키워드별 쿼리에 중복 가능성이 있어 제거
+            article -> article,
             (existing, replacement) -> {
-              // 관심사 몰아주기
-              existing.interestKeywords().addAll(replacement.interestKeywords());
-              return existing;
+              // 키워드별 쿼리에 중복 가능성이 있는데 더 많은 관심사 있는 쪽을 살림
+              if (existing.interestKeywords().size() >= replacement.interestKeywords().size()) {
+                return existing;
+              }
+              return replacement;
             }
         ))
         .map(value -> new ArrayList<>(value.values()));
