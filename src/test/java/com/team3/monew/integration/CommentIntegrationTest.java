@@ -280,6 +280,7 @@ class CommentIntegrationTest {
             .header(REQUEST_USER_ID_HEADER, requestUser.getId())
             .param("articleId", article.getId().toString())
             .param("orderBy", "createdAt")
+            .param("direction", "DESC")
             .param("limit", "10"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content[0].id").value(first.getId().toString()))
@@ -291,6 +292,24 @@ class CommentIntegrationTest {
         .andExpect(jsonPath("$.size").value(2))
         .andExpect(jsonPath("$.totalElements").value(2))
         .andExpect(jsonPath("$.hasNext").value(false));
+  }
+
+  @Test
+  @DisplayName("존재하지 않는 기사면 댓글 목록 조회가 400 Bad Request로 실패한다.")
+  void shouldReturnBadRequest_whenArticleDoesNotExist() throws Exception {
+    // given
+    User requestUser = saveUser();
+
+    // when & then
+    mockMvc.perform(get("/api/comments")
+            .header(REQUEST_USER_ID_HEADER, requestUser.getId())
+            .param("articleId", UUID.randomUUID().toString())
+            .param("orderBy", "createdAt")
+            .param("direction", "DESC")
+            .param("limit", "10"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+        .andExpect(jsonPath("$.details.articleId").exists());
   }
 
   @Test
@@ -312,6 +331,7 @@ class CommentIntegrationTest {
             .header(REQUEST_USER_ID_HEADER, requestUser.getId())
             .param("articleId", article.getId().toString())
             .param("orderBy", "likeCount")
+            .param("direction", "DESC")
             .param("limit", "2"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content[0].id").value(first.getId().toString()))
@@ -327,6 +347,7 @@ class CommentIntegrationTest {
             .header(REQUEST_USER_ID_HEADER, requestUser.getId())
             .param("articleId", article.getId().toString())
             .param("orderBy", "likeCount")
+            .param("direction", "DESC")
             .param("cursor", nextCursor)
             .param("limit", "2"))
         .andExpect(status().isOk())

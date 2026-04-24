@@ -6,6 +6,7 @@ import com.team3.monew.dto.comment.CommentRegisterRequest;
 import com.team3.monew.dto.comment.CommentUpdateRequest;
 import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +28,7 @@ public interface CommentApi {
   @ApiResponses({
       @ApiResponse(responseCode = "201", description = "등록 성공"),
       @ApiResponse(responseCode = "400", description = "잘못된 요청(입력값 검증 실패)"),
-      @ApiResponse(responseCode = "404", description = "기사 또는 사용자 정보 없음"),
+      @ApiResponse(responseCode = "404", description = "기사 또는 사용자 정보를 찾을 수 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<CommentDto> registerComment(
@@ -76,13 +77,16 @@ public interface CommentApi {
       @ApiResponse(responseCode = "200", description = "조회 성공"),
       @ApiResponse(
           responseCode = "400",
-          description = "잘못된 요청(헤더 파싱, 정렬 기준 오류, 페이지네이션 파라미터 오류 등)"
+          description = "잘못된 요청(헤더 파싱, 기사 상태, 정렬/커서/페이지 파라미터 오류)"
       ),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<CursorPageResponseCommentDto> findAllComments(
       @RequestParam UUID articleId,
+      @Parameter(description = "정렬 기준(createdAt, likeCount)")
       @RequestParam String orderBy,
+      @Parameter(description = "정렬 방향(DESC 고정)", example = "DESC")
+      @RequestParam(defaultValue = "DESC") String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam int limit,
@@ -92,8 +96,8 @@ public interface CommentApi {
   @Operation(summary = "댓글 좋아요 등록", description = "댓글 좋아요를 등록합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "댓글 좋아요 등록 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 파싱, 중복 좋아요 등)"),
-      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 파싱, 중복 좋아요)"),
+      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보를 찾을 수 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<CommentLikeDto> likeComment(
@@ -104,11 +108,8 @@ public interface CommentApi {
   @Operation(summary = "댓글 좋아요 취소", description = "댓글 좋아요를 취소합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "댓글 좋아요 취소 성공"),
-      @ApiResponse(
-          responseCode = "400",
-          description = "잘못된 요청(헤더 파싱, 좋아요 정보 없음 등)"
-      ),
-      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보 없음"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(헤더 파싱, 좋아요 정보 없음)"),
+      @ApiResponse(responseCode = "404", description = "댓글 또는 사용자 정보를 찾을 수 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })
   ResponseEntity<Void> unlikeComment(

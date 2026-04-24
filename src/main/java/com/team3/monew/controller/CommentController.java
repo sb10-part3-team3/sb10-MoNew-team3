@@ -70,13 +70,22 @@ public class CommentController implements CommentApi {
   public ResponseEntity<CursorPageResponseCommentDto> findAllComments(
       @RequestParam UUID articleId,
       @RequestParam String orderBy,
+      @RequestParam(defaultValue = "DESC") String direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) Instant after,
       @RequestParam int limit,
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   ) {
     return ResponseEntity.ok(
-        commentService.findAll(articleId, orderBy, cursor, after, limit, requestUserId)
+        commentService.findComments(
+            articleId,
+            orderBy,
+            direction,
+            cursor,
+            after,
+            limit,
+            requestUserId
+        )
     );
   }
 

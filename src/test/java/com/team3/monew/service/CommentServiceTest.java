@@ -14,6 +14,8 @@ import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
+import com.team3.monew.exception.comment.CommentLikeAlreadyExistsException;
+import com.team3.monew.exception.comment.CommentLikeNotFoundException;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
@@ -437,7 +439,7 @@ class CommentServiceTest {
 
     @Nested
     @DisplayName("댓글 조회 기능을 검증한다.")
-    class FindAllComment {
+    class FindComments {
 
         @Test
         @DisplayName("댓글 목록을 조회하면 페이지 응답과 요청자의 좋아요 여부를 반환한다.")
@@ -456,7 +458,15 @@ class CommentServiceTest {
             givenLikedComments(pageComments, Set.of(secondComment.getId()));
 
             // when
-            var actual = commentService.findAll(articleId, "likeCount", null, null, limit, requestUserId);
+            var actual = commentService.findComments(
+                    articleId,
+                    "likeCount",
+                    "DESC",
+                    null,
+                    null,
+                    limit,
+                    requestUserId
+            );
 
             // then
             assertThat(actual.content()).containsExactly(firstDto, secondDto);
@@ -475,7 +485,15 @@ class CommentServiceTest {
             givenActiveComments("createdAt", null, null, limit, List.of(), 0L);
 
             // when
-            var actual = commentService.findAll(articleId, "createdAt", null, null, limit, requestUserId);
+            var actual = commentService.findComments(
+                    articleId,
+                    "createdAt",
+                    "DESC",
+                    null,
+                    null,
+                    limit,
+                    requestUserId
+            );
 
             // then
             assertThat(actual.content()).isEmpty();
@@ -505,7 +523,15 @@ class CommentServiceTest {
             givenLikedComments(pageComments, Set.of());
 
             // when
-            var actual = commentService.findAll(articleId, "likeCount", cursor, null, limit, requestUserId);
+            var actual = commentService.findComments(
+                    articleId,
+                    "likeCount",
+                    "DESC",
+                    cursor,
+                    null,
+                    limit,
+                    requestUserId
+            );
 
             // then
             assertThat(actual.content()).containsExactly(nextDto);
@@ -521,7 +547,15 @@ class CommentServiceTest {
         void shouldThrowBusinessException_whenLimitIsLessThanOne() {
             // when & then
             assertThatThrownBy(() ->
-                    commentService.findAll(articleId, "createdAt", null, null, 0, requestUserId)
+                    commentService.findComments(
+                            articleId,
+                            "createdAt",
+                            "DESC",
+                            null,
+                            null,
+                            0,
+                            requestUserId
+                    )
             ).isInstanceOf(BusinessException.class);
 
             then(commentRepository).shouldHaveNoInteractions();
@@ -534,8 +568,87 @@ class CommentServiceTest {
         void shouldThrowBusinessException_whenOrderByIsInvalid() {
             // when & then
             assertThatThrownBy(() ->
-                    commentService.findAll(articleId, "invalid", null, null, 10, requestUserId)
+                    commentService.findComments(
+                            articleId,
+                            "invalid",
+                            "DESC",
+                            null,
+                            null,
+                            10,
+                            requestUserId
+                    )
             ).isInstanceOf(BusinessException.class);
+
+            then(commentRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("지원하지 않는 정렬 방향이면 댓글 목록 조회에 실패한다.")
+        void shouldThrowBusinessException_whenDirectionIsInvalid() {
+            // when & then
+            assertThatThrownBy(() ->
+                    commentService.findComments(
+                            articleId,
+                            "createdAt",
+                            "ASC",
+                            null,
+                            null,
+                            10,
+                            requestUserId
+                    )
+            ).isInstanceOf(BusinessException.class);
+
+            then(newsArticleRepository).shouldHaveNoInteractions();
+            then(commentRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 기사면 댓글 목록 조회에 실패한다.")
+        void shouldThrowBusinessException_whenArticleDoesNotExist() {
+            // given
+            given(newsArticleRepository.findById(articleId)).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() ->
+                    commentService.findComments(
+                            articleId,
+                            "createdAt",
+                            "DESC",
+                            null,
+                            null,
+                            10,
+                            requestUserId
+                    )
+            ).isInstanceOf(BusinessException.class);
+
+            then(commentRepository).shouldHaveNoInteractions();
+            then(commentLikeRepository).shouldHaveNoInteractions();
+            then(commentMapper).shouldHaveNoInteractions();
+        }
+
+        @Test
+        @DisplayName("삭제된 기사면 댓글 목록 조회에 실패한다.")
+        void shouldThrowDeletedArticleException_whenArticleIsDeleted() {
+            // given
+            markDeleted(article);
+            given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
+
+            // when & then
+            assertThatThrownBy(() ->
+                    commentService.findComments(
+                            articleId,
+                            "createdAt",
+                            "DESC",
+                            null,
+                            null,
+                            10,
+                            requestUserId
+                    )
+            ).isInstanceOf(DeletedArticleException.class);
 
             then(commentRepository).shouldHaveNoInteractions();
             then(commentLikeRepository).shouldHaveNoInteractions();
@@ -602,7 +715,7 @@ class CommentServiceTest {
 
         @Test
         @DisplayName("이미 좋아요를 누른 댓글에 다시 좋아요를 누르면 좋아요 등록에 실패한다.")
-        void shouldThrowBusinessException_whenCommentLikeAlreadyExists() {
+        void shouldThrowCommentLikeAlreadyExistsException_whenCommentLikeAlreadyExists() {
             // given
             User liker = createUser(requestUserId, "liker@example.com", "좋아요사용자");
             Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
@@ -615,7 +728,7 @@ class CommentServiceTest {
 
             // when & then
             assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(CommentLikeAlreadyExistsException.class);
 
             assertThat(comment.getLikeCount()).isEqualTo(1);
             then(commentLikeRepository).should().existsByCommentIdAndUserId(commentId, requestUserId);
@@ -738,7 +851,7 @@ class CommentServiceTest {
 
         @Test
         @DisplayName("좋아요하지 않은 댓글의 좋아요를 취소하면 좋아요 취소에 실패한다.")
-        void shouldThrowBusinessException_whenCommentLikeDoesNotExist() {
+        void shouldThrowCommentLikeNotFoundException_whenCommentLikeDoesNotExist() {
             // given
             Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
             assignId(comment, commentId);
@@ -749,7 +862,7 @@ class CommentServiceTest {
 
             // when & then
             assertThatThrownBy(() -> commentService.unlikeComment(commentId, requestUserId))
-                    .isInstanceOf(BusinessException.class);
+                    .isInstanceOf(CommentLikeNotFoundException.class);
 
             assertThat(comment.getLikeCount()).isEqualTo(1);
             then(commentLikeRepository).should().findByCommentIdAndUserId(commentId, requestUserId);
@@ -768,6 +881,7 @@ class CommentServiceTest {
 
     private void givenActiveComments(String orderBy, String cursor, Instant after, int limit,
                                      List<Comment> comments, long totalElements) {
+        given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
         PageRequest pageable = PageRequest.of(0, limit + 1);
         if ("likeCount".equals(orderBy)) {
             given(commentRepository.findActiveCommentsByLikeCountDesc(

@@ -15,6 +15,8 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Comment extends SoftDeleteEntity {
 
+    public static final int MAX_CONTENT_LENGTH = 500;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "article_id", nullable = false)
     private NewsArticle article;
@@ -23,7 +25,7 @@ public class Comment extends SoftDeleteEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 10000)
+    @Column(nullable = false, length = MAX_CONTENT_LENGTH)
     private String content;
 
     @Column(nullable = false)
