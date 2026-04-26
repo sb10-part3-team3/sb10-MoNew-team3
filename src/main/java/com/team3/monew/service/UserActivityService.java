@@ -12,8 +12,10 @@ import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.repository.UserActivityRepository;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserActivityService {
@@ -22,12 +24,15 @@ public class UserActivityService {
   private final UserActivityMapper userActivityMapper;
 
   public UserActivityDto findUserActivity(UUID userId) {
+    log.debug("사용자 활동 내역 조회 시작: userId={}", userId);
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
         .orElseThrow(() -> new UserActivityNotFoundException(userId));
+    log.info("사용자 활동 내역 조회 성공: userId={}", userId);
     return userActivityMapper.toDto(userActivityDocument);
   }
 
   public void registerUserActivity(UserActivityRequest userActivityRequest) {
+    log.debug("사용자 활동 내역 등록 시작: userId={}", userActivityRequest.id());
     // 이벤트 처리 순서 상 getOrCreate로 이미 생성되었을 수도 있으니 체크 후 생성
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userActivityRequest.id())
             .orElseGet(() -> userActivityMapper.toDocument(userActivityRequest));
@@ -39,34 +44,43 @@ public class UserActivityService {
     );
 
     userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 등록 성공: userId={}", userActivityRequest.id());
   }
 
   public void updateSubscriptionSummary(UUID userId, SubscriptionSummary subscriptionSummary) {
+    log.debug("사용자 활동 내역 구독 업데이트 시작: userId={} interestId={}", userId, subscriptionSummary.interestId());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
     userActivityDocument.addSubscriptionSummary(subscriptionSummary);
     userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 구독 업데이트 성공: userId={} interestId={}", userId, subscriptionSummary.interestId());
   }
 
   public void updateCommentSummary(CommentSummary commentSummary) {
+    log.debug("사용자 활동 내역 댓글 업데이트 시작: userId={} commentId={}", commentSummary.userId(), commentSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(commentSummary.userId());
 
     userActivityDocument.addCommentSummary(commentSummary);
     userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 댓글 업데이트 성공: userId={} commentId={}", commentSummary.userId(), commentSummary.id());
   }
 
   public void updateCommentLikeSummary(UUID userId, CommentLikeSummary commentLikeSummary) {
+    log.debug("사용자 활동 내역 좋아요 업데이트 시작: userId={} commentLikeId={}", userId, commentLikeSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
     userActivityDocument.addCommentLikeSummary(commentLikeSummary);
     userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
   public void updateArticleViewSummary(UUID userId, ArticleViewSummary articleViewSummary) {
+    log.debug("사용자 활동 내역 기사 뷰 업데이트 시작: userId={} articleViewId={}", userId, articleViewSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
     userActivityDocument.addArticleViewSummary(articleViewSummary);
     userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 기사 뷰 업데이트 성공: userId={} articleViewId={}", userId, articleViewSummary.id());
   }
 
   private UserActivityDocument getOrCreate(UUID userId) {

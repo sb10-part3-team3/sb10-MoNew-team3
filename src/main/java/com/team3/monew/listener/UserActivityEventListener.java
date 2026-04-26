@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -94,5 +95,30 @@ public class UserActivityEventListener {
   )
   public void handleArticleViewEvent(ArticleViewEvent event) {
     userActivityService.updateArticleViewSummary(event.userId(), userActivityMapper.toArticleViewSummary(event));
+  }
+
+  @Recover
+  public void recover(Exception e, UserRegisteredEvent event) {
+    log.error("사용자 활동 내역 UserRegistered Event 처리 실패: userId={}", event.userId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, SubscriptionEvent event) {
+    log.error("사용자 활동 내역 Subscription Event 처리 실패: userId={} subscriptionId={}", event.userId(), event.subscriptionId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, CommentRegisteredEvent event) {
+    log.error("사용자 활동 내역 CommentRegistered Event 처리 실패: userId={} commentId={}", event.userId(), event.commentId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, CommentLikedEvent event) {
+    log.error("사용자 활동 내역 CommentLiked Event 처리 실패: userId={} commentId={}", event.actorUserId(), event.commentId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, ArticleViewEvent event) {
+    log.error("사용자 활동 내역 ArticleView Event 처리 실패: userId={} articleId={}", event.userId(), event.articleId(), e);
   }
 }
