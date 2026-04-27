@@ -525,7 +525,7 @@ class InterestControllerTest {
     // when & then
     mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
             .header(REQUEST_USER_HEADER, userId))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     then(interestService).should()
         .cancelSubscribe(userId, interestId);
