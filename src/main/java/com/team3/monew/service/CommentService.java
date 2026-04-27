@@ -173,7 +173,7 @@ public class CommentService {
   public CommentLikeDto likeComment(UUID commentId, UUID requestUserId) {
     log.debug("댓글 좋아요 등록 요청 처리 시작: commentId={}, requestUserId={}", commentId, requestUserId);
 
-    Comment comment = findActiveComment(commentId);
+    Comment comment = findActiveCommentWithArticleAndUser(commentId);
     User user = findActiveUser(requestUserId);
 
     if (commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId)) {
@@ -259,6 +259,17 @@ public class CommentService {
 
   // 활성 댓글인지 확인하고 반환한다.
   private Comment findActiveComment(UUID commentId) {
+    Comment comment = commentRepository.findById(commentId)
+        .orElseThrow(() -> new CommentNotFoundException(commentId));
+
+    if (comment.isDeleted()) {
+      throw new DeletedCommentException(commentId);
+    }
+    return comment;
+  }
+
+  // 활성 댓글인지 확인하고 반환한다.
+  private Comment findActiveCommentWithArticleAndUser(UUID commentId) {
     // event 객체 매핑을 위해 연관된 객체 같이 조회
     Comment comment = commentRepository.findByIdWithArticleAndUser(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
