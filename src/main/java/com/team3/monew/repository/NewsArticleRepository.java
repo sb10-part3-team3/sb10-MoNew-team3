@@ -2,6 +2,7 @@ package com.team3.monew.repository;
 
 import com.team3.monew.entity.NewsArticle;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,6 +25,13 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID> 
       """)
   void decrementCommentCountById(@Param("articleId") UUID articleId);
 
-  @Query("SELECT article.originalLink FROM NewsArticle article WHERE article.originalLink IN :originalLinks")
+  @Query("""
+      SELECT article.originalLink FROM NewsArticle article
+      WHERE article.deleteStatus = com.team3.monew.entity.enums.DeleteStatus.ACTIVE
+      AND article.originalLink IN :originalLinks
+      """)
   Set<String> findExistingOriginalLinks(@Param("originalLinks") Collection<String> originalLinks);
+
+  @Query("SELECT article FROM NewsArticle article JOIN FETCH article.source")
+  List<NewsArticle> findAllWithNewsSource();
 }

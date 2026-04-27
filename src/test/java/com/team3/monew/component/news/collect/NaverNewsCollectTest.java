@@ -7,13 +7,15 @@ import com.team3.monew.component.news.parse.NewsParser;
 import com.team3.monew.component.news.record.ParsedData;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.config.NaverProperties;
+import com.team3.monew.entity.Interest;
+import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -43,15 +45,20 @@ class NaverNewsCollectTest {
 
 
   private MockWebServer webServer;
+  private InterestKeyword samsungKeyword;
+  private List<InterestKeyword> samsungKeywordList;
 
   @BeforeEach
-  void serverUp() throws IOException {
+  void setUp() throws IOException {
     webServer = new MockWebServer();
     webServer.start();
+
+    samsungKeyword = InterestKeyword.create(Interest.create("삼성"), "메모리");
+    samsungKeywordList = new ArrayList<>(List.of(samsungKeyword));
   }
 
   @AfterEach
-  void serverDown() throws IOException {
+  void tearDrown() throws IOException {
     webServer.shutdown();
   }
 
@@ -71,7 +78,7 @@ class NaverNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, Set.of("삼성")))
+    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, samsungKeywordList))
         .expectNextCount(0) // 데이터 0개
         .verifyComplete();
   }
@@ -86,7 +93,7 @@ class NaverNewsCollectTest {
     ReflectionTestUtils.setField(newsCollect, "naverBaseUrl", url + ":" + port);
 
     List<ParsedNewsArticle> articles = List.of(
-        new ParsedNewsArticle(null, null, null, null, null, List.of("삼성"))
+        new ParsedNewsArticle(null, null, null, null, null, samsungKeywordList)
     );
     ParsedData parsedData = new ParsedData(null, Instant.now(), 0, articles);
 
@@ -97,7 +104,7 @@ class NaverNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, Set.of("삼성")))
+    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, samsungKeywordList))
         .expectNextCount(1)
         .verifyComplete();
   }
@@ -112,12 +119,12 @@ class NaverNewsCollectTest {
 
     // 키워드별 검색시간 수정
     Map<String, Instant> testAtMap = new HashMap<>();
-    testAtMap.put("삼성", Instant.now().minusSeconds(300));
+    testAtMap.put("삼성__메모리", Instant.now().minusSeconds(300));
     ReflectionTestUtils.setField(newsCollect, "lastCollectedAt", testAtMap);
 
     List<ParsedNewsArticle> articles = List.of(
         new ParsedNewsArticle(null, null, null,
-            Instant.now().minusSeconds(100), null, List.of("삼성"))
+            Instant.now().minusSeconds(100), null, samsungKeywordList)
     );
     ParsedData parsedData1 = new ParsedData(null, Instant.now(), 1, articles);
 
@@ -131,7 +138,7 @@ class NaverNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, Set.of("삼성")))
+    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, samsungKeywordList))
         .expectNextCount(1)
         .verifyComplete();
   }
@@ -146,14 +153,14 @@ class NaverNewsCollectTest {
 
     // 키워드별 검색시간 수정
     Map<String, Instant> testAtMap = new HashMap<>();
-    testAtMap.put("삼성", Instant.now().minusSeconds(300));
+    testAtMap.put("삼성__메모리", Instant.now().minusSeconds(300));
     ReflectionTestUtils.setField(newsCollect, "lastCollectedAt", testAtMap);
 
     List<ParsedNewsArticle> articles = List.of(
         new ParsedNewsArticle(null, null, null,
-            Instant.now().minusSeconds(100), null, List.of("삼성")),
+            Instant.now().minusSeconds(100), null, samsungKeywordList),
         new ParsedNewsArticle(null, null, null,
-            Instant.now().minusSeconds(1000), null, List.of("삼성"))
+            Instant.now().minusSeconds(1000), null, samsungKeywordList)
     );
     ParsedData parsedData1 = new ParsedData(null, Instant.now(), 1, articles);
 
@@ -165,7 +172,7 @@ class NaverNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, Set.of("삼성")))
+    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, samsungKeywordList))
         .expectNextCount(1)
         .verifyComplete();
   }
@@ -183,7 +190,7 @@ class NaverNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, Set.of("삼성")))
+    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, samsungKeywordList))
         .expectNextCount(0)   // data 0개
         .verifyComplete();
   }
@@ -204,7 +211,7 @@ class NaverNewsCollectTest {
         .build();
 
     // when, then
-    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, Set.of("삼성")))
+    StepVerifier.create(newsCollect.collect(webClient, NewsSourceType.NAVER, samsungKeywordList))
         .expectNextCount(0)   // data 0개
         .verifyComplete();
   }

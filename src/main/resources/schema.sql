@@ -140,12 +140,13 @@ CREATE TABLE news_articles
         FOREIGN KEY (source_id) REFERENCES news_sources (id) ON DELETE RESTRICT
 );
 
+
 CREATE TABLE article_interests
 (
     id              UUID PRIMARY KEY,
     article_id      UUID                     NOT NULL,
     interest_id     UUID                     NOT NULL,
-    matched_keyword VARCHAR(100),
+    matched_keyword VARCHAR(100)             NOT NULL,
 
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL,
 
@@ -155,8 +156,8 @@ CREATE TABLE article_interests
     CONSTRAINT fk_article_interests_interest_id
         FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
 
-    CONSTRAINT uk_article_interests_article_id_interest_id
-        UNIQUE (article_id, interest_id)
+    CONSTRAINT uk_article_interests_article_id_interest_id_matched_keyword
+        UNIQUE (article_id, interest_id, matched_keyword)
 );
 
 CREATE TABLE article_views
