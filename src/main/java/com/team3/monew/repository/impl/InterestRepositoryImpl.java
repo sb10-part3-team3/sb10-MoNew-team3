@@ -48,7 +48,7 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
         .where(buildSearchCondition(condition, interest))
         .fetchOne();
 
-    return count == null ? 0L : count.intValue();
+    return count == null ? 0L : count;
   }
 
   private BooleanBuilder buildSearchCondition(

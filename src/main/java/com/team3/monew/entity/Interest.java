@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "interests")
@@ -21,6 +22,7 @@ public class Interest extends BaseEntity {
   @Column(nullable = false)
   private int subscriberCount;
 
+  @BatchSize(size = 100)    // IN 쿼리로 묶어서 한 번에 가져오는 방식
   @OneToMany(mappedBy = "interest", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<InterestKeyword> keywords = new ArrayList<>();
 
