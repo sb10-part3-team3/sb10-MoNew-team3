@@ -25,6 +25,8 @@ import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.repository.NewsArticleRepository;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -360,6 +362,108 @@ class CommentIntegrationTest {
   }
 
   @Test
+  @DisplayName("createdAt이 같은 댓글도 커서 페이지네이션에서 누락 없이 조회된다.")
+  void shouldFindAllCommentsAcrossPages_whenCreatedAtIsSame() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User writer = saveUser();
+    User requestUser = saveUser();
+    Instant sameCreatedAt = Instant.parse("2026-04-17T00:00:03Z");
+
+    Comment first = saveComment(article, writer, "첫 번째 댓글입니다.", sameCreatedAt, 3);
+    Comment second = saveComment(article, writer, "두 번째 댓글입니다.", sameCreatedAt, 2);
+    Comment third = saveComment(article, writer, "세 번째 댓글입니다.", sameCreatedAt, 1);
+
+    JsonNode firstPage = objectMapper.readTree(mockMvc.perform(get("/api/comments")
+            .header(REQUEST_USER_ID_HEADER, requestUser.getId())
+            .param("articleId", article.getId().toString())
+            .param("orderBy", "createdAt")
+            .param("direction", "DESC")
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andReturn()
+        .getResponse()
+        .getContentAsString());
+    String nextCursor = firstPage.get("nextCursor").asText();
+
+    JsonNode secondPage = objectMapper.readTree(mockMvc.perform(get("/api/comments")
+            .header(REQUEST_USER_ID_HEADER, requestUser.getId())
+            .param("articleId", article.getId().toString())
+            .param("orderBy", "createdAt")
+            .param("direction", "DESC")
+            .param("cursor", nextCursor)
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(1))
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andReturn()
+        .getResponse()
+        .getContentAsString());
+
+    // then
+    Set<String> actualCommentIds = collectCommentIds(firstPage, secondPage);
+
+    assertThat(actualCommentIds).containsExactlyInAnyOrder(
+        first.getId().toString(),
+        second.getId().toString(),
+        third.getId().toString()
+    );
+  }
+
+  @Test
+  @DisplayName("likeCount와 createdAt이 같은 댓글도 커서 페이지네이션에서 누락 없이 조회된다.")
+  void shouldFindAllCommentsAcrossPages_whenLikeCountAndCreatedAtAreSame() throws Exception {
+    // given
+    NewsArticle article = saveArticle();
+    User writer = saveUser();
+    User requestUser = saveUser();
+    Instant sameCreatedAt = Instant.parse("2026-04-17T00:00:03Z");
+
+    Comment first = saveComment(article, writer, "첫 번째 댓글입니다.", sameCreatedAt, 7);
+    Comment second = saveComment(article, writer, "두 번째 댓글입니다.", sameCreatedAt, 7);
+    Comment third = saveComment(article, writer, "세 번째 댓글입니다.", sameCreatedAt, 7);
+
+    JsonNode firstPage = objectMapper.readTree(mockMvc.perform(get("/api/comments")
+            .header(REQUEST_USER_ID_HEADER, requestUser.getId())
+            .param("articleId", article.getId().toString())
+            .param("orderBy", "likeCount")
+            .param("direction", "DESC")
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(2))
+        .andExpect(jsonPath("$.hasNext").value(true))
+        .andReturn()
+        .getResponse()
+        .getContentAsString());
+    String nextCursor = firstPage.get("nextCursor").asText();
+
+    JsonNode secondPage = objectMapper.readTree(mockMvc.perform(get("/api/comments")
+            .header(REQUEST_USER_ID_HEADER, requestUser.getId())
+            .param("articleId", article.getId().toString())
+            .param("orderBy", "likeCount")
+            .param("direction", "DESC")
+            .param("cursor", nextCursor)
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(1))
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andReturn()
+        .getResponse()
+        .getContentAsString());
+
+    // then
+    Set<String> actualCommentIds = collectCommentIds(firstPage, secondPage);
+
+    assertThat(actualCommentIds).containsExactlyInAnyOrder(
+        first.getId().toString(),
+        second.getId().toString(),
+        third.getId().toString()
+    );
+  }
+
+  @Test
   @DisplayName("요청자 ID 헤더와 댓글 ID가 유효하면 댓글 좋아요를 등록하고 좋아요 수를 증가시킨다.")
   void shouldLikeComment_whenRequestIsValid() throws Exception {
     // given
@@ -568,6 +672,18 @@ class CommentIntegrationTest {
         )
         .setParameter("commentId", comment.getId())
         .getSingleResult();
+  }
+
+  private Set<String> collectCommentIds(JsonNode... pages) {
+    Set<String> commentIds = new HashSet<>();
+
+    for (JsonNode page : pages) {
+      for (JsonNode comment : page.get("content")) {
+        commentIds.add(comment.get("id").asText());
+      }
+    }
+
+    return commentIds;
   }
 
   private UUID registerComment(UUID articleId, UUID userId, String content) throws Exception {

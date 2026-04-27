@@ -62,7 +62,7 @@ public class CommentService {
     DESC
   }
 
-  private record CommentCursor(Integer likeCount, Instant createdAt) {
+  private record CommentCursor(Integer likeCount, Instant createdAt, UUID id) {
   }
 
   private record CommentSearchCondition(
@@ -275,12 +275,17 @@ public class CommentService {
     String[] cursorValues = splitCursor(cursor);
 
     if (orderBy == CommentOrderBy.CREATED_AT) {
-      return new CommentCursor(null, parseInstant(cursorValue(cursorValues, 0), "cursor", after));
+      return new CommentCursor(
+          null,
+          parseInstant(cursorValue(cursorValues, 0), "cursor", after),
+          parseUuid(cursorValue(cursorValues, 1), "cursorId")
+      );
     }
 
     return new CommentCursor(
         parseInteger(cursorValue(cursorValues, 0), "cursor"),
-        parseInstant(cursorValue(cursorValues, 1), "cursorCreatedAt", after)
+        parseInstant(resolveLikeCountCursorCreatedAt(cursorValues, after), "cursorCreatedAt", null),
+        parseUuid(cursorValue(cursorValues, 2), "cursorId")
     );
   }
 
@@ -292,6 +297,7 @@ public class CommentService {
       return commentRepository.findActiveCommentsByCreatedAtDesc(
           condition.articleId(),
           condition.cursor().createdAt(),
+          condition.cursor().id(),
           pageable
       );
     }
@@ -300,6 +306,7 @@ public class CommentService {
         condition.articleId(),
         condition.cursor().likeCount(),
         condition.cursor().createdAt(),
+        condition.cursor().id(),
         pageable
     );
   }
@@ -349,11 +356,16 @@ public class CommentService {
       return String.join(
           CURSOR_DELIMITER,
           String.valueOf(comment.getLikeCount()),
-          comment.getCreatedAt().toString()
+          comment.getCreatedAt().toString(),
+          comment.getId().toString()
       );
     }
 
-    return comment.getCreatedAt().toString();
+    return String.join(
+        CURSOR_DELIMITER,
+        comment.getCreatedAt().toString(),
+        comment.getId().toString()
+    );
   }
 
   // 좋아요 엔티티를 응답 DTO로 변환한다.
@@ -494,6 +506,38 @@ public class CommentService {
     } catch (NumberFormatException e) {
       throw invalidInput(field, value);
     }
+  }
+
+  // 而ㅼ꽌 臾몄옄???꽌 UUID瑜??뚯꽍?쒕떎.
+  private UUID parseUuid(String value, String field) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+
+    try {
+      return UUID.fromString(value);
+    } catch (IllegalArgumentException e) {
+      throw invalidInput(field, value);
+    }
+  }
+
+  // 醫뗭븘?????뺣젹 而ㅼ꽌?먯꽌 createdAt 媛믪쓣 怨좉━?쒕떎.
+  private String resolveLikeCountCursorCreatedAt(String[] cursorValues, Instant after) {
+    String cursorCreatedAt = cursorValue(cursorValues, 1);
+
+    if (cursorCreatedAt != null && !cursorCreatedAt.isBlank()) {
+      return cursorCreatedAt;
+    }
+
+    if (cursorValues.length > 0 && cursorValues[0] != null && !cursorValues[0].isBlank()) {
+      if (after == null) {
+        throw invalidInput("cursor", String.join(CURSOR_DELIMITER, cursorValues));
+      }
+
+      return after.toString();
+    }
+
+    return after == null ? null : after.toString();
   }
 
   // 공통 입력값 오류 예외를 만든다.

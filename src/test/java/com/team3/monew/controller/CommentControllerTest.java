@@ -450,7 +450,7 @@ class CommentControllerTest {
       );
       CursorPageResponseCommentDto response = new CursorPageResponseCommentDto(
           List.of(firstComment, secondComment),
-          "2026-04-17T00:00:02Z",
+          "2026-04-17T00:00:02Z|" + secondCommentId,
           Instant.parse("2026-04-17T00:00:02Z"),
           2,
           3L,
@@ -479,7 +479,7 @@ class CommentControllerTest {
           .andExpect(jsonPath("$.content[0].likedByMe").value(false))
           .andExpect(jsonPath("$.content[1].id").value(secondCommentId.toString()))
           .andExpect(jsonPath("$.content[1].likedByMe").value(true))
-          .andExpect(jsonPath("$.nextCursor").value("2026-04-17T00:00:02Z"))
+          .andExpect(jsonPath("$.nextCursor").value("2026-04-17T00:00:02Z|" + secondCommentId))
           .andExpect(jsonPath("$.nextAfter").value("2026-04-17T00:00:02Z"))
           .andExpect(jsonPath("$.size").value(2))
           .andExpect(jsonPath("$.totalElements").value(3))

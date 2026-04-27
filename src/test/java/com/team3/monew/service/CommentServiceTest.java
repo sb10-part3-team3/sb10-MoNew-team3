@@ -888,12 +888,14 @@ class CommentServiceTest {
                     articleId,
                     cursorLikeCount(cursor),
                     likeCountCursorCreatedAt(cursor, after),
+                    cursorId(cursor),
                     pageable
             )).willReturn(comments);
         } else {
             given(commentRepository.findActiveCommentsByCreatedAtDesc(
                     articleId,
                     createdAtCursor(cursor),
+                    cursorId(cursor),
                     pageable
             )).willReturn(comments);
         }
@@ -955,9 +957,9 @@ class CommentServiceTest {
 
     private String cursorOf(Comment comment, String orderBy) {
         if ("likeCount".equals(orderBy)) {
-            return comment.getLikeCount() + "|" + comment.getCreatedAt();
+            return comment.getLikeCount() + "|" + comment.getCreatedAt() + "|" + comment.getId();
         }
-        return comment.getCreatedAt().toString();
+        return comment.getCreatedAt() + "|" + comment.getId();
     }
 
     private Integer cursorLikeCount(String cursor) {
@@ -982,6 +984,18 @@ class CommentServiceTest {
         if (cursor == null || cursor.isBlank()) {
             return null;
         }
-        return Instant.parse(cursor);
+        return Instant.parse(cursor.split("\\|")[0]);
+    }
+
+    private UUID cursorId(String cursor) {
+        if (cursor == null || cursor.isBlank()) {
+            return null;
+        }
+        String[] cursorValues = cursor.split("\\|");
+        int cursorIdIndex = cursorValues.length > 2 ? 2 : 1;
+        if (cursorValues.length <= cursorIdIndex || cursorValues[cursorIdIndex].isBlank()) {
+            return null;
+        }
+        return UUID.fromString(cursorValues[cursorIdIndex]);
     }
 }
