@@ -135,7 +135,6 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
 
     // when
     interestService.updateKeyword(
-        UUID.randomUUID(), // userId는 의미 없음 (existsBy는 false로 처리됨)
         saved.id(),
         new InterestUpdateRequest(List.of("나스닥", "애플"))
     );
@@ -161,7 +160,6 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
 
     // when
     interestService.updateKeyword(
-        UUID.randomUUID(),
         saved.id(),
         new InterestUpdateRequest(List.of("물가"))
     );
@@ -188,7 +186,6 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
     // when & then
     assertThatThrownBy(() ->
         interestService.updateKeyword(
-            UUID.randomUUID(),
             saved.id(),
             new InterestUpdateRequest(null)
         )
@@ -209,7 +206,6 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
     // when & then
     assertThatThrownBy(() ->
         interestService.updateKeyword(
-            UUID.randomUUID(),
             saved.id(),
             new InterestUpdateRequest(List.of())
         )
@@ -230,7 +226,6 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
     // when & then
     assertThatThrownBy(() ->
         interestService.updateKeyword(
-            UUID.randomUUID(),
             saved.id(),
             new InterestUpdateRequest(List.of("정상", "   "))
         )
@@ -251,7 +246,6 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
     // when & then
     assertThatThrownBy(() ->
         interestService.updateKeyword(
-            UUID.randomUUID(),
             saved.id(),
             new InterestUpdateRequest(List.of("경제", "경제"))
         )

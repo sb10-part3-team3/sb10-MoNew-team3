@@ -125,7 +125,6 @@ class InterestControllerTest {
   @DisplayName("관심사 키워드를 수정할 수 있다")
   void shouldUpdateInterestKeywords_whenValidRequest() throws Exception {
     // given
-    UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
     InterestUpdateRequest request = new InterestUpdateRequest(
@@ -141,14 +140,12 @@ class InterestControllerTest {
     );
 
     given(interestService.updateKeyword(
-        eq(userId),
         eq(interestId),
         any(InterestUpdateRequest.class)
     )).willReturn(response);
 
     // when & then
     mockMvc.perform(patch("/api/interests/{interestId}", interestId)
-            .header(REQUEST_USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -157,8 +154,7 @@ class InterestControllerTest {
         .andExpect(jsonPath("$.name").value("주식"))
         .andExpect(jsonPath("$.keywords[0]").value("나스닥"))
         .andExpect(jsonPath("$.keywords[1]").value("애플"))
-        .andExpect(jsonPath("$.subscriberCount").value(0))
-        .andExpect(jsonPath("$.subscribedByMe").value(true));
+        .andExpect(jsonPath("$.subscriberCount").value(0));
   }
 
   @Test
@@ -178,39 +174,6 @@ class InterestControllerTest {
     mockMvc.perform(patch("/api/interests/{interestId}", interestId)
             .header(REQUEST_USER_HEADER, userId.toString())
             .contentType(MediaType.APPLICATION_JSON))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("관심사 수정 요청 시 사용자 헤더가 없으면 실패한다")
-  void shouldFailUpdate_whenUserIdHeaderMissing() throws Exception {
-    // given
-    UUID interestId = UUID.randomUUID();
-    InterestUpdateRequest request = new InterestUpdateRequest(
-        List.of("나스닥", "애플")
-    );
-
-    // when & then
-    mockMvc.perform(patch("/api/interests/{interestId}", interestId)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objMapper.writeValueAsString(request)))
-        .andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("관심사 수정 요청 시 헤더의 UUID 형식이 올바르지 않으면 실패한다")
-  void shouldFailUpdate_whenUserIdHeaderInvalidFormat() throws Exception {
-    // given
-    UUID interestId = UUID.randomUUID();
-    InterestUpdateRequest request = new InterestUpdateRequest(
-        List.of("나스닥", "애플")
-    );
-
-    // when & then
-    mockMvc.perform(patch("/api/interests/{interestId}", interestId)
-            .header(REQUEST_USER_HEADER, "not-uuid")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
   }
 
@@ -525,7 +488,7 @@ class InterestControllerTest {
     // when & then
     mockMvc.perform(delete("/api/interests/{interestId}/subscriptions", interestId)
             .header(REQUEST_USER_HEADER, userId))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     then(interestService).should()
         .cancelSubscribe(userId, interestId);

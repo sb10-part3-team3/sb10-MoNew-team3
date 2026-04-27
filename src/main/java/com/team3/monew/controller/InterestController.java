@@ -36,11 +36,10 @@ public class InterestController implements InterestApi {
 
   @Override
   public ResponseEntity<InterestDto> update(
-      UUID userId,
       UUID interestId,
       @Valid @RequestBody InterestUpdateRequest dto
   ) {
-    InterestDto response = interestService.updateKeyword(userId, interestId, dto);
+    InterestDto response = interestService.updateKeyword(interestId, dto);
 
     return ResponseEntity.ok(response);
   }
@@ -92,6 +91,6 @@ public class InterestController implements InterestApi {
   public ResponseEntity<Void> cancelSubscribe(UUID userId, UUID interestId) {
     interestService.cancelSubscribe(userId, interestId);
 
-    return ResponseEntity.ok().build();
+    return ResponseEntity.noContent().build();
   }
 }
