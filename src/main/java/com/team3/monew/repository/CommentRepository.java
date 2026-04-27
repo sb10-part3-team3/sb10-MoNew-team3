@@ -3,6 +3,7 @@ package com.team3.monew.repository;
 import com.team3.monew.entity.Comment;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -42,4 +43,13 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       where c.deleteStatus = com.team3.monew.entity.enums.DeleteStatus.ACTIVE and c.article.id = :articleId
       """)
   long countActiveComments(@Param("articleId") UUID articleId);
+
+  @Query("""
+      select c
+      from Comment c
+      join fetch c.article
+      join fetch c.user
+      where c.id = :id
+      """)
+  Optional<Comment> findByIdWithArticleAndUser(UUID id);
 }

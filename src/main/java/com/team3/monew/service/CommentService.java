@@ -259,7 +259,8 @@ public class CommentService {
 
   // 활성 댓글인지 확인하고 반환한다.
   private Comment findActiveComment(UUID commentId) {
-    Comment comment = commentRepository.findById(commentId)
+    // event 객체 매핑을 위해 연관된 객체 같이 조회
+    Comment comment = commentRepository.findByIdWithArticleAndUser(commentId)
         .orElseThrow(() -> new CommentNotFoundException(commentId));
 
     if (comment.isDeleted()) {
