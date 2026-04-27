@@ -51,5 +51,5 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       join fetch c.user
       where c.id = :id
       """)
-  Optional<Comment> findByIdWithArticleAndUser(UUID id);
+  Optional<Comment> findByIdWithArticleAndUser(@Param("id")UUID id);
 }

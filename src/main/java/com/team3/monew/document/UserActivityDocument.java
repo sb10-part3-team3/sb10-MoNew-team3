@@ -1,6 +1,5 @@
 package com.team3.monew.document;
 
-import jakarta.persistence.Id;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -11,6 +10,7 @@ import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
