@@ -12,6 +12,7 @@ import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.UserRegisteredEvent;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.exception.user.InvalidNicknameException;
@@ -64,6 +65,7 @@ class UserServiceTest {
     verify(userRepository, never()).save(any());
     verify(userMapper, never()).toEntity(any());
     verify(passwordEncoder, never()).encode(any());
+    verify(eventPublisher, never()).publishEvent(any());
   }
 
   @Test
@@ -99,6 +101,7 @@ class UserServiceTest {
 
     verify(userMapper).toDto(savedUser);
     verify(passwordEncoder).encode("password1");
+    verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
   }
 
   @Test

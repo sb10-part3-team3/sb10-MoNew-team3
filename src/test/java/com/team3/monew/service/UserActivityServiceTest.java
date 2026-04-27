@@ -203,6 +203,39 @@ class UserActivityServiceTest {
   }
 
   @Test
+  @DisplayName("구독 요약 추가 시 문서가 없으면 빈 문서를 생성하고 저장합니다.")
+  void shouldCreateEmptyDocumentWhenAddingSubscriptionSummary() {
+    // given
+    SubscriptionSummary summary = new SubscriptionSummary(
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "경제",
+        List.of("금리", "주식"),
+        10,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when
+    userActivityService.updateSubscriptionSummary(userId, summary);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNull(savedDocument.getEmail());        // 빈 문서라 null
+    assertNull(savedDocument.getNickname());     // 빈 문서라 null
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(1, savedDocument.getSubscriptions().size());
+    assertEquals(summary, savedDocument.getSubscriptions().get(0));
+  }
+
+  @Test
   @DisplayName("댓글 요약 추가에 성공합니다.")
   void shouldUpdateCommentSummary() {
     // given
@@ -237,6 +270,41 @@ class UserActivityServiceTest {
 
     UserActivityDocument savedDocument = documentCaptor.getValue();
 
+    assertEquals(1, savedDocument.getComments().size());
+    assertEquals(summary, savedDocument.getComments().get(0));
+  }
+
+  @Test
+  @DisplayName("댓글 요약 추가 시 문서가 없으면 빈 문서를 생성하고 저장합니다.")
+  void shouldCreateEmptyDocumentWhenAddingCommentSummary() {
+    // given
+    CommentSummary summary = new CommentSummary(
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when
+    userActivityService.updateCommentSummary(summary);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNull(savedDocument.getEmail());
+    assertNull(savedDocument.getNickname());
+    assertEquals(userId, savedDocument.getId());
     assertEquals(1, savedDocument.getComments().size());
     assertEquals(summary, savedDocument.getComments().get(0));
   }
@@ -283,6 +351,43 @@ class UserActivityServiceTest {
   }
 
   @Test
+  @DisplayName("댓글 좋아요 요약 추가 시 문서가 없으면 빈 문서를 생성하고 저장합니다.")
+  void shouldCreateEmptyDocumentWhenAddingCommentLikeSummary() {
+    // given
+    CommentLikeSummary summary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "기사 제목",
+        UUID.randomUUID(),
+        "commentWriter",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when
+    userActivityService.updateCommentLikeSummary(userId, summary);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNull(savedDocument.getEmail());
+    assertNull(savedDocument.getNickname());
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(1, savedDocument.getCommentLikes().size());
+    assertEquals(summary, savedDocument.getCommentLikes().get(0));
+  }
+
+  @Test
   @DisplayName("기사 조회 요약 추가에 성공합니다.")
   void shouldUpdateArticleViewSummary() {
     // given
@@ -320,6 +425,44 @@ class UserActivityServiceTest {
 
     UserActivityDocument savedDocument = documentCaptor.getValue();
 
+    assertEquals(1, savedDocument.getArticleViews().size());
+    assertEquals(summary, savedDocument.getArticleViews().get(0));
+  }
+
+  @Test
+  @DisplayName("기사 조회 요약 추가 시 문서가 없으면 빈 문서를 생성하고 저장합니다.")
+  void shouldCreateEmptyDocumentWhenAddingArticleViewSummary() {
+    // given
+    ArticleViewSummary summary = new ArticleViewSummary(
+        UUID.randomUUID(),
+        userId,
+        createdAt,
+        UUID.randomUUID(),
+        "NAVER",
+        "https://example.com",
+        "기사 제목",
+        createdAt,
+        "기사 요약",
+        3,
+        100
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when
+    userActivityService.updateArticleViewSummary(userId, summary);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNull(savedDocument.getEmail());
+    assertNull(savedDocument.getNickname());
+    assertEquals(userId, savedDocument.getId());
     assertEquals(1, savedDocument.getArticleViews().size());
     assertEquals(summary, savedDocument.getArticleViews().get(0));
   }
