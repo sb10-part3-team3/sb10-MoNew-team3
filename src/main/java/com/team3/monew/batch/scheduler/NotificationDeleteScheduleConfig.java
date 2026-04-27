@@ -32,7 +32,7 @@ public class NotificationDeleteScheduleConfig {
       if (execution.getStatus() == BatchStatus.COMPLETED) {
         log.info("알림 삭제 배치 스케줄러 완료");
       } else {
-        log.error("알림 삭제 배치 스케줄러 오류 발생: 샹태={}", execution.getStatus());
+        log.error("알림 삭제 배치 스케줄러 오류 발생: 상태={}", execution.getStatus());
       }
     } catch (Exception e) {
       log.error("알림 삭제 스케줄러 실행 실패", e);
