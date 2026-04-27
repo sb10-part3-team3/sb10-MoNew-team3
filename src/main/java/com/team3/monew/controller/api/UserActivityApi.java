@@ -13,7 +13,7 @@ public interface UserActivityApi {
 
   @Operation(summary = "사용자 활동 내역 조회", description = "사용자 ID로 활동 내역을 조회합니다.")
   @ApiResponses({
-      @ApiResponse(responseCode = "201", description = "사용자 활동 내역 조회 성공"),
+      @ApiResponse(responseCode = "200", description = "사용자 활동 내역 조회 성공"),
       @ApiResponse(responseCode = "404", description = "사용자 정보 없음"),
       @ApiResponse(responseCode = "500", description = "서버 내부 오류")
   })

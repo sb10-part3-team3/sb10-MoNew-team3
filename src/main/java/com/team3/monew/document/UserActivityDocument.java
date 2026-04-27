@@ -55,6 +55,7 @@ public class UserActivityDocument {
   }
 
   public void addSubscriptionSummary(SubscriptionSummary subscriptionSummary) {
+    subscriptions.removeIf(s -> Objects.equals(s.id(), subscriptionSummary.id()));
     subscriptions.add(subscriptionSummary);
   }
 
