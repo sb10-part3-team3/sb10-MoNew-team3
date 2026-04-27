@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -30,7 +31,7 @@ public interface ArticleApi {
   })
   ResponseEntity<CursorPageResponseDto<ArticleDto>> getArticleList(
       @ParameterObject @Valid ArticleSearchRequest searchRequest,
-      @RequestHeader(REQUEST_USER_ID_HEADER) String requestUserId
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 
 }

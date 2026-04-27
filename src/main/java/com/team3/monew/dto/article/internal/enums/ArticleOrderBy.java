@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public enum OrderBy {
+public enum ArticleOrderBy {
   PUBLISH_DATE("publishDate"),
   COMMENT_COUNT("commentCount"),
   VIEW_COUNT("viewCount");
@@ -16,8 +16,8 @@ public enum OrderBy {
     return value;
   }
 
-  public static OrderBy fromValue(String value) {
-    for (OrderBy orderBy : OrderBy.values()) {
+  public static ArticleOrderBy fromValue(String value) {
+    for (ArticleOrderBy orderBy : ArticleOrderBy.values()) {
       if (orderBy.value.equalsIgnoreCase(value)) {
         return orderBy;
       }

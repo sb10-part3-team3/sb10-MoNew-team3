@@ -1,0 +1,318 @@
+package com.team3.monew.service;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.BDDMockito.given;
+
+import com.team3.monew.dto.article.ArticleDto;
+import com.team3.monew.dto.article.ArticleSearchRequest;
+import com.team3.monew.dto.article.internal.enums.ArticleCursor;
+import com.team3.monew.dto.article.internal.enums.ArticleDirection;
+import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
+import com.team3.monew.dto.article.internal.enums.ArticleSearchCondition;
+import com.team3.monew.dto.pagination.CursorPageResponseDto;
+import com.team3.monew.entity.NewsArticle;
+import com.team3.monew.entity.NewsSource;
+import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.global.exception.BusinessException;
+import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.repository.ArticleViewRepository;
+import com.team3.monew.repository.NewsArticleRepository;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+@Tag("unit")
+@ExtendWith(MockitoExtension.class)
+class ArticleServiceTest {
+
+  @Spy
+  private ArticleMapper articleMapper = Mappers.getMapper(ArticleMapper.class);
+  @Mock
+  private NewsArticleRepository newsArticleRepository;
+  @Mock
+  private ArticleViewRepository articleViewRepository;
+
+  @InjectMocks
+  private ArticleService articleService;
+
+  private NewsSource naverSource;
+
+  private ArticleSearchRequest requestPublishDate;
+  private ArticleSearchRequest requestCommentCount;
+  private ArticleSearchRequest requestViewCount;
+
+  private Instant testGetCreatedAt = Instant.now();
+
+  @BeforeEach
+  void setUp() {
+    naverSource = NewsSource.create("NAVER", NewsSourceType.NAVER, "baseUrl..");
+
+    requestPublishDate = new ArticleSearchRequest("검색", null, List.of(NewsSourceType.NAVER),
+        null, null, ArticleOrderBy.PUBLISH_DATE, ArticleDirection.DESC,
+        Instant.now().minus(2, ChronoUnit.DAYS).toString() + ", " + testGetCreatedAt.toString(),
+        null, 2);
+    requestCommentCount = new ArticleSearchRequest(null, UUID.randomUUID(),
+        List.of(NewsSourceType.NAVER),
+        LocalDateTime.now().minusDays(5), LocalDateTime.now().minusDays(1),
+        ArticleOrderBy.COMMENT_COUNT, ArticleDirection.ASC,
+        "5, " + testGetCreatedAt.toString(), null, 1);
+    requestViewCount = new ArticleSearchRequest(null, UUID.randomUUID(),
+        List.of(NewsSourceType.NAVER),
+        null, null, ArticleOrderBy.VIEW_COUNT, ArticleDirection.DESC,
+        null, null, 10);
+  }
+
+  @AfterEach
+  void tearDown() {
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 목록을 조회한다")
+  class GetArticleList {
+
+    @Test
+    @DisplayName("요청dto에서 검색조건dto로 변환이 잘 되는지 검증한다")
+    void shouldValidateTransferToConditionDto_whenRequestDtoIsProvided() {
+      // given
+      UUID interestId = UUID.randomUUID();
+      LocalDateTime publishDateFrom = LocalDateTime.now().minusDays(30);
+      LocalDateTime publishDateTo = LocalDateTime.now().minusDays(10);
+      Instant timeCursor = Instant.now();
+      Instant after = Instant.now();
+
+      String timeCursorString = timeCursor.toString();
+
+      ArticleSearchRequest request = new ArticleSearchRequest(
+          "키워드", interestId, List.of(NewsSourceType.NAVER, NewsSourceType.CHOSUN),
+          publishDateFrom, publishDateTo, ArticleOrderBy.PUBLISH_DATE, ArticleDirection.DESC,
+          timeCursorString,
+          after, 2);
+      ArticleCursor timeArticleCursor = new ArticleCursor(timeCursor, after);
+
+      // when
+      ArticleSearchCondition cond = articleMapper.toCondition(request, timeArticleCursor);
+
+      // then
+      assertEquals(request.keyword(), cond.keyword());
+      assertEquals(request.interestId(), cond.interestId());
+      assertEquals(request.sourceIn(), cond.sourceIn());
+      assertEquals(request.publishDateFrom().atZone(ZoneId.of("Asia/Seoul")).toInstant(),
+          cond.publishDateFrom());
+      assertEquals(request.publishDateTo().atZone(ZoneId.of("Asia/Seoul")).toInstant(),
+          cond.publishDateTo());
+      assertEquals(request.orderBy(), cond.articleOrderBy());
+      assertEquals(request.direction(), cond.direction());
+      assertEquals(request.limit(), cond.limit());
+      assertEquals(request.after(), cond.cursor().after());
+      assertEquals(request.cursor(), cond.cursor().cursor().toString());
+
+      // given
+      Integer intCursor = 25;
+      ArticleSearchRequest request2 = new ArticleSearchRequest(
+          "키워드", interestId, List.of(NewsSourceType.NAVER, NewsSourceType.CHOSUN),
+          publishDateFrom, publishDateTo, ArticleOrderBy.PUBLISH_DATE, ArticleDirection.DESC,
+          intCursor.toString(),
+          after, 10);
+      ArticleCursor intArticleCursor = new ArticleCursor(intCursor, after);
+
+      // when
+      ArticleSearchCondition cond2 = articleMapper.toCondition(request2, intArticleCursor);
+
+      // then
+      assertEquals(request2.cursor(), cond2.cursor().cursor().toString());
+    }
+
+    @Test
+    @DisplayName("조건에 부합하지 않는 기사가 하나도 없을 경우 빈 Page를 반환한다")
+    void shouldReturnEmptyPage_whenNoArticlesMatchCondition() {
+      // given
+      given(newsArticleRepository.searchByCondition(any())).willReturn(List.of());
+
+      // when
+      CursorPageResponseDto<ArticleDto> actual = articleService.getArticleList(requestPublishDate,
+          UUID.randomUUID());
+
+      // then
+      assertThat(actual)
+          .returns(List.of(), CursorPageResponseDto::content)
+          .returns(null, CursorPageResponseDto::nextCursor)
+          .returns(null, CursorPageResponseDto::nextAfter)
+          .returns(0, CursorPageResponseDto::size)
+          .returns(0L, CursorPageResponseDto::totalElements)
+          .returns(false, CursorPageResponseDto::hasNext);
+    }
+
+    @Test
+    @DisplayName("키워드 검색 요청을 받으면 옵션에 맞는 커서 페이지를 반환한다")
+    void shouldReturnCursorPage_whenSearchByKeyword() {
+      // given
+      UUID articleId1 = UUID.randomUUID();
+      UUID articleId2 = UUID.randomUUID();
+      NewsArticle newsArticle1 = NewsArticle.create(naverSource, "link1", "제목1",
+          Instant.now().minus(3, ChronoUnit.DAYS), "요약1");
+      NewsArticle newsArticle2 = NewsArticle.create(naverSource, "link2", "제목2",
+          Instant.now().minus(6, ChronoUnit.DAYS), "요약2");
+      NewsArticle newsArticle3 = NewsArticle.create(naverSource, "link3", "제목3",
+          Instant.now().minus(9, ChronoUnit.DAYS), "요약3");
+      List<NewsArticle> articles = List.of(newsArticle1, newsArticle2, newsArticle3);
+      ReflectionTestUtils.setField(newsArticle1, "id", articleId1);
+      ReflectionTestUtils.setField(newsArticle2, "id", articleId2);
+
+      given(newsArticleRepository.searchByCondition(any())).willReturn(articles);
+      Long totalElements = 3L;
+      given(newsArticleRepository.countByCondition(any())).willReturn(totalElements);
+
+      // 읽은 목록
+      Set<UUID> viewedArticleIds = Set.of(articleId1);
+      given(articleViewRepository.findAllByArticleIdInAndUserId(anyList(), any()))
+          .willReturn(viewedArticleIds);
+      List<ArticleDto> articleDtoList = List.of(
+          articleMapper.toDto(articles.get(0), viewedArticleIds.contains(articleId1)),
+          articleMapper.toDto(articles.get(1), viewedArticleIds.contains(articleId2))
+      );
+
+      // when
+      CursorPageResponseDto<ArticleDto> actual = articleService.getArticleList(requestPublishDate,
+          UUID.randomUUID());
+
+      // then
+      assertThat(actual)
+          .returns(articleDtoList, CursorPageResponseDto::content)
+          .returns(articles.get(1).getPublishedAt() + ", " + articles.get(1).getCreatedAt(),
+              CursorPageResponseDto::nextCursor)
+          .returns(articles.get(1).getCreatedAt(), CursorPageResponseDto::nextAfter)
+          .returns(requestPublishDate.limit(), CursorPageResponseDto::size)
+          .returns(totalElements, CursorPageResponseDto::totalElements)
+          .returns(articles.size() > requestPublishDate.limit(), CursorPageResponseDto::hasNext);
+    }
+
+    @Test
+    @DisplayName("관심사 검색, 기간 검색에 cursor 요청을 함께 받으면 옵션에 맞는 커서 페이지를 반환한다")
+    void shouldReturnCursorPage_whenSearchByInterestAndPeriodWithCursor() {
+      // given
+      UUID articleId1 = UUID.randomUUID();
+      int lastCommentCount = 7;
+      Instant createdAt = Instant.now();
+      NewsArticle newsArticle1 = NewsArticle.create(naverSource, "link1", "제목1",
+          Instant.now().minus(3, ChronoUnit.DAYS), "요약1");
+      NewsArticle newsArticle2 = NewsArticle.create(naverSource, "link2", "제목2",
+          Instant.now().minus(6, ChronoUnit.DAYS), "요약2");
+      List<NewsArticle> articles = List.of(newsArticle1, newsArticle2);
+      ReflectionTestUtils.setField(newsArticle1, "id", articleId1);
+      ReflectionTestUtils.setField(newsArticle1, "commentCount", lastCommentCount);
+      ReflectionTestUtils.setField(newsArticle1, "createdAt", createdAt);
+
+      given(newsArticleRepository.searchByCondition(any())).willReturn(articles);
+      Long totalElements = 2L;
+      given(newsArticleRepository.countByCondition(any())).willReturn(totalElements);
+
+      // 읽은 목록
+      Set<UUID> viewedArticleIds = Set.of(articleId1);
+      given(articleViewRepository.findAllByArticleIdInAndUserId(anyList(), any()))
+          .willReturn(viewedArticleIds);
+      List<ArticleDto> articleDtoList = List.of(
+          articleMapper.toDto(articles.get(0), viewedArticleIds.contains(articleId1))
+      );
+
+      // when
+      CursorPageResponseDto<ArticleDto> actual = articleService.getArticleList(requestCommentCount,
+          UUID.randomUUID());
+
+      // then
+      assertThat(actual)
+          .returns(articleDtoList, CursorPageResponseDto::content)
+          .returns(articles.get(0).getCommentCount() + ", " + articles.get(0).getCreatedAt(),
+              CursorPageResponseDto::nextCursor)
+          .returns(articles.get(0).getCreatedAt(), CursorPageResponseDto::nextAfter)
+          .returns(requestCommentCount.limit(), CursorPageResponseDto::size)
+          .returns(totalElements, CursorPageResponseDto::totalElements)
+          .returns(articles.size() > requestCommentCount.limit(), CursorPageResponseDto::hasNext);
+    }
+
+    @Test
+    @DisplayName("관심사 검색 요청을 받으면 옵션에 맞는 커서 페이지를 반환한다")
+    void shouldReturnCursorPage_whenSearchByInterest() {
+      // given
+      UUID articleId1 = UUID.randomUUID();
+      UUID articleId2 = UUID.randomUUID();
+      int lastViewCount = 7;
+      Instant createdAt = Instant.now();
+      NewsArticle newsArticle1 = NewsArticle.create(naverSource, "link1", "제목1",
+          Instant.now().minus(3, ChronoUnit.DAYS), "요약1");
+      NewsArticle newsArticle2 = NewsArticle.create(naverSource, "link2", "제목2",
+          Instant.now().minus(6, ChronoUnit.DAYS), "요약2");
+      List<NewsArticle> articles = List.of(newsArticle1, newsArticle2);
+      ReflectionTestUtils.setField(newsArticle1, "id", articleId1);
+      ReflectionTestUtils.setField(newsArticle1, "viewCount", lastViewCount);
+      ReflectionTestUtils.setField(newsArticle1, "createdAt", createdAt);
+      ReflectionTestUtils.setField(newsArticle2, "id", articleId2);
+
+      given(newsArticleRepository.searchByCondition(any())).willReturn(articles);
+      Long totalElements = 2L;
+      given(newsArticleRepository.countByCondition(any())).willReturn(totalElements);
+
+      // 읽은 목록
+      Set<UUID> viewedArticleIds = Set.of(articleId1);
+      given(articleViewRepository.findAllByArticleIdInAndUserId(anyList(), any()))
+          .willReturn(viewedArticleIds);
+      List<ArticleDto> articleDtoList = List.of(
+          articleMapper.toDto(articles.get(0), viewedArticleIds.contains(articleId1)),
+          articleMapper.toDto(articles.get(1), viewedArticleIds.contains(articleId2))
+      );
+
+      // when
+      CursorPageResponseDto<ArticleDto> actual = articleService.getArticleList(requestViewCount,
+          UUID.randomUUID());
+
+      // then
+      assertThat(actual)
+          .returns(articleDtoList, CursorPageResponseDto::content)
+          .returns(null, CursorPageResponseDto::nextCursor)
+          .returns(null, CursorPageResponseDto::nextAfter)
+          .returns(articles.size(), CursorPageResponseDto::size)
+          .returns(totalElements, CursorPageResponseDto::totalElements)
+          .returns(articles.size() > requestViewCount.limit(), CursorPageResponseDto::hasNext);
+    }
+
+    @Test
+    @DisplayName("잘못된 커서가 들어오면 예외가 발생한다")
+    void shouldReturnException_whenInvalidCursor() {
+      // given
+      ArticleSearchRequest request1 = new ArticleSearchRequest(null, null, null, null, null,
+          ArticleOrderBy.PUBLISH_DATE, null, "invalid cursor", null, null);
+
+      // when & then
+      assertThrows(BusinessException.class,
+          () -> articleService.getArticleList(request1, UUID.randomUUID()));
+
+      // given
+      ArticleSearchRequest request2 = new ArticleSearchRequest(null, null, null, null, null,
+          ArticleOrderBy.COMMENT_COUNT, null, "invalid cursor2", null, null);
+
+      // when & then
+      assertThrows(BusinessException.class,
+          () -> articleService.getArticleList(request2, UUID.randomUUID()));
+    }
+  }
+}

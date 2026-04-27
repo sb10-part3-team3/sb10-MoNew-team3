@@ -6,6 +6,7 @@ import com.team3.monew.dto.article.ArticleSearchRequest;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.service.ArticleService;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
@@ -25,9 +26,9 @@ public class ArticleController implements ArticleApi {
   @GetMapping
   public ResponseEntity<CursorPageResponseDto<ArticleDto>> getArticleList(
       @ParameterObject @Valid ArticleSearchRequest searchRequest,
-      @RequestHeader(REQUEST_USER_ID_HEADER) String requestUserId
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   ) {
     return ResponseEntity.status(HttpStatus.OK)
-        .body(articleService.getArticleList(searchRequest));
+        .body(articleService.getArticleList(searchRequest, requestUserId));
   }
 }

@@ -1,11 +1,11 @@
 package com.team3.monew.dto.article.internal.enums;
 
-public enum Direction {
+public enum ArticleDirection {
   ASC,
   DESC;
 
-  public static Direction fromValue(String value) {
-    for (Direction direction : Direction.values()) {
+  public static ArticleDirection fromValue(String value) {
+    for (ArticleDirection direction : ArticleDirection.values()) {
       if (direction.name().equalsIgnoreCase(value)) {
         return direction;
       }

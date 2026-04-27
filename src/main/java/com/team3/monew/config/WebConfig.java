@@ -1,7 +1,7 @@
 package com.team3.monew.config;
 
-import com.team3.monew.dto.article.internal.enums.Direction;
-import com.team3.monew.dto.article.internal.enums.OrderBy;
+import com.team3.monew.dto.article.internal.enums.ArticleDirection;
+import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
 import com.team3.monew.exception.article.ArticleRequestInvalidException;
 import org.jspecify.annotations.NonNull;
 import org.springframework.context.annotation.Configuration;
@@ -14,28 +14,30 @@ public class WebConfig implements WebMvcConfigurer {
 
   @Override
   public void addFormatters(FormatterRegistry registry) {
-    registry.addConverter(new StringToOrderByConverter());      // 대소문자 무시하는 Enum 변환자 등록
-    registry.addConverter(new StringToDirectionByConverter());
+    registry.addConverter(new StringToArticleOrderByByConverter());      // 대소문자 무시하는 Enum 변환자 등록
+    registry.addConverter(new StringToArticleDirectionByConverter());
   }
 
-  public static class StringToOrderByConverter implements Converter<String, OrderBy> {
+  public static class StringToArticleOrderByByConverter implements
+      Converter<String, ArticleOrderBy> {
 
     @Override
-    public OrderBy convert(@NonNull String source) {
-      OrderBy orderBy = OrderBy.fromValue(source);
-      if (orderBy == null) {
+    public ArticleOrderBy convert(@NonNull String source) {
+      ArticleOrderBy articleOrderBy = ArticleOrderBy.fromValue(source);
+      if (articleOrderBy == null) {
         throw new ArticleRequestInvalidException();
       }
 
-      return orderBy;
+      return articleOrderBy;
     }
   }
 
-  public static class StringToDirectionByConverter implements Converter<String, Direction> {
+  public static class StringToArticleDirectionByConverter implements
+      Converter<String, ArticleDirection> {
 
     @Override
-    public Direction convert(@NonNull String source) {
-      Direction direction = Direction.fromValue(source);
+    public ArticleDirection convert(@NonNull String source) {
+      ArticleDirection direction = ArticleDirection.fromValue(source);
       if (direction == null) {
         throw new ArticleRequestInvalidException();
       }

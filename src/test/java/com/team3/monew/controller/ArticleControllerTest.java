@@ -54,7 +54,7 @@ class ArticleControllerTest {
       CursorPageResponseDto<ArticleDto> cursorPage = new CursorPageResponseDto<>(
           List.of(articleDto), null, null, 10, 1L, false
       );
-      given(articleService.getArticleList(any())).willReturn(cursorPage);
+      given(articleService.getArticleList(any(), any())).willReturn(cursorPage);
 
       // when & then
       mockMvc.perform(get(ARTICLES_BASE_URL)

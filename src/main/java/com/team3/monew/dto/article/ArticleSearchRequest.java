@@ -1,13 +1,14 @@
 package com.team3.monew.dto.article;
 
-import com.team3.monew.dto.article.internal.enums.Direction;
-import com.team3.monew.dto.article.internal.enums.OrderBy;
+import com.team3.monew.dto.article.internal.enums.ArticleDirection;
+import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
 import com.team3.monew.entity.enums.NewsSourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,18 +23,18 @@ public record ArticleSearchRequest(
     List<NewsSourceType> sourceIn,
 
     @Schema(description = "날짜 시작(범위)")
-    Instant publishDateFrom,
+    LocalDateTime publishDateFrom,
 
     @Schema(description = "날짜 끝(범위)")
-    Instant publishDateTo,
+    LocalDateTime publishDateTo,
 
     @Schema(requiredMode = RequiredMode.REQUIRED, description = "정렬 속성 이름")
     @NotNull
-    OrderBy orderBy,
+    ArticleOrderBy orderBy,
 
     @Schema(requiredMode = RequiredMode.REQUIRED, description = "정렬 방향 (ASC, DESC)")
     @NotNull
-    Direction direction,
+    ArticleDirection direction,
 
     @Schema(description = "커서 값")
     String cursor,
