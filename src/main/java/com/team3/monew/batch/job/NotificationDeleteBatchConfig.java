@@ -2,6 +2,7 @@ package com.team3.monew.batch.job;
 
 import com.team3.monew.entity.Notification;
 import com.team3.monew.repository.NotificationRepository;
+import jakarta.annotation.PostConstruct;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -41,6 +42,16 @@ public class NotificationDeleteBatchConfig {
 
   @Value("${batch.notification.delete.retention-days:7}")
   private int retentionDays;
+
+  @PostConstruct
+  void validatedBatchProperties() {
+    if (batchSize <= 0) {
+      throw new IllegalArgumentException("배치 사이즈는 0보다 커야합니다.");
+    }
+    if (retentionDays <= 0) {
+      throw new IllegalArgumentException("삭제 주기는 0보다 커야힙니다.");
+    }
+  }
 
   @Bean
   public Job notificationDeleteBatchJob() {
