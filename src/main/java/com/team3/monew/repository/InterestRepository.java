@@ -29,10 +29,10 @@ public interface InterestRepository extends JpaRepository<Interest, UUID>,
 
   // 구독 이벤트 발생 시 keyword까지 불러오기 위한 조회 메서드
   @Query("""
-    select i
+    select distinct i
     from Interest i
     left join fetch i.keywords
     where i.id = :interestId
 """)
-  Optional<Interest> findByIdWithKeywords(UUID interestId);
+  Optional<Interest> findByIdWithKeywords(@Param("interestId") UUID interestId);
 }
