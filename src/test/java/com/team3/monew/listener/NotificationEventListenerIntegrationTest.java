@@ -52,6 +52,9 @@ public class NotificationEventListenerIntegrationTest {
   @Autowired
   private TransactionTemplate transactionTemplate;
 
+  @MockitoBean
+  private UserActivityEventListener userActivityEventListener;
+
   @Test
   @DisplayName("좋아요 이벤트를 발행하고 호출부에서 커밋이 이뤄지면 알림 리스너가 이를 수신한다.")
   void shouldCatchCommentLikedEvent_whenCommentLikedEventIsPublishedAndCommitted() {
