@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.JobScope;
 import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
@@ -20,6 +21,7 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JpaCursorItemReader;
 import org.springframework.batch.item.database.builder.JpaCursorItemReaderBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,10 +35,9 @@ public class NotificationDeleteBatchConfig {
   private final JobRepository jobRepository;
   private final PlatformTransactionManager platformTransactionManager;
   private final NotificationRepository notificationRepository;
-  private final EntityManagerFactory entityManagerFactory;
 
-  @Value("${batch.notification.delete.chunk-size:100}")
-  private int chunkSize;
+  @Value("${batch.notification.delete.batch-size:100}")
+  private int batchSize;
 
   @Value("${batch.notification.delete.retention-days:7}")
   private int retentionDays;
@@ -44,45 +45,34 @@ public class NotificationDeleteBatchConfig {
   @Bean
   public Job notificationDeleteBatchJob() {
     return new JobBuilder("notificationDeleteBatchJob", jobRepository)
-        .start(deleteNotificationsStep())
+        .start(deleteNotificationsStep(null))
         .build();
   }
 
   @Bean
-  public Step deleteNotificationsStep() {
-    return new StepBuilder("deleteNotificationsStep", jobRepository)
-        .<Notification, Notification>chunk(chunkSize, platformTransactionManager)
-        .reader(confirmedNotificationReader(null))
-        .writer(confirmedNotificationWriter())
-        .build();
-  }
-
-  // 읽기
-  @Bean
-  @StepScope //날짜 재설정
-  public JpaCursorItemReader<Notification> confirmedNotificationReader(
+  @JobScope
+  public Step deleteNotificationsStep(
       @Value("#{jobParameters['runTime']}") LocalDateTime runTime) {
-    // 직접 날짜를 지정하여 삭제할 수도 있기때문에
-    LocalDateTime baseTime = (runTime != null) ? runTime : LocalDateTime.now();
-
-    Instant targetDate = baseTime.atZone(ZoneId.systemDefault())
+    // 타겟 날짜 고정
+    Instant targetDate = (runTime != null ? runTime : LocalDateTime.now())
+        .atZone(ZoneId.systemDefault())
         .toInstant()
         .minus(retentionDays, ChronoUnit.DAYS);
 
-    return new JpaCursorItemReaderBuilder<Notification>()
-        .name("confirmedNotificationReader")
-        .entityManagerFactory(entityManagerFactory)
-        .queryString(
-            "select n from Notification n where n.isConfirmed = true and n.confirmedAt <= :targetDate order by n.confirmedAt asc, n.id desc")
-        .parameterValues(Map.of("targetDate", targetDate)) // 값 매핑
+    return new StepBuilder("deleteNotificationsStep", jobRepository)
+        .tasklet((contribution, chunkContext) -> {
+
+          int deletedCount = notificationRepository.deleteOldConfirmedNotifications(targetDate,
+              batchSize);
+          log.info("알림 배치 삭제: {}건 삭제", deletedCount);
+
+          if (deletedCount > 0) {//0건 삭제 시까지 반복 삭제
+            return RepeatStatus.CONTINUABLE;
+          } else {
+            return RepeatStatus.FINISHED;
+          }
+        }, platformTransactionManager)
         .build();
   }
 
-  @Bean
-  public ItemWriter<Notification> confirmedNotificationWriter() {
-    return chunks -> {
-      log.info("알림 삭제: 삭제 건수={}", chunks.size());
-      notificationRepository.deleteAllInBatch(new ArrayList<>(chunks.getItems()));
-    };
-  }
 }
