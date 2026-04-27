@@ -11,12 +11,18 @@ import java.util.function.Function;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Getter
 @Document(collection = "user_activities")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserActivityDocument {
+
+  // 낙관적 락을 위한 버전 필드
+  // MongoDB가 자동으로 체크
+  @Version
+  private Long version;
 
   @Id
   private UUID id;
