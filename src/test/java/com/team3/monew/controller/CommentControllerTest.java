@@ -9,10 +9,13 @@ import com.team3.monew.dto.comment.CursorPageResponseCommentDto;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.comment.DeletedCommentException;
 import com.team3.monew.exception.comment.UnauthorizedCommentUpdateException;
+import com.team3.monew.global.enums.ErrorCode;
+import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.CommentService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -414,7 +417,7 @@ class CommentControllerTest {
 
   @Nested
   @DisplayName("댓글 조회 API를 검증한다.")
-  class FindAllComment {
+  class FindComments {
 
     @Test
     @DisplayName("유효한 요청을 받으면 댓글 목록 페이지를 반환한다.")
@@ -447,16 +450,17 @@ class CommentControllerTest {
       );
       CursorPageResponseCommentDto response = new CursorPageResponseCommentDto(
           List.of(firstComment, secondComment),
-          "2026-04-17T00:00:02Z",
+          "2026-04-17T00:00:02Z|" + secondCommentId,
           Instant.parse("2026-04-17T00:00:02Z"),
           2,
           3L,
           true
       );
 
-      given(commentService.findAll(
+      given(commentService.findComments(
           articleId,
           "createdAt",
+          "DESC",
           null,
           null,
           limit,
@@ -468,19 +472,28 @@ class CommentControllerTest {
               .header(REQUEST_USER_ID_HEADER, userId)
               .param("articleId", articleId.toString())
               .param("orderBy", "createdAt")
+              .param("direction", "DESC")
               .param("limit", String.valueOf(limit)))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.content[0].id").value(firstCommentId.toString()))
           .andExpect(jsonPath("$.content[0].likedByMe").value(false))
           .andExpect(jsonPath("$.content[1].id").value(secondCommentId.toString()))
           .andExpect(jsonPath("$.content[1].likedByMe").value(true))
-          .andExpect(jsonPath("$.nextCursor").value("2026-04-17T00:00:02Z"))
+          .andExpect(jsonPath("$.nextCursor").value("2026-04-17T00:00:02Z|" + secondCommentId))
           .andExpect(jsonPath("$.nextAfter").value("2026-04-17T00:00:02Z"))
           .andExpect(jsonPath("$.size").value(2))
           .andExpect(jsonPath("$.totalElements").value(3))
           .andExpect(jsonPath("$.hasNext").value(true));
 
-      then(commentService).should().findAll(articleId, "createdAt", null, null, limit, userId);
+      then(commentService).should().findComments(
+          articleId,
+          "createdAt",
+          "DESC",
+          null,
+          null,
+          limit,
+          userId
+      );
       then(commentService).shouldHaveNoMoreInteractions();
     }
 
@@ -494,6 +507,7 @@ class CommentControllerTest {
       mockMvc.perform(get("/api/comments")
               .param("articleId", articleId.toString())
               .param("orderBy", "createdAt")
+              .param("direction", "DESC")
               .param("limit", "10"))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
@@ -501,6 +515,49 @@ class CommentControllerTest {
           .andExpect(jsonPath("$.details.header").value(REQUEST_USER_ID_HEADER));
 
       then(commentService).shouldHaveNoInteractions();
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 기사면 댓글 조회에 실패하고 400 Bad Request로 응답한다.")
+    void shouldReturnBadRequest_whenArticleDoesNotExist() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(commentService.findComments(
+          articleId,
+          "createdAt",
+          "DESC",
+          null,
+          null,
+          10,
+          userId
+      )).willThrow(new BusinessException(
+          ErrorCode.INVALID_INPUT_VALUE,
+          Map.of("articleId", articleId.toString())
+      ));
+
+      // when & then
+      mockMvc.perform(get("/api/comments")
+              .header(REQUEST_USER_ID_HEADER, userId)
+              .param("articleId", articleId.toString())
+              .param("orderBy", "createdAt")
+              .param("direction", "DESC")
+              .param("limit", "10"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("INVALID_INPUT_VALUE"))
+          .andExpect(jsonPath("$.status").value(400))
+          .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
+
+      then(commentService).should().findComments(
+          articleId,
+          "createdAt",
+          "DESC",
+          null,
+          null,
+          10,
+          userId
+      );
+      then(commentService).shouldHaveNoMoreInteractions();
     }
 
   }

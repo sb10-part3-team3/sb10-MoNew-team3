@@ -1,5 +1,6 @@
 package com.team3.monew.dto.comment;
 
+import com.team3.monew.entity.Comment;
 import java.util.UUID;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -10,7 +11,7 @@ public record CommentRegisterRequest(
         UUID articleId,
         @NotNull
         UUID userId,
-        @NotBlank @Size(min = 1, max = 500)
+        @NotBlank @Size(min = 1, max = Comment.MAX_CONTENT_LENGTH)
         String content
 ) {
 }
