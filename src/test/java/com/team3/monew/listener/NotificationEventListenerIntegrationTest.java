@@ -52,11 +52,14 @@ public class NotificationEventListenerIntegrationTest {
   @Autowired
   private TransactionTemplate transactionTemplate;
 
+  @MockitoBean
+  private UserActivityEventListener userActivityEventListener;
+
   @Test
   @DisplayName("좋아요 이벤트를 발행하고 호출부에서 커밋이 이뤄지면 알림 리스너가 이를 수신한다.")
   void shouldCatchCommentLikedEvent_whenCommentLikedEventIsPublishedAndCommitted() {
     // given
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
 
     // when
     // 트랜잭션 종료 및 커밋
@@ -74,7 +77,7 @@ public class NotificationEventListenerIntegrationTest {
   @DisplayName("좋아요 이벤트를 발행해도 호출부에서 커밋이 이뤄지지 않으면 알림 리스너가 이를 수신하지 않는다.")
   void shouldNotCatchCommentLikedEvent_whenCommentLikedEventIsPublishedButNotCommitted() {
     // given
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
 
     // when
     // 커밋 안됨
@@ -91,7 +94,7 @@ public class NotificationEventListenerIntegrationTest {
   @DisplayName("좋아요 이벤트를 발행하고 호출부에서 커밋이 이뤄지면 알림 리스너가 이를 수신하여 서비스를 호출한다.")
   void shouldCatchCommentLikedEventAndCallRegisterLikeNotificationMethod_whenCommentLikedEventIsPublishedAndCommitted() {
     // given
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
 
     // when
     // 트랜잭션 종료 및 커밋
@@ -122,7 +125,7 @@ public class NotificationEventListenerIntegrationTest {
     }).given(notificationService)
         .registerLikeNotification(any(CommentLikedNotificationRequest.class));
 
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
 
     // when
     transactionTemplate.execute(status -> {

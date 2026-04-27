@@ -9,6 +9,7 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
@@ -23,6 +24,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,7 @@ public class InterestService {
   private final SubscriptionRepository subscriptionRepository;
   private final InterestMapper interestMapper;
   private final UserRepository userRepository;
+  private final ApplicationEventPublisher eventPublisher;
 
   public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
@@ -227,9 +230,11 @@ public class InterestService {
       Subscription savedSubscription = subscriptionRepository.save(subscription);
 
       interestRepository.increaseSubscriberCount(interestId);
-      Interest updatedInterest = findInterestOrElseThrow(interestId);
+      Interest updatedInterest = findInterestWithKeywordsOrElseThrow(interestId);
 
-      log.info("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
+      log.debug("관심사 구독 성공 - userId={}, interestId={}", userId, interestId);
+      // 구독 이벤트 발행
+      eventPublisher.publishEvent(SubscriptionEvent.from(savedSubscription, updatedInterest));
       return interestMapper.toSubscriptionDto(savedSubscription, updatedInterest);
     } catch (DataIntegrityViolationException e) {
       if (isDuplicateSubscriptionViolation(e)) {
@@ -256,6 +261,11 @@ public class InterestService {
 
   private Interest findInterestOrElseThrow(UUID interestId) {
     return interestRepository.findById(interestId)
+        .orElseThrow(InterestNotFoundException::new);
+  }
+
+  private Interest findInterestWithKeywordsOrElseThrow(UUID interestId) {
+    return interestRepository.findByIdWithKeywords(interestId)
         .orElseThrow(InterestNotFoundException::new);
   }
 

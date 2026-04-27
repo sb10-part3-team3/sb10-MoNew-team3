@@ -50,4 +50,10 @@ public class Interest extends BaseEntity {
       addKeyword(keyword);
     }
   }
+
+  public List<String> getStringKeywords() {
+    return this.keywords.stream()
+        .map(InterestKeyword::getKeyword)
+        .toList();
+  }
 }

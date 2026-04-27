@@ -33,6 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -62,6 +63,9 @@ class InterestServiceTest {
 
   @Mock
   private InterestMapper interestMapper;
+
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private InterestService interestService;
@@ -485,6 +489,7 @@ class InterestServiceTest {
 
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
+    given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
     given(subscriptionRepository.save(any(Subscription.class))).willReturn(savedSubscription);
     given(interestMapper.toSubscriptionDto(savedSubscription, interest)).willReturn(response);
@@ -498,7 +503,8 @@ class InterestServiceTest {
     assertThat(result.interestSubscriberCount()).isEqualTo(1);
 
     then(userRepository).should().findById(userId);
-    then(interestRepository).should(times(2)).findById(interestId);
+    then(interestRepository).should(times(1)).findById(interestId);
+    then(interestRepository).should(times(1)).findByIdWithKeywords(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
     then(subscriptionRepository).should().save(any(Subscription.class));
     then(interestMapper).should().toSubscriptionDto(savedSubscription, interest);

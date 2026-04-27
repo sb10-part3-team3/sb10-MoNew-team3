@@ -77,7 +77,7 @@ class NotificationEventListenerTest {
     UUID commentId = UUID.randomUUID();
     CommentLikedNotificationRequest request = new CommentLikedNotificationRequest(actorUserId,
         commentId);
-    CommentLikedEvent event = new CommentLikedEvent(actorUserId, commentId);
+    CommentLikedEvent event = CommentLikedEvent.of(actorUserId, commentId);
 
     // when
     notificationEventListener.handleCommentLikedEvent(event);
@@ -91,7 +91,7 @@ class NotificationEventListenerTest {
   @DisplayName("알림 등록 중 댓글 예외가 발생하면 리스너가 처리하고 예외를 외부로 전파하지 않는다.")
   void shouldCatchAndHandleCommentNotFoundsException_whenServiceThrowsIt() {
     // given
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
 
     // 서비스에서 댓글을 찾지 못함
     willThrow(new CommentNotFoundException(UUID.randomUUID()))
@@ -107,7 +107,7 @@ class NotificationEventListenerTest {
   @DisplayName("알림 등록 중 사용자 예외가 발생하면 리스너가 처리하고 예외를 외부로 전파하지 않는다.")
   void shouldCatchAndHandleUserNotFoundsException_whenServiceThrowsIt() {
     // given
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
 
     // 서비스에서 댓글을 찾지 못함
     willThrow(new UserNotFoundException(UUID.randomUUID()))
@@ -123,7 +123,7 @@ class NotificationEventListenerTest {
   @DisplayName("알림 등록 중 커스텀 예외 외의 예외가 발생하면 리스너는 외부로 전파한다.")
   void shouldThrowsException_whenServiceThrowsIt() {
     // given
-    CommentLikedEvent event = new CommentLikedEvent(UUID.randomUUID(), UUID.randomUUID());
+    CommentLikedEvent event = CommentLikedEvent.of(UUID.randomUUID(), UUID.randomUUID());
     willThrow(new RuntimeException("예상치 못한 예외"))
         .given(notificationService).registerLikeNotification(any());
 

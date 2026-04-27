@@ -19,6 +19,8 @@ public enum ErrorCode {
 
   USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),
   USER_DELETED(HttpStatus.BAD_REQUEST, "삭제된 사용자입니다."),
+  USER_ACTIVITY_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 사용자의 활동 내역을 찾을 수 없습니다."),
+  USER_ACTIVITY_CONFLICT(HttpStatus.CONFLICT, "동시 요청으로 인한 충돌이 반복되었습니다. 잠시 후 다시 시도해주세요."),
 
   // INTEREST EXCEPTION
   INTEREST_NAME_DUPLICATE(HttpStatus.CONFLICT, "중복된 관심사 이름입니다."),
