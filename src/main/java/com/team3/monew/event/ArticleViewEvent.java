@@ -21,7 +21,7 @@ public record ArticleViewEvent(
     return new ArticleViewEvent(
         articleView.getId(),
         articleView.getUser().getId(),
-        articleView.getArticle().getCreatedAt(),
+        articleView.getLastViewedAt(),
         articleView.getArticle().getId(),
         articleView.getArticle().getSource().getName(),
         articleView.getArticle().getOriginalLink(),
