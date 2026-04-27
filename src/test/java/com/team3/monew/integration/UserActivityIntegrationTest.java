@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.team3.monew.document.UserActivityDocument;
 import com.team3.monew.repository.UserActivityRepository;
+import com.team3.monew.support.IntegrationTestSupport;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Tag("integration")
-class UserActivityIntegrationTest {
+class UserActivityIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private MockMvc mockMvc;
