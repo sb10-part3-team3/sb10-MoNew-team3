@@ -31,6 +31,7 @@ import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.NotificationRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.NotificationService;
+import com.team3.monew.support.IntegrationTestSupport;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -55,7 +56,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-public class NotificationIntegrationTest {
+public class NotificationIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private NotificationService notificationService;

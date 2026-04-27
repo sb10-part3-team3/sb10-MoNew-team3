@@ -11,6 +11,7 @@ import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.service.NewsCollectService;
+import com.team3.monew.support.IntegrationTestSupport;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,7 +30,7 @@ import reactor.test.StepVerifier;
 @ActiveProfiles("test")
 @Tag("external-api")
 @TestPropertySource(locations = "file:.env")
-class NewsCollectIntegrationTest {
+class NewsCollectIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private InterestKeywordRepository interestKeywordRepository;
@@ -58,7 +59,6 @@ class NewsCollectIntegrationTest {
     Interest apple = Interest.create("애플");
     interestRepository.save(apple);
     InterestKeyword keyword3 = InterestKeyword.create(apple, "아이폰");
-
 
     List<InterestKeyword> interestKeywordList = List.of(keyword, keyword2, keyword3);
     interestKeywordRepository.saveAll(interestKeywordList);
@@ -91,8 +91,10 @@ class NewsCollectIntegrationTest {
         .filteredOn(na -> na.getSource().getSourceType() == NewsSourceType.NAVER)
         .hasSizeGreaterThanOrEqualTo(100)
         .allSatisfy(article -> {
-          boolean inTitle = keywords.stream().anyMatch(keyword -> article.getTitle().contains(keyword));
-          boolean inSummary = keywords.stream().anyMatch(keyword -> article.getSummary().contains(keyword));
+          boolean inTitle = keywords.stream()
+              .anyMatch(keyword -> article.getTitle().contains(keyword));
+          boolean inSummary = keywords.stream()
+              .anyMatch(keyword -> article.getSummary().contains(keyword));
 
           assertThat(inTitle || inSummary)
               .as("기사의 제목이나 내용 중에 해당하는 키워드가 없습니다")
