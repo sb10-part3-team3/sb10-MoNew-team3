@@ -12,6 +12,7 @@ import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.UserRegisteredEvent;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.exception.user.InvalidNicknameException;
@@ -30,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Tag("unit")
@@ -42,6 +44,8 @@ class UserServiceTest {
   private UserMapper userMapper;
   @Mock
   private PasswordEncoder passwordEncoder;
+  @Mock
+  private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
   private UserService userService;
@@ -61,6 +65,7 @@ class UserServiceTest {
     verify(userRepository, never()).save(any());
     verify(userMapper, never()).toEntity(any());
     verify(passwordEncoder, never()).encode(any());
+    verify(eventPublisher, never()).publishEvent(any());
   }
 
   @Test
@@ -96,6 +101,7 @@ class UserServiceTest {
 
     verify(userMapper).toDto(savedUser);
     verify(passwordEncoder).encode("password1");
+    verify(eventPublisher).publishEvent(any(UserRegisteredEvent.class));
   }
 
   @Test

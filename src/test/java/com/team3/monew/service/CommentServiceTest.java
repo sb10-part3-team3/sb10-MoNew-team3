@@ -670,7 +670,7 @@ class CommentServiceTest {
             CommentLike savedLike = createCommentLike(comment, liker);
             CommentLikeDto expected = commentLikeDto(savedLike, 1L);
 
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentRepository.findByIdWithArticleAndUser(commentId)).willReturn(Optional.of(comment));
             given(userRepository.findById(requestUserId)).willReturn(Optional.of(liker));
             given(commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId))
                     .willReturn(false);
@@ -685,7 +685,7 @@ class CommentServiceTest {
             then(commentLikeRepository).should().save(argThat(commentLike ->
                     commentLike.getComment() == comment && commentLike.getUser() == liker
             ));
-            then(eventPublisher).should().publishEvent(new CommentLikedEvent(requestUserId, commentId));
+            then(eventPublisher).should().publishEvent(CommentLikedEvent.from(savedLike));
         }
 
         @Test
@@ -697,7 +697,7 @@ class CommentServiceTest {
             CommentLike savedLike = createCommentLike(comment, user);
             CommentLikeDto expected = commentLikeDto(savedLike, 1L);
 
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentRepository.findByIdWithArticleAndUser(commentId)).willReturn(Optional.of(comment));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
             given(commentLikeRepository.existsByCommentIdAndUserId(commentId, userId))
                     .willReturn(false);
@@ -721,7 +721,7 @@ class CommentServiceTest {
             Comment comment = createComment(content, "2026-04-17T00:00:01Z", 1);
             assignId(comment, commentId);
 
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentRepository.findByIdWithArticleAndUser(commentId)).willReturn(Optional.of(comment));
             given(userRepository.findById(requestUserId)).willReturn(Optional.of(liker));
             given(commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId))
                     .willReturn(true);
@@ -740,7 +740,7 @@ class CommentServiceTest {
         @DisplayName("존재하지 않는 댓글에 좋아요를 누르면 댓글 없음 예외가 발생한다.")
         void shouldThrowCommentNotFoundException_whenLikeCommentDoesNotExist() {
             // given
-            given(commentRepository.findById(commentId)).willReturn(Optional.empty());
+            given(commentRepository.findByIdWithArticleAndUser(commentId)).willReturn(Optional.empty());
 
             // when & then
             assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
@@ -758,7 +758,7 @@ class CommentServiceTest {
             Comment comment = createComment(content, "2026-04-17T00:00:01Z", 0);
             assignId(comment, commentId);
             markDeleted(comment);
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentRepository.findByIdWithArticleAndUser(commentId)).willReturn(Optional.of(comment));
 
             // when & then
             assertThatThrownBy(() -> commentService.likeComment(commentId, requestUserId))
@@ -778,7 +778,7 @@ class CommentServiceTest {
             Comment comment = createComment(content, "2026-04-17T00:00:01Z", 0);
             assignId(comment, commentId);
 
-            given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+            given(commentRepository.findByIdWithArticleAndUser(commentId)).willReturn(Optional.of(comment));
             given(userRepository.findById(requestUserId)).willReturn(Optional.of(liker));
 
             // when & then

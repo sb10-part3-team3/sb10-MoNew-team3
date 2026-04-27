@@ -5,6 +5,7 @@ import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.UserRegisteredEvent;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.exception.user.UserNotFoundException;
@@ -14,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
+  private final ApplicationEventPublisher applicationEventPublisher;
 
   @Transactional
   public UserDto registerUser(UserRegisterRequest userRegisterRequest) {
@@ -43,6 +46,9 @@ public class UserService {
     try {
       User savedUser = userRepository.save(user);
       log.debug("사용자 등록 성공: userId={}, email={}", savedUser.getId(), savedUser.getEmail());
+
+      // 사용자 등록 이벤트 발행
+      applicationEventPublisher.publishEvent(UserRegisteredEvent.from(savedUser));
       return userMapper.toDto(savedUser);
     } catch (DataIntegrityViolationException e) {
       throw new DuplicateEmailException();

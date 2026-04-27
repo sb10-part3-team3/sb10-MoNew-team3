@@ -10,6 +10,7 @@ import com.team3.monew.entity.CommentLike;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
@@ -97,6 +98,8 @@ public class CommentService {
 
     log.info("Comment registered: commentId={}, articleId={}, userId={}",
         savedComment.getId(), request.articleId(), request.userId());
+    // 댓글 등록 이벤트 발행
+    eventPublisher.publishEvent(CommentRegisteredEvent.from(savedComment));
     return commentMapper.toDto(savedComment, false);
   }
 
@@ -186,7 +189,7 @@ public class CommentService {
   public CommentLikeDto likeComment(UUID commentId, UUID requestUserId) {
     log.debug("Like comment request: commentId={}, requestUserId={}", commentId, requestUserId);
 
-    Comment comment = findActiveComment(commentId);
+    Comment comment = findActiveCommentWithArticleAndUser(commentId);
     User user = findActiveUser(requestUserId);
 
     if (commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId)) {
@@ -199,7 +202,7 @@ public class CommentService {
     comment.increaseLikeCount();
 
     if (!comment.getUser().getId().equals(requestUserId)) {
-      eventPublisher.publishEvent(new CommentLikedEvent(requestUserId, commentId));
+      eventPublisher.publishEvent(CommentLikedEvent.from(savedCommentLike));
       log.debug("Comment liked event published: commentId={}, requestUserId={}",
           commentId, requestUserId);
     }
@@ -447,6 +450,18 @@ public class CommentService {
       throw new DeletedCommentException(commentId);
     }
 
+    return comment;
+  }
+
+  // event 객체 매핑을 위해 연관된 객체 같이 조회
+  private Comment findActiveCommentWithArticleAndUser(UUID commentId) {
+    // event 객체 매핑을 위해 연관된 객체 같이 조회
+    Comment comment = commentRepository.findByIdWithArticleAndUser(commentId)
+        .orElseThrow(() -> new CommentNotFoundException(commentId));
+
+    if (comment.isDeleted()) {
+      throw new DeletedCommentException(commentId);
+    }
     return comment;
   }
 
