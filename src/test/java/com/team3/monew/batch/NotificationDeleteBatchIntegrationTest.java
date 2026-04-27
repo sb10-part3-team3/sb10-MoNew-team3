@@ -29,7 +29,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @SpringBatchTest
 @SpringBootTest
 @Sql(scripts = "classpath:org/springframework/batch/core/schema-postgresql.sql",
-    executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+    executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 public class NotificationDeleteBatchIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
@@ -104,6 +104,14 @@ public class NotificationDeleteBatchIntegrationTest extends IntegrationTestSuppo
     // 최근 확인 1개, 미확인 1개 = 2개
     List<Notification> remainings = notificationRepository.findAll();
     assertThat(remainings).hasSize(2);
+
+    List<UUID> remainingIds = remainings.stream()
+        .map(Notification::getId)
+        .toList();
+
+    assertThat(remainingIds)
+        .containsExactlyInAnyOrder(notification3.getId(), notification4.getId())
+        .doesNotContain(notification1.getId(), notification2.getId());
   }
 
 }
