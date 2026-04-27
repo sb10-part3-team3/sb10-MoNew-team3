@@ -23,6 +23,7 @@ import com.team3.monew.repository.UserRepository;
 import jakarta.persistence.criteria.CriteriaBuilder.In;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -40,6 +41,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
@@ -349,9 +351,6 @@ class InterestServiceTest {
     given(interestRepository.searchByCondition(condition)).willReturn(result);
     given(interestRepository.countByCondition(condition)).willReturn(3L);
 
-    given(subscriptionRepository.existsByUserIdAndInterestId(any(), any()))
-        .willReturn(false);
-
     given(interestMapper.toDto(any(), anyBoolean()))
         .willAnswer(invocation ->
             new InterestDto(
@@ -397,9 +396,6 @@ class InterestServiceTest {
     given(interestRepository.searchByCondition(condition)).willReturn(result);
     given(interestRepository.countByCondition(condition)).willReturn(2L);
 
-    given(subscriptionRepository.existsByUserIdAndInterestId(any(), any()))
-        .willReturn(false);
-
     given(interestMapper.toDto(any(), anyBoolean()))
         .willReturn(new InterestDto(UUID.randomUUID(), "dummy", List.of(), 0, false));
 
@@ -440,8 +436,10 @@ class InterestServiceTest {
   void shouldSubscribedByMeIsTrue_whenSubscribing() {
     // given
     UUID userId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
 
     Interest interest = createInterest("economy");
+    ReflectionTestUtils.setField(interest, "id", interestId);
 
     InterestSearchCondition condition = new InterestSearchCondition(
         null, "name", "DESC", new InterestCursor(null, null), 10
@@ -450,15 +448,15 @@ class InterestServiceTest {
     given(interestRepository.searchByCondition(condition)).willReturn(List.of(interest));
     given(interestRepository.countByCondition(condition)).willReturn(1L);
 
-    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interest.getId()))
-        .willReturn(true);
+    given(subscriptionRepository.findSubscribedInterestIds(eq(userId), eq(List.of(interestId))))
+        .willReturn(Set.of(interestId));
 
-    given(interestMapper.toDto(any(), eq(true)))
-        .willReturn(new InterestDto(interest.getId(), "economy", List.of(), 0, true));
+    given(interestMapper.toDto(eq(interest), eq(true)))
+        .willReturn(new InterestDto(interestId, "economy", List.of(), 0, true));
 
     // when
-    CursorPageResponseDto<InterestDto> response
-        = interestService.findAll(condition, userId);
+    CursorPageResponseDto<InterestDto> response =
+        interestService.findAll(condition, userId);
 
     // then
     assertThat(response.content().get(0).subscribedByMe()).isTrue();
