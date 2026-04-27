@@ -371,4 +371,25 @@ class InterestRepositoryTest {
     // then
     assertThat(count).isEqualTo(3);
   }
+
+  @Test
+  @DisplayName("구독 취소 시 구독자 수는 음수가 되지 않는다")
+  void shouldNotDecreaseSubscriberCountBelowZero() {
+    // given
+    Interest interest = interestRepository.save(Interest.create("주식"));
+
+    em.flush();
+    em.clear();
+
+    // when
+    int updatedCount = interestRepository.decreaseSubscriberCount(interest.getId());
+
+    em.flush();
+    em.clear();
+
+    // then
+    assertThat(updatedCount).isEqualTo(0);
+    Interest foundInterest = interestRepository.findById(interest.getId()).orElseThrow();
+    assertThat(foundInterest.getSubscriberCount()).isEqualTo(0);
+  }
 }

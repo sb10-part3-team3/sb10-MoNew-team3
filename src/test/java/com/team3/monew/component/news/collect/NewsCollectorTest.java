@@ -2,6 +2,7 @@ package com.team3.monew.component.news.collect;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -12,7 +13,6 @@ import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.news.NewsIllegalBeanException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,7 @@ class NewsCollectorTest {
 
     // when, then
     assertThatThrownBy(() ->
-        newsCollector.collectRawNews(NewsSourceType.NAVER, Set.of("애플")))
+        newsCollector.collectRawNews(NewsSourceType.NAVER, List.of()))
         .isInstanceOf(NewsIllegalBeanException.class);
   }
 
@@ -54,10 +54,11 @@ class NewsCollectorTest {
     given(newsCollect.get(anyString())).willReturn(naverNewsCollect);
 
     ParsedData parsedData = new ParsedData(null, null, 1, List.of());
-    given(naverNewsCollect.collect(any(), any(), any())).willReturn(Flux.just(parsedData));
+    given(naverNewsCollect.collect(any(), any(), anyList())).willReturn(
+        Flux.just(parsedData));
 
     // when, then
-    StepVerifier.create(newsCollector.collectRawNews(NewsSourceType.NAVER, Set.of("애플")))
+    StepVerifier.create(newsCollector.collectRawNews(NewsSourceType.NAVER, List.of()))
         .expectNext(parsedData)
         .verifyComplete();
     then(naverNewsCollect).should().collect(any(), eq(NewsSourceType.NAVER), any());

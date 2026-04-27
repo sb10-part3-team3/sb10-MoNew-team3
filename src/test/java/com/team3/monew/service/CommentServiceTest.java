@@ -884,20 +884,36 @@ class CommentServiceTest {
         given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
         PageRequest pageable = PageRequest.of(0, limit + 1);
         if ("likeCount".equals(orderBy)) {
-            given(commentRepository.findActiveCommentsByLikeCountDesc(
-                    articleId,
-                    cursorLikeCount(cursor),
-                    likeCountCursorCreatedAt(cursor, after),
-                    cursorId(cursor),
-                    pageable
-            )).willReturn(comments);
+            if (cursorLikeCount(cursor) == null
+                    || likeCountCursorCreatedAt(cursor, after) == null
+                    || cursorId(cursor) == null) {
+                given(commentRepository.findFirstActiveCommentsByLikeCountDesc(
+                        articleId,
+                        pageable
+                )).willReturn(comments);
+            } else {
+                given(commentRepository.findActiveCommentsByLikeCountDesc(
+                        articleId,
+                        cursorLikeCount(cursor),
+                        likeCountCursorCreatedAt(cursor, after),
+                        cursorId(cursor),
+                        pageable
+                )).willReturn(comments);
+            }
         } else {
-            given(commentRepository.findActiveCommentsByCreatedAtDesc(
-                    articleId,
-                    createdAtCursor(cursor),
-                    cursorId(cursor),
-                    pageable
-            )).willReturn(comments);
+            if (createdAtCursor(cursor) == null || cursorId(cursor) == null) {
+                given(commentRepository.findFirstActiveCommentsByCreatedAtDesc(
+                        articleId,
+                        pageable
+                )).willReturn(comments);
+            } else {
+                given(commentRepository.findActiveCommentsByCreatedAtDesc(
+                        articleId,
+                        createdAtCursor(cursor),
+                        cursorId(cursor),
+                        pageable
+                )).willReturn(comments);
+            }
         }
         given(commentRepository.countActiveComments(articleId)).willReturn(totalElements);
     }

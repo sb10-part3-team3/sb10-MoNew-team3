@@ -23,6 +23,7 @@ public interface InterestRepository extends JpaRepository<Interest, UUID>,
       update Interest i
       set i.subscriberCount = i.subscriberCount - 1
       where i.id = :interestId
+        and i.subscriberCount > 0
       """)
   int decreaseSubscriberCount(@Param("interestId") UUID interestId);
 }

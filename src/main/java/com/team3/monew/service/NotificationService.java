@@ -121,9 +121,7 @@ public class NotificationService {
 
   public void confirm(UUID requestUserId, UUID notificationId) {
     log.debug("개별 알림 확인 시작: userId={}, notificationId={}", requestUserId, notificationId);
-    if (!userRepository.existsById(requestUserId)) {
-      throw new UserNotFoundException(requestUserId);
-    }
+    checkUserAvailable(requestUserId);
     log.debug("개별 알림 확인에서 사용자 유효성 확인 완료: userId={}, notificationId={}", requestUserId,
         notificationId);
     Notification notification = notificationRepository.findById(notificationId)
@@ -136,11 +134,25 @@ public class NotificationService {
     log.info("개별 알림 확인 요청 성공: userId={}, notificationId={}", requestUserId, notificationId);
   }
 
+  public void confirmAll(UUID requestUserId) {
+    log.debug("전체 알림 확인 시작: userId={}", requestUserId);
+    checkUserAvailable(requestUserId);
+    int count = notificationRepository.confirmAllByUserId(requestUserId, Instant.now());
+    log.info("전체 알림 확인 성공: userId={}, updatedNotificationsCount={}", requestUserId, count);
+  }
+
   private String generateCommentLikedContent(String actorUserNickname) {
     return actorUserNickname + "님이 나의 댓글을 좋아합니다.";
   }
 
   private String generateInterestNotificationContent(String interestName, Integer articleCount) {
     return interestName + "와 관련된 기사가 " + articleCount + "건 등록되었습니다.";
+  }
+
+  private void checkUserAvailable(UUID requestUserId) {
+    if (!userRepository.existsById(requestUserId)) {
+      throw new UserNotFoundException(requestUserId);
+    }
+    log.debug("유효한 사용자 검증 완료");
   }
 }

@@ -9,6 +9,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 
 import com.team3.monew.dto.notification.CommentLikedNotificationRequest;
 import com.team3.monew.dto.notification.InterestNotificationRequest;
@@ -486,5 +487,37 @@ class NotificationServiceTest {
     assertTrue(likeNotification1.isConfirmed());
     assertEquals(likeNotification1.getConfirmedAt(),
         Instant.parse("2026-03-01T12:00:00Z"));//기존 확인 시간과 동일
+  }
+
+  @Test
+  @DisplayName("사용자 아이디가 존재하지 않을 때 전체 알림 확인 상태 변경에 실패한다.")
+  void shouldFailToConfirmAllNotifications_whenUserNotFound() {
+    // given
+    given(userRepository.existsById(userId1))
+        .willReturn(false);
+
+    // when & then
+    assertThrows(UserNotFoundException.class, () -> {
+      notificationService.confirmAll(userId1);
+    });
+    then(notificationRepository).should(never())
+        .confirmAllByUserId(eq(userId1), any(Instant.class));
+  }
+
+  @Test
+  @DisplayName("유효한 사용자 아이디로 전체 미확인 알림의 확인 상태 변경에 성공한다.")
+  void shouldConfirmAllNotifications() {
+    // given
+    given(userRepository.existsById(userId1)).willReturn(true);
+    given(notificationRepository.confirmAllByUserId(eq(userId1), any(Instant.class)))
+        .willReturn(4);//4개 알림 확인 상태로 변경
+
+    // when
+    notificationService.confirmAll(userId1);
+
+    //then
+    then(userRepository).should(times(1)).existsById(userId1);
+    then(notificationRepository).should(times(1))
+        .confirmAllByUserId(eq(userId1), any(Instant.class));
   }
 }

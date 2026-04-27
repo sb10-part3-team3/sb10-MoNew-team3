@@ -1,7 +1,6 @@
 package com.team3.monew.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.timeout;
@@ -58,15 +57,18 @@ class NewsCollectServiceTest {
   List<InterestKeyword> interestKeywords;
   List<NewsSource> newsSources;
 
+  private Interest samsungInterest;
+  private Interest appleInterest;
+
   @BeforeEach
   void setUp() {
-    Interest interest1 = Interest.create("애플");
-    Interest interest2 = Interest.create("삼성");
+    appleInterest = Interest.create("애플");
+    samsungInterest = Interest.create("삼성");
 
     interestKeywords = List.of(
-        InterestKeyword.create(interest1, "메모리"),
-        InterestKeyword.create(interest2, "메모리"),
-        InterestKeyword.create(interest2, "화성공장")
+        InterestKeyword.create(appleInterest, "메모리"),
+        InterestKeyword.create(samsungInterest, "메모리"),
+        InterestKeyword.create(samsungInterest, "화성공장")
     );
 
     NewsSource naver = NewsSource.create("NAVER", NewsSourceType.NAVER, "baseUrl1");
@@ -78,30 +80,30 @@ class NewsCollectServiceTest {
   @DisplayName("동일한 링크 기사가 여러 Source에서 수집되면, 네이버 기사를 최우선으로 남긴다")
   void shouldKeepNaverArticle_whenMultipleSourcesProvideSameLink() {
     // given
-    given(interestKeywordRepository.findAll()).willReturn(interestKeywords);
+    given(interestKeywordRepository.findAllWithInterest()).willReturn(interestKeywords);
     given(newsClients.values()).willReturn(List.of(naverNewsClient, chosunNewsClient));
     given(newsClients.size()).willReturn(2);
 
     String commonLink = "commonLink";
     List<ParsedNewsArticle> naverList = List.of(
         new ParsedNewsArticle(NewsSourceType.NAVER, commonLink, "제목1", Instant.now(), null,
-            List.of("메모리"))
+            List.of(InterestKeyword.create(samsungInterest, "메모리")))
     );
-    given(naverNewsClient.fetchAndProcess(anySet())).willReturn(Mono.just(naverList));
+    given(naverNewsClient.fetchAndProcess(interestKeywords)).willReturn(Mono.just(naverList));
     List<ParsedNewsArticle> chosunList = List.of(
         new ParsedNewsArticle(NewsSourceType.CHOSUN, commonLink, "제목1", Instant.now(), null,
-            List.of("메모리")),
+            List.of(InterestKeyword.create(samsungInterest, "메모리"))),
         new ParsedNewsArticle(NewsSourceType.CHOSUN, "another Link2", "제목2", Instant.now(), null,
-            List.of("화성공장"))
+            List.of(InterestKeyword.create(appleInterest, "메모리")))
     );
-    given(chosunNewsClient.fetchAndProcess(anySet())).willReturn(Mono.just(chosunList));
+    given(chosunNewsClient.fetchAndProcess(interestKeywords)).willReturn(Mono.just(chosunList));
 
     // when
     newsCollectService.scheduleNewsJob();
 
     // then
     // 비동기 테스트 타이밍 문제로 1초 유예기간 부여
-    then(newsSaveService).should(timeout(1000)).save(listCaptor.capture());
+    then(newsSaveService).should(timeout(1000)).saveAndNotify(listCaptor.capture());
     List<ParsedNewsArticle> deduplicatedLink = listCaptor.getValue();
     assertThat(deduplicatedLink)
         .hasSize(2)

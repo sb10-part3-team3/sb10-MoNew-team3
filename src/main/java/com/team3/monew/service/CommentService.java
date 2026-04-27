@@ -289,15 +289,31 @@ public class CommentService {
     );
   }
 
-  // 정렬 조건에 맞는 댓글 목록 쿼리를 선택한다.
+  // 정렬 조건에 맞는 댓글 목록 조회 쿼리를 선택한다.
   private List<Comment> findCommentPage(CommentSearchCondition condition) {
     Pageable pageable = PageRequest.of(0, condition.limit() + 1);
 
     if (condition.orderBy() == CommentOrderBy.CREATED_AT) {
+      if (condition.cursor().createdAt() == null || condition.cursor().id() == null) {
+        return commentRepository.findFirstActiveCommentsByCreatedAtDesc(
+            condition.articleId(),
+            pageable
+        );
+      }
+
       return commentRepository.findActiveCommentsByCreatedAtDesc(
           condition.articleId(),
           condition.cursor().createdAt(),
           condition.cursor().id(),
+          pageable
+      );
+    }
+
+    if (condition.cursor().likeCount() == null
+        || condition.cursor().createdAt() == null
+        || condition.cursor().id() == null) {
+      return commentRepository.findFirstActiveCommentsByLikeCountDesc(
+          condition.articleId(),
           pageable
       );
     }
@@ -337,7 +353,7 @@ public class CommentService {
     );
   }
 
-  // 요청 사용자 기준 likedByMe 값을 계산해 댓글 DTO로 변환한다.
+  // 요청 사용자를 기준으로 likedByMe 값을 계산해 댓글 DTO로 변환한다.
   private List<CommentDto> toCommentDtos(List<Comment> comments, UUID requestUserId) {
     List<UUID> commentIds = comments.stream()
         .map(Comment::getId)
@@ -386,12 +402,12 @@ public class CommentService {
     );
   }
 
-  // 등록 시 사용할 활성 기사인지 확인한다.
+  // 등록 대상 기사가 활성 상태인지 확인한다.
   private NewsArticle findActiveArticle(UUID articleId) {
     return findArticle(articleId, () -> new ArticleNotFoundException(articleId));
   }
 
-  // 조회 시 읽을 수 있는 기사인지 확인한다.
+  // 조회 대상 기사가 읽을 수 있는 상태인지 확인한다.
   private NewsArticle findReadableArticle(UUID articleId) {
     return findArticle(articleId, () -> invalidInput("articleId", articleId));
   }
@@ -440,7 +456,7 @@ public class CommentService {
         .orElseThrow(() -> new CommentNotFoundException(commentId));
   }
 
-  // 요청 사용자와 댓글 작성자가 같은지 확인한다.
+  // 요청 사용자가 댓글 작성자인지 확인한다.
   private void validateCommentAuthor(
       Comment comment,
       UUID requestUserId,
@@ -508,7 +524,7 @@ public class CommentService {
     }
   }
 
-  // 而ㅼ꽌 臾몄옄???꽌 UUID瑜??뚯꽍?쒕떎.
+  // 문자열 UUID를 UUID 객체로 변환한다.
   private UUID parseUuid(String value, String field) {
     if (value == null || value.isBlank()) {
       return null;
@@ -521,7 +537,7 @@ public class CommentService {
     }
   }
 
-  // 醫뗭븘?????뺣젹 而ㅼ꽌?먯꽌 createdAt 媛믪쓣 怨좉━?쒕떎.
+  // 좋아요순 커서에서 createdAt 값을 보정해 반환한다.
   private String resolveLikeCountCursorCreatedAt(String[] cursorValues, Instant after) {
     String cursorCreatedAt = cursorValue(cursorValues, 1);
 
@@ -540,7 +556,7 @@ public class CommentService {
     return after == null ? null : after.toString();
   }
 
-  // 공통 입력값 오류 예외를 만든다.
+  // 공통 입력값 오류 예외를 생성한다.
   private BusinessException invalidInput(String field, Object value) {
     return new BusinessException(
         ErrorCode.INVALID_INPUT_VALUE,

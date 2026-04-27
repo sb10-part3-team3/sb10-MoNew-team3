@@ -15,11 +15,13 @@ import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
 import com.team3.monew.exception.user.UserNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.repository.InterestKeywordRepository;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.InterestService;
+import com.team3.monew.support.IntegrationTestSupport;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.util.Map;
@@ -41,7 +43,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 @Transactional
 @Tag("integration")
-public class InterestServiceIntegrationTest {
+public class InterestServiceIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
   private InterestService interestService;
@@ -686,5 +688,70 @@ public class InterestServiceIntegrationTest {
     Interest foundInterest = interestRepository.findById(interest.getId()).orElseThrow();
     assertThat(foundInterest.getSubscriberCount()).isEqualTo(1);
     assertThat(subscriptionRepository.findAll()).hasSize(1);
+  }
+
+  @Test
+  @DisplayName("관심사 구독을 취소하면 구독 정보가 삭제되고 구독자 수가 감소한다")
+  void shouldCancelSubscriber() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+
+    Interest interest = interestRepository.save(Interest.create("주식"));
+
+    Subscription subscription = subscriptionRepository.save(
+        Subscription.create(user, interest)
+    );
+
+    interestRepository.increaseSubscriberCount(interest.getId());
+
+    entityManager.flush();
+    entityManager.clear();
+
+    // when
+    interestService.cancelSubscribe(user.getId(), interest.getId());
+
+    entityManager.flush();
+    entityManager.clear();
+
+    // then
+    assertThat(subscriptionRepository.findById(subscription.getId())).isEmpty();
+    assertThat(subscriptionRepository.findByUserIdAndInterestId(
+        user.getId(), interest.getId()
+    )).isEmpty();
+
+    Interest foundInterest = interestRepository.findById(interest.getId())
+        .orElseThrow();
+    assertThat(foundInterest.getSubscriberCount()).isEqualTo(0);
+  }
+
+  @Test
+  @DisplayName("구독하지 않은 관심사는 구독 취소할 수 없다")
+  void shouldFailToCancelSubscribe_whenNotSubscribing() {
+    // given
+    User user = userRepository.save(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+
+    Interest interest = interestRepository.save(
+        Interest.create("주식")
+    );
+
+    entityManager.flush();
+    entityManager.clear();
+
+    // when & then
+    assertThatThrownBy(() -> interestService.cancelSubscribe(user.getId(), interest.getId()))
+        .isInstanceOf(InterestException.class)
+        .extracting("errorCode")
+        .isEqualTo(ErrorCode.INTEREST_NOT_SUBSCRIBING);
+
+    assertThat(subscriptionRepository.findByUserIdAndInterestId(user.getId(), interest.getId()))
+        .isEmpty();
+
+    Interest foundInterest = interestRepository.findById(interest.getId())
+        .orElseThrow();
+    assertThat(foundInterest.getSubscriberCount()).isEqualTo(0);
   }
 }
