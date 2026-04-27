@@ -47,7 +47,7 @@ public class NotificationDeleteScheduleConfigTest {
   }
 
   @Test
-  @DisplayName("배치 상태가 COMPLETED가 아닐 경우 에러 로그가 남아야 한다. (로직 실행 확인)")
+  @DisplayName("배치 상태가 FAILED일 경우에도 스케줄러가 정상적으로 실행을 완료한다.")
   void runDeleteNotifications_WhenStatusNotCompleted() throws Exception {
     // given
     JobExecution failedExecution = new JobExecution(1L);
@@ -61,6 +61,5 @@ public class NotificationDeleteScheduleConfigTest {
 
     // then
     then(jobLauncher).should().run(eq(notificationDeleteBatchJob), any(JobParameters.class));
-    assertThat(failedExecution.getStatus()).isEqualTo(BatchStatus.FAILED);
   }
 }

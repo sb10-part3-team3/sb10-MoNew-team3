@@ -18,7 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 public class NotificationDeleteScheduleConfig {
 
   private final JobLauncher jobLauncher;
-  private final Job notificationDeleteBatchJob;//자동으로 이름 같은거 가져옴
+  private final Job notificationDeleteBatchJob;// Bean 이름으로 자동 주입
 
   @Scheduled(cron = "${batch.notification.delete.cron:0 0 3 * * *}")
   public void runDeleteNotifications() {
@@ -32,7 +32,7 @@ public class NotificationDeleteScheduleConfig {
       if (execution.getStatus() == BatchStatus.COMPLETED) {
         log.info("알림 삭제 배치 스케줄러 완료");
       } else {
-        log.error("알림 삭제 배치 스케줄러 오류 발생");
+        log.error("알림 삭제 배치 스케줄러 오류 발생: 샹태={}", execution.getStatus());
       }
     } catch (Exception e) {
       log.error("알림 삭제 스케줄러 실행 실패", e);

@@ -71,9 +71,9 @@ public class NotificationDeleteBatchIntegrationTest extends IntegrationTestSuppo
         UUID.randomUUID(), null);
 
     int oldDay = retentionDays + 3;
-    int resentDay = retentionDays - 1;
+    int recentDay = retentionDays - 1;
     Instant oldDate = Instant.now().minus(oldDay, ChronoUnit.DAYS); // 삭제 날보다 더 오래 전
-    Instant recentDate = Instant.now().minus(resentDay, ChronoUnit.DAYS); // 삭제 기준 일보다 최신
+    Instant recentDate = Instant.now().minus(recentDay, ChronoUnit.DAYS); // 삭제 기준 일보다 최신
 
     //예전에 확인2, 최근 확인1, 미확인1
     ReflectionTestUtils.setField(notification1, "isConfirmed", true);
