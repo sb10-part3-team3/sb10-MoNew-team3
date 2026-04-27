@@ -11,6 +11,9 @@ spring:
   sql:
     init:
       mode: never
+  batch:
+    job:
+      enabled: false
 
 logging:
   level:
