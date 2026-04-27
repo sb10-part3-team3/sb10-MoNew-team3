@@ -159,7 +159,7 @@ public class InterestService {
     );
   }
 
-  public InterestDto updateKeyword(UUID userId, UUID interestId, InterestUpdateRequest dto) {
+  public InterestDto updateKeyword(UUID interestId, InterestUpdateRequest dto) {
     log.debug("관심사 키워드 수정 요청 - interestId={}, keywordCount={}",
         interestId, dto.keywords() == null ? 0 : dto.keywords().size());
 
@@ -195,9 +195,6 @@ public class InterestService {
       throw new InterestException(ErrorCode.INTEREST_KEYWORD_DUPLICATED);
     }
 
-    boolean subscribedByMe =
-        subscriptionRepository.existsByUserIdAndInterestId(userId, interestId);
-
     // 기존 키워드와 dto의 키워드중 중복되는게 있을 경우 지워지지 않는 경우를 대비
     interest.getKeywords().clear();
     interestRepository.flush();
@@ -205,9 +202,9 @@ public class InterestService {
     interest.updateKeywords(keywords);
 
     log.info("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
-        interestId, keywords.size(), subscribedByMe);
+        interestId, keywords.size(), null);
 
-    return interestMapper.toDto(interest, subscribedByMe);
+    return interestMapper.toDto(interest, null);
   }
 
   public void deleteInterest(UUID interestId) {

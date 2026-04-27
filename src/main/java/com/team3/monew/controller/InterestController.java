@@ -36,11 +36,10 @@ public class InterestController implements InterestApi {
 
   @Override
   public ResponseEntity<InterestDto> update(
-      UUID userId,
       UUID interestId,
       @Valid @RequestBody InterestUpdateRequest dto
   ) {
-    InterestDto response = interestService.updateKeyword(userId, interestId, dto);
+    InterestDto response = interestService.updateKeyword(interestId, dto);
 
     return ResponseEntity.ok(response);
   }

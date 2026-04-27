@@ -99,11 +99,6 @@ public interface InterestApi {
   })
   @PatchMapping("/{interestId}")
   ResponseEntity<InterestDto> update(
-      @Parameter(
-          description = "요청 사용자 ID",
-          required = true
-      )
-      @RequestHeader("Monew-Request-User-Id") UUID userId,
       @PathVariable UUID interestId,
       @RequestBody @Valid InterestUpdateRequest dto
   );

@@ -169,11 +169,10 @@ class InterestServiceTest {
     );
 
     given(interestRepository.findById(interestId)).willReturn((Optional.of(interest)));
-    given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(true);
-    given(interestMapper.toDto(interest, true)).willReturn(response);
+    given(interestMapper.toDto(interest, null)).willReturn(response);
 
     // when
-    InterestDto result = interestService.updateKeyword(userId, interestId, request);
+    InterestDto result = interestService.updateKeyword(interestId, request);
 
     // then
     assertThat(result.name()).isEqualTo("주식");
@@ -185,15 +184,13 @@ class InterestServiceTest {
         .containsExactly("수정", "키워드수정");
 
     then(interestRepository).should().findById(interestId);
-    then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
-    then(interestMapper).should().toDto(interest, true);
+    then(interestMapper).should().toDto(interest, null);
   }
 
   @Test
   @DisplayName("존재하지 않는 관심사는 키워드를 수정할 수 없다")
   void shouldFailToUpdateKeyword_whenInterestNotFound() {
     // given
-    UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
     InterestUpdateRequest request = new InterestUpdateRequest(
@@ -203,7 +200,7 @@ class InterestServiceTest {
     given(interestRepository.findById(interestId)).willReturn(java.util.Optional.empty());
 
     // when & then
-    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+    assertThatThrownBy(() -> interestService.updateKeyword(interestId, request))
         .isInstanceOf(InterestNotFoundException.class);
 
     then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
@@ -214,7 +211,6 @@ class InterestServiceTest {
   @DisplayName("키워드 목록이 null이면 관심사 키워드 수정에 실패한다")
   void shouldFailToUpdateKeyword_whenKeywordsIsNull() {
     // given
-    UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
     InterestUpdateRequest request = new InterestUpdateRequest(null);
@@ -225,7 +221,7 @@ class InterestServiceTest {
     given(interestRepository.findById(interestId)).willReturn(java.util.Optional.of(interest));
 
     // when & then
-    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+    assertThatThrownBy(() -> interestService.updateKeyword(interestId, request))
         .isInstanceOf(InterestException.class);
 
     then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
@@ -236,7 +232,6 @@ class InterestServiceTest {
   @DisplayName("키워드 목록이 비어 있으면 관심사 키워드 수정에 실패한다")
   void shouldFailToUpdateKeyword_whenKeywordsIsEmpty() {
     // given
-    UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
     InterestUpdateRequest request = new InterestUpdateRequest(List.of());
@@ -247,7 +242,7 @@ class InterestServiceTest {
     given(interestRepository.findById(interestId)).willReturn(java.util.Optional.of(interest));
 
     // when & then
-    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+    assertThatThrownBy(() -> interestService.updateKeyword(interestId, request))
         .isInstanceOf(InterestException.class);
 
     then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
@@ -258,7 +253,6 @@ class InterestServiceTest {
   @DisplayName("공백 문자열이 포함된 키워드가 있으면 관심사 키워드 수정에 실패한다")
   void shouldFailToUpdateKeyword_whenKeywordContainsBlank() {
     // given
-    UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
     InterestUpdateRequest request = new InterestUpdateRequest(
@@ -271,7 +265,7 @@ class InterestServiceTest {
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
 
     // when & then
-    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+    assertThatThrownBy(() -> interestService.updateKeyword(interestId, request))
         .isInstanceOf(InterestException.class);
 
     then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
@@ -282,7 +276,6 @@ class InterestServiceTest {
   @DisplayName("중복된 키워드가 있으면 관심사 키워드 수정에 실패한다")
   void shouldFailToUpdateKeyword_whenKeywordsDuplicated() {
     // given
-    UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
     InterestUpdateRequest request = new InterestUpdateRequest(
@@ -295,7 +288,7 @@ class InterestServiceTest {
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
 
     // when & then
-    assertThatThrownBy(() -> interestService.updateKeyword(userId, interestId, request))
+    assertThatThrownBy(() -> interestService.updateKeyword(interestId, request))
         .isInstanceOf(InterestException.class);
 
     then(subscriptionRepository).should(never()).existsByUserIdAndInterestId(any(), any());
