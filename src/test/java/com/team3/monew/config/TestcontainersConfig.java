@@ -4,6 +4,7 @@ import java.time.Duration;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @TestConfiguration(proxyBeanMethods = false)
@@ -13,14 +14,24 @@ public class TestcontainersConfig {
       "postgres:15-alpine")
       .withStartupTimeout(Duration.ofSeconds(120));
 
+  private static final MongoDBContainer mongodb = new MongoDBContainer("mongo:6.0")
+      .withStartupTimeout(Duration.ofSeconds(120));
+
   // 컨테이너 한 개만
   static {
     postgres.start();
+    mongodb.start();
   }
 
   @Bean
   @ServiceConnection
   public PostgreSQLContainer<?> postgresContainer() {
     return postgres;
+  }
+
+  @Bean
+  @ServiceConnection
+  public MongoDBContainer mongodbContainer() {
+    return mongodb;
   }
 }
