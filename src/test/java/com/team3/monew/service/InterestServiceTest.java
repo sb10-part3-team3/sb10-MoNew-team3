@@ -20,7 +20,6 @@ import com.team3.monew.mapper.InterestMapper;
 import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
-import jakarta.persistence.criteria.CriteriaBuilder.In;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
