@@ -21,6 +21,7 @@ import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
@@ -130,11 +131,16 @@ public class InterestService {
       nextAfter = last.getCreatedAt();
     }
 
+    List<UUID> interestIds = content.stream()
+        .map(Interest::getId)
+        .toList();
+
+    Set<UUID> subscribedInterestIds =
+        subscriptionRepository.findSubscribedInterestIds(userId, interestIds);
+
     List<InterestDto> dtoList = content.stream()
         .map(interest -> {
-          // N+1 문제 발생 가능성 있지만 추후 성능 개선 시 수정 예정
-          boolean subscribedByMe =
-              subscriptionRepository.existsByUserIdAndInterestId(userId, interest.getId());
+          boolean subscribedByMe = subscribedInterestIds.contains(interest.getId());
           return interestMapper.toDto(interest, subscribedByMe);
         })
         .toList();
