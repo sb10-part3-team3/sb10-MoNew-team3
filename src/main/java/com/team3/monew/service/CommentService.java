@@ -10,8 +10,11 @@ import com.team3.monew.entity.CommentLike;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.event.CommentDeletedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentLikedEvent;
+import com.team3.monew.event.CommentUnlikedEvent;
+import com.team3.monew.event.CommentUpdatedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentException;
@@ -112,6 +115,13 @@ public class CommentService {
 
     comment.updateContent(request.content());
     log.info("Comment updated: commentId={}, requestUserId={}", commentId, requestUserId);
+    eventPublisher.publishEvent(
+        new CommentUpdatedEvent(
+            comment.getId(),
+            comment.getUser().getId(),
+            comment.getContent()
+        )
+    );
     return commentMapper.toDto(comment, false);
   }
 
@@ -123,6 +133,7 @@ public class CommentService {
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
     log.info("Comment deleted: commentId={}", commentId);
+    eventPublisher.publishEvent(new CommentDeletedEvent(comment.getId(), comment.getUser().getId()));
   }
 
   @Transactional
@@ -142,6 +153,7 @@ public class CommentService {
     );
     commentRepository.delete(comment);
     log.info("Comment hard deleted: commentId={}", commentId);
+    eventPublisher.publishEvent(new CommentDeletedEvent(comment.getId(), comment.getUser().getId()));
   }
 
   public CursorPageResponseCommentDto findComments(
@@ -226,6 +238,7 @@ public class CommentService {
     comment.decreaseLikeCount();
     commentLikeRepository.delete(commentLike);
     log.info("Comment unliked: commentId={}, requestUserId={}", commentId, requestUserId);
+    eventPublisher.publishEvent(new CommentUnlikedEvent(commentLike.getId(), requestUserId));
   }
 
   // 조회 파라미터를 검증하고 내부 검색 조건으로 변환한다.

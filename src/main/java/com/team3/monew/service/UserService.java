@@ -6,6 +6,7 @@ import com.team3.monew.dto.user.UserDto;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
 import com.team3.monew.event.UserRegisteredEvent;
+import com.team3.monew.event.UserUpdatedEvent;
 import com.team3.monew.exception.user.AuthException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.exception.user.UserNotFoundException;
@@ -81,6 +82,9 @@ public class UserService {
     User updatedUser = userRepository.save(findUser);
 
     log.debug("사용자 수정 성공: targetUserId={}, newNickname={},", userId, updatedUser.getNickname());
+    applicationEventPublisher.publishEvent(
+        new UserUpdatedEvent(updatedUser.getId(), updatedUser.getNickname())
+    );
     return userMapper.toDto(updatedUser);
   }
 
