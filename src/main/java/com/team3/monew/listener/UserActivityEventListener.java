@@ -8,6 +8,7 @@ import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.event.CommentUpdatedEvent;
 import com.team3.monew.event.InterestDeletedEvent;
+import com.team3.monew.event.InterestKeywordUpdatedEvent;
 import com.team3.monew.event.SubscriptionCanceledEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.event.UserDeletedEvent;
@@ -199,6 +200,17 @@ public class UserActivityEventListener {
     userActivityService.removeAllSubscriptionSummaryByInterest(event.interestId());
   }
 
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {TransientDataAccessException.class, CannotAcquireLockException.class},
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleInterestKeywordUpdatedEvent(InterestKeywordUpdatedEvent event) {
+    userActivityService.updateSubscriptionsByKeywords(event.interestId(), event.keywords());
+  }
+
   @Recover
   public void recover(Exception e, UserRegisteredEvent event) {
     log.error("사용자 활동 내역 UserRegistered Event 처리 실패: userId={}", event.userId(), e);
@@ -233,5 +245,11 @@ public class UserActivityEventListener {
   public void recover(Exception e, CommentUpdatedEvent event) {
     log.error("사용자 활동 내역 CommentUpdated Event 처리 실패: userId={} commentId={}",
         event.userId(), event.commentId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, InterestKeywordUpdatedEvent event) {
+    log.error("사용자 활동 내역 InterestKeywordUpdated Event 처리 실패: interestId={} keywords={}",
+        event.interestId(), event.keywords(), e);
   }
 }

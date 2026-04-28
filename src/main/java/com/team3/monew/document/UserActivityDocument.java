@@ -137,6 +137,20 @@ public class UserActivityDocument {
     subscriptions.removeIf(subscription -> Objects.equals(subscription.interestId(), interestId));
   }
 
+  public void updateKeywords(UUID interestId, List<String> keywords) {
+    subscriptions = subscriptions.stream()
+        .map(subscription -> subscription.interestId().equals(interestId)
+            ? new SubscriptionSummary(
+            subscription.id(),
+            subscription.interestId(),
+            subscription.interestName(),
+            keywords,
+            subscription.interestSubscriberCount(),
+            subscription.createdAt()
+            ) : subscription
+        ).toList();
+  }
+
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
     // 중복 제거
     items.removeIf(item -> Objects.equals(idExtractor.apply(item), idExtractor.apply(newItem)));

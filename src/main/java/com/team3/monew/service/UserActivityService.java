@@ -8,10 +8,13 @@ import com.team3.monew.document.UserActivityDocument;
 import com.team3.monew.document.UserActivityRequest;
 import com.team3.monew.dto.useractivity.UserActivityDto;
 import com.team3.monew.exception.useractivity.UserActivityConflictException;
+import com.team3.monew.exception.useractivity.UserActivityException;
 import com.team3.monew.exception.useractivity.UserActivityNotFoundException;
+import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.repository.UserActivityRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -193,6 +196,17 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 관심사 삭제에 따른 구독 삭제 성공: interestId={}",interestId);
   }
 
+  public void updateSubscriptionsByKeywords(UUID interestId, List<String> keywords) {
+    log.debug("사용자 활동 내역 관심사 키워드 업데이트 시작: interestId={}",interestId);
+    List<UserActivityDocument> userActivityDocuments =
+        userActivityRepository.findAllBySubscriptionsInterestId(interestId);
+    userActivityDocuments.forEach(userActivityDocument -> {
+      userActivityDocument.updateKeywords(interestId, keywords);
+      userActivityRepository.save(userActivityDocument);
+    });
+    log.debug("사용자 활동 내역 관심사 키워드 업데이트 성공: interestId={}",interestId);
+  }
+
   @Recover
   public void recoverUpdateSubscriptionSummary(
       OptimisticLockingFailureException e,
@@ -261,5 +275,16 @@ public class UserActivityService {
   ) {
     log.error("댓글 수정 활동 내역 업데이트 최종 실패: userId={}, commentId={}", userId, commentId, e);
     throw new UserActivityConflictException(userId);
+  }
+
+  @Recover
+  public void recoverUpdateSubscriptionsByKeywords(
+      OptimisticLockingFailureException e,
+      UUID interestId,
+      List<String> keywords
+  ) {
+    log.error("댓글 수정 활동 내역 업데이트 최종 실패: interestId={}, keywords={}", interestId, keywords, e);
+    throw new UserActivityException(ErrorCode.USER_ACTIVITY_CONFLICT,
+        Map.of("interestId", interestId, "keywords", keywords));
   }
 }

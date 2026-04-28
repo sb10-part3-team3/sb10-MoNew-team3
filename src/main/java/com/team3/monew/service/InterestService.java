@@ -10,6 +10,7 @@ import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
 import com.team3.monew.event.InterestDeletedEvent;
+import com.team3.monew.event.InterestKeywordUpdatedEvent;
 import com.team3.monew.event.SubscriptionCanceledEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
@@ -206,6 +207,7 @@ public class InterestService {
     log.info("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
         interestId, keywords.size(), null);
 
+    eventPublisher.publishEvent(new InterestKeywordUpdatedEvent(interestId, keywords));
     return interestMapper.toDto(interest, null);
   }
 
