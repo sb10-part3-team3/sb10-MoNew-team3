@@ -4,7 +4,7 @@ import com.team3.monew.dto.article.ArticleViewDto;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
-import com.team3.monew.service.ArticleService;
+import com.team3.monew.service.ArticleViewService;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -24,9 +24,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Tag("unit")
-@WebMvcTest(ArticleController.class)
+@WebMvcTest(ArticleViewController.class)
 @Import(GlobalExceptionHandler.class)
-class ArticleControllerTest {
+class ArticleViewControllerTest {
 
   private static final String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";
 
@@ -34,7 +34,7 @@ class ArticleControllerTest {
   private MockMvc mockMvc;
 
   @MockitoBean
-  private ArticleService articleService;
+  private ArticleViewService articleViewService;
 
   @Nested
   @DisplayName("기사 뷰 등록 API를 검증한다")
@@ -63,7 +63,7 @@ class ArticleControllerTest {
           11L
       );
 
-      given(articleService.registerArticleView(articleId, requestUserId)).willReturn(response);
+      given(articleViewService.registerArticleView(articleId, requestUserId)).willReturn(response);
 
       // when & then
       mockMvc.perform(post("/api/articles/{articleId}/article-views", articleId)
@@ -81,8 +81,8 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.articleCommentCount").value(3))
           .andExpect(jsonPath("$.articleViewCount").value(11));
 
-      then(articleService).should().registerArticleView(articleId, requestUserId);
-      then(articleService).shouldHaveNoMoreInteractions();
+      then(articleViewService).should().registerArticleView(articleId, requestUserId);
+      then(articleViewService).shouldHaveNoMoreInteractions();
     }
 
     @Test
@@ -98,7 +98,7 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.status").value(400))
           .andExpect(jsonPath("$.details.header").value(REQUEST_USER_ID_HEADER));
 
-      then(articleService).shouldHaveNoInteractions();
+      then(articleViewService).shouldHaveNoInteractions();
     }
 
     @Test
@@ -107,7 +107,7 @@ class ArticleControllerTest {
       // given
       UUID articleId = UUID.randomUUID();
       UUID requestUserId = UUID.randomUUID();
-      given(articleService.registerArticleView(articleId, requestUserId))
+      given(articleViewService.registerArticleView(articleId, requestUserId))
           .willThrow(new ArticleNotFoundException(articleId));
 
       // when & then
@@ -118,8 +118,8 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.status").value(404))
           .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
 
-      then(articleService).should().registerArticleView(articleId, requestUserId);
-      then(articleService).shouldHaveNoMoreInteractions();
+      then(articleViewService).should().registerArticleView(articleId, requestUserId);
+      then(articleViewService).shouldHaveNoMoreInteractions();
     }
 
     @Test
@@ -128,7 +128,7 @@ class ArticleControllerTest {
       // given
       UUID articleId = UUID.randomUUID();
       UUID requestUserId = UUID.randomUUID();
-      given(articleService.registerArticleView(articleId, requestUserId))
+      given(articleViewService.registerArticleView(articleId, requestUserId))
           .willThrow(new DeletedArticleException(articleId));
 
       // when & then
@@ -139,8 +139,8 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.status").value(400))
           .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
 
-      then(articleService).should().registerArticleView(articleId, requestUserId);
-      then(articleService).shouldHaveNoMoreInteractions();
+      then(articleViewService).should().registerArticleView(articleId, requestUserId);
+      then(articleViewService).shouldHaveNoMoreInteractions();
     }
   }
 }

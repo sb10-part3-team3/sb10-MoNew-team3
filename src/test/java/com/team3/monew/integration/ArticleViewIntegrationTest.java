@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @Transactional
 @Tag("integration")
-class ArticleIntegrationTest extends IntegrationTestSupport {
+class ArticleViewIntegrationTest extends IntegrationTestSupport {
 
   private static final String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";
 

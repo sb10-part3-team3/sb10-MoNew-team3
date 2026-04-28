@@ -9,7 +9,7 @@ import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
-import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.mapper.ArticleViewMapper;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
@@ -24,12 +24,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class ArticleService {
+public class ArticleViewService {
 
   private final NewsArticleRepository newsArticleRepository;
   private final UserRepository userRepository;
   private final ArticleViewRepository articleViewRepository;
-  private final ArticleMapper articleMapper;
+  private final ArticleViewMapper articleViewMapper;
   private final ApplicationEventPublisher eventPublisher;
 
   @Transactional
@@ -54,7 +54,7 @@ public class ArticleService {
     log.info("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
         articleId, requestUserId, articleView.getId());
 
-    return articleMapper.toArticleViewDto(articleView);
+    return articleViewMapper.toArticleViewDto(articleView);
   }
   
   // 조회 가능한 기사만 반환한다.

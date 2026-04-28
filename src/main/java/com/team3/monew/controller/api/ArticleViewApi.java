@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @Tag(name = "기사 관리", description = "기사 관리 API")
-public interface ArticleApi {
+public interface ArticleViewApi {
 
   String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";
 

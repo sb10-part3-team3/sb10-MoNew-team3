@@ -1,8 +1,8 @@
 package com.team3.monew.controller;
 
-import com.team3.monew.controller.api.ArticleApi;
+import com.team3.monew.controller.api.ArticleViewApi;
 import com.team3.monew.dto.article.ArticleViewDto;
-import com.team3.monew.service.ArticleService;
+import com.team3.monew.service.ArticleViewService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,15 +15,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/articles")
-public class ArticleController implements ArticleApi {
+public class ArticleViewController implements ArticleViewApi {
 
-  private final ArticleService articleService;
+  private final ArticleViewService articleViewService;
 
   @PostMapping("/{articleId}/article-views")
   public ResponseEntity<ArticleViewDto> registerArticleView(
       @PathVariable("articleId") UUID articleId,
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   ) {
-    return ResponseEntity.ok(articleService.registerArticleView(articleId, requestUserId));
+    return ResponseEntity.ok(articleViewService.registerArticleView(articleId, requestUserId));
   }
 }

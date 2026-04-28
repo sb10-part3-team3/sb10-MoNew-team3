@@ -12,7 +12,7 @@ import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.UserNotFoundException;
-import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.mapper.ArticleViewMapper;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.never;
 
 @Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class ArticleServiceTest {
+class ArticleViewServiceTest {
 
   @Mock
   private NewsArticleRepository newsArticleRepository;
@@ -53,13 +53,13 @@ class ArticleServiceTest {
   private ArticleViewRepository articleViewRepository;
 
   @Mock
-  private ArticleMapper articleMapper;
+  private ArticleViewMapper articleViewMapper;
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks
-  private ArticleService articleService;
+  private ArticleViewService articleViewService;
 
   private UUID articleId;
   private UUID userId;
@@ -120,10 +120,10 @@ class ArticleServiceTest {
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
       given(articleViewRepository.findByArticleIdAndUserId(articleId, userId)).willReturn(Optional.empty());
       given(articleViewRepository.save(any(ArticleView.class))).willReturn(savedArticleView);
-      given(articleMapper.toArticleViewDto(any(ArticleView.class))).willReturn(expected);
+      given(articleViewMapper.toArticleViewDto(any(ArticleView.class))).willReturn(expected);
 
       // when
-      ArticleViewDto actual = articleService.registerArticleView(articleId, userId);
+      ArticleViewDto actual = articleViewService.registerArticleView(articleId, userId);
 
       // then
       assertThat(actual).isEqualTo(expected);
@@ -143,7 +143,7 @@ class ArticleServiceTest {
             && articleViewEvent.articleId().equals(articleId)
             && Integer.valueOf(1).equals(articleViewEvent.articleViewCount());
       }));
-      then(articleMapper).should().toArticleViewDto(any(ArticleView.class));
+      then(articleViewMapper).should().toArticleViewDto(any(ArticleView.class));
     }
 
     @Test
@@ -178,10 +178,10 @@ class ArticleServiceTest {
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
       given(articleViewRepository.findByArticleIdAndUserId(articleId, userId))
           .willReturn(Optional.of(existingArticleView));
-      given(articleMapper.toArticleViewDto(any(ArticleView.class))).willReturn(expected);
+      given(articleViewMapper.toArticleViewDto(any(ArticleView.class))).willReturn(expected);
 
       // when
-      ArticleViewDto actual = articleService.registerArticleView(articleId, userId);
+      ArticleViewDto actual = articleViewService.registerArticleView(articleId, userId);
 
       // then
       assertThat(actual).isEqualTo(expected);
@@ -199,7 +199,7 @@ class ArticleServiceTest {
             && articleViewEvent.articleId().equals(articleId)
             && Integer.valueOf(5).equals(articleViewEvent.articleViewCount());
       }));
-      then(articleMapper).should().toArticleViewDto(any(ArticleView.class));
+      then(articleViewMapper).should().toArticleViewDto(any(ArticleView.class));
     }
 
     @Test
@@ -209,12 +209,12 @@ class ArticleServiceTest {
       given(newsArticleRepository.findById(articleId)).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> articleService.registerArticleView(articleId, userId))
+      assertThatThrownBy(() -> articleViewService.registerArticleView(articleId, userId))
           .isInstanceOf(ArticleNotFoundException.class);
 
       then(userRepository).shouldHaveNoInteractions();
       then(articleViewRepository).shouldHaveNoInteractions();
-      then(articleMapper).shouldHaveNoInteractions();
+      then(articleViewMapper).shouldHaveNoInteractions();
       then(eventPublisher).shouldHaveNoInteractions();
     }
 
@@ -226,12 +226,12 @@ class ArticleServiceTest {
       given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
 
       // when & then
-      assertThatThrownBy(() -> articleService.registerArticleView(articleId, userId))
+      assertThatThrownBy(() -> articleViewService.registerArticleView(articleId, userId))
           .isInstanceOf(DeletedArticleException.class);
 
       then(userRepository).shouldHaveNoInteractions();
       then(articleViewRepository).shouldHaveNoInteractions();
-      then(articleMapper).shouldHaveNoInteractions();
+      then(articleViewMapper).shouldHaveNoInteractions();
       then(eventPublisher).shouldHaveNoInteractions();
     }
 
@@ -243,11 +243,11 @@ class ArticleServiceTest {
       given(userRepository.findById(userId)).willReturn(Optional.empty());
 
       // when & then
-      assertThatThrownBy(() -> articleService.registerArticleView(articleId, userId))
+      assertThatThrownBy(() -> articleViewService.registerArticleView(articleId, userId))
           .isInstanceOf(UserNotFoundException.class);
 
       then(articleViewRepository).shouldHaveNoInteractions();
-      then(articleMapper).shouldHaveNoInteractions();
+      then(articleViewMapper).shouldHaveNoInteractions();
       then(eventPublisher).shouldHaveNoInteractions();
     }
 
@@ -260,11 +260,11 @@ class ArticleServiceTest {
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
       // when & then
-      assertThatThrownBy(() -> articleService.registerArticleView(articleId, userId))
+      assertThatThrownBy(() -> articleViewService.registerArticleView(articleId, userId))
           .isInstanceOf(DeletedUserException.class);
 
       then(articleViewRepository).shouldHaveNoInteractions();
-      then(articleMapper).shouldHaveNoInteractions();
+      then(articleViewMapper).shouldHaveNoInteractions();
       then(eventPublisher).shouldHaveNoInteractions();
     }
   }

@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface ArticleMapper {
+public interface ArticleViewMapper {
 
   @Mapping(target = "viewedBy", source = "articleView.user.id")
   @Mapping(target = "createdAt", source = "articleView.lastViewedAt")
