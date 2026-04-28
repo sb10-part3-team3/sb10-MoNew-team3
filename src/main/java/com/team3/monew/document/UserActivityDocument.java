@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -98,7 +99,7 @@ public class UserActivityDocument {
             comment.likeCount(),
             comment.createdAt()
         ) : comment
-    ).toList();
+    ).collect(Collectors.toCollection(ArrayList::new));;
   }
 
   public void removeCommentSummary(UUID commentId) {
@@ -118,7 +119,7 @@ public class UserActivityDocument {
             comment.likeCount(),
             comment.createdAt()
             ) : comment
-        ).toList();
+        ).collect(Collectors.toCollection(ArrayList::new));;
   }
 
   public void removeArticleViewSummary(UUID articleId) {
@@ -144,11 +145,11 @@ public class UserActivityDocument {
             subscription.id(),
             subscription.interestId(),
             subscription.interestName(),
-            keywords,
+            List.copyOf(keywords),
             subscription.interestSubscriberCount(),
             subscription.createdAt()
             ) : subscription
-        ).toList();
+        ).collect(Collectors.toCollection(ArrayList::new));;
   }
 
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
