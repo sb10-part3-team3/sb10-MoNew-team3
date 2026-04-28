@@ -1,4 +1,4 @@
-name: Test-Dev
+name: Test
 
 on:
   pull_request:
@@ -15,6 +15,7 @@ on:
   push: # 브랜치 테스트 추가
     branches:
       - dev
+      - main
     paths-ignore:
       - '**/README.md'
       - '**/*.md'
