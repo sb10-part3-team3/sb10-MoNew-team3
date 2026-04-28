@@ -7,6 +7,7 @@ import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.event.CommentUpdatedEvent;
+import com.team3.monew.event.SubscriptionCanceledEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.event.UserDeletedEvent;
 import com.team3.monew.event.UserRegisteredEvent;
@@ -173,6 +174,17 @@ public class UserActivityEventListener {
   )
   public void handleArticleDeletedEvent(ArticleDeletedEvent event) {
     userActivityService.removeArticleViewSummary(event.articleId());
+  }
+
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {TransientDataAccessException.class, CannotAcquireLockException.class},
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleSubscriptionCanceledEvent(SubscriptionCanceledEvent event) {
+    userActivityService.removeSubscriptionSummary(event.userId(), event.subscriptionId());
   }
 
   @Recover

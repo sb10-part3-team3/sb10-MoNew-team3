@@ -9,6 +9,7 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.SubscriptionCanceledEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
@@ -260,6 +261,9 @@ public class InterestService {
     interestRepository.decreaseSubscriberCount(interestId);
 
     log.info("관심사 구독 취소 성공 - interestId={}", interestId);
+    eventPublisher.publishEvent(
+        new SubscriptionCanceledEvent(userId, subscription.getId())
+    );
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {

@@ -129,6 +129,9 @@ public class UserActivityDocument {
     commentLikes.removeIf(commentLike -> Objects.equals(commentLike.id(), commentLikeId));
   }
 
+  public void removeSubscriptionSummary(UUID subscriptionId) {
+    subscriptions.removeIf(subscription -> Objects.equals(subscription.id(), subscriptionId));
+  }
 
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
     // 중복 제거

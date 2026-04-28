@@ -173,6 +173,15 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 기사 뷰 삭제 성공: articleId={}", articleId);
   }
 
+  public void removeSubscriptionSummary(UUID userId, UUID subscriptionId) {
+    log.debug("사용자 활동 내역 구독 삭제 시작: userId={} subscriptionId={}", userId, subscriptionId);
+    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+            .orElseThrow(() -> new UserActivityNotFoundException(userId));
+    userActivityDocument.removeSubscriptionSummary(subscriptionId);
+    userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 구독 삭제 성공: userId={} subscriptionId={}", userId, subscriptionId);
+  }
+
   @Recover
   public void recoverUpdateSubscriptionSummary(
       OptimisticLockingFailureException e,
