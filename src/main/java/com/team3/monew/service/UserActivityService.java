@@ -11,6 +11,7 @@ import com.team3.monew.exception.useractivity.UserActivityConflictException;
 import com.team3.monew.exception.useractivity.UserActivityNotFoundException;
 import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.repository.UserActivityRepository;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -158,6 +159,18 @@ public class UserActivityService {
     userActivityDocument.removeCommentLikeSummary(commentLikeId);
     userActivityRepository.save(userActivityDocument);
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
+  }
+
+  public void removeArticleViewSummary(UUID articleId) {
+    log.debug("사용자 활동 내역 기사 뷰 삭제 시작: articleId={}", articleId);
+    List<UserActivityDocument> userActivityDocuments =
+        userActivityRepository.findAllByArticleViewsArticleId(articleId);
+
+    userActivityDocuments.forEach(userActivityDocument -> {
+      userActivityDocument.removeArticleViewSummary(articleId);
+      userActivityRepository.save(userActivityDocument);
+    });
+    log.debug("사용자 활동 내역 기사 뷰 삭제 성공: articleId={}", articleId);
   }
 
   @Recover

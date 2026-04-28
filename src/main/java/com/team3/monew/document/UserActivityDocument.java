@@ -121,6 +121,10 @@ public class UserActivityDocument {
         ).toList();
   }
 
+  public void removeArticleViewSummary(UUID articleId) {
+    articleViews.removeIf(articleView -> Objects.equals(articleView.articleId(), articleId));
+  }
+
   public void removeCommentLikeSummary(UUID commentLikeId) {
     commentLikes.removeIf(commentLike -> Objects.equals(commentLike.id(), commentLikeId));
   }
