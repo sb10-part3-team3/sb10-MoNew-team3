@@ -38,6 +38,7 @@ public class ArticleService {
     NewsArticle article = findActiveArticle(articleId);
     User user = findActiveUser(requestUserId);
 
+    // 같은 사용자의 재조회는 기존 이력을 갱신하고, 첫 조회만 기사 조회 수를 증가시킨다.
     ArticleView articleView = articleViewRepository.findByArticleIdAndUserId(articleId, requestUserId)
         .map(existingArticleView -> {
           existingArticleView.touch();
@@ -55,6 +56,8 @@ public class ArticleService {
 
     return articleMapper.toArticleViewDto(articleView);
   }
+  
+  // 조회 가능한 기사만 반환한다.
   private NewsArticle findActiveArticle(UUID articleId) {
     NewsArticle article = newsArticleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(articleId));
@@ -66,6 +69,7 @@ public class ArticleService {
     return article;
   }
 
+  // 조회 가능한 사용자만 반환한다.
   private User findActiveUser(UUID userId) {
     User user = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
