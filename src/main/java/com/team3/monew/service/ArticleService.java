@@ -92,7 +92,7 @@ public class ArticleService {
     }
 
     String[] cursorSplit = cursor.split(CURSOR_DELIMITER);
-    if (cursorSplit.length < 2) {
+    if (cursorSplit.length != 2) {
       throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
           Map.of("cursor", "Invalid cursor format"));
     }
