@@ -42,14 +42,15 @@ public class ArticleService {
     ArticleSearchCondition searchCondition = articleMapper.toCondition(request, cursor);
 
     List<NewsArticle> articles = newsArticleRepository.searchByCondition(searchCondition);
+    Long totalElements = newsArticleRepository.countByCondition(searchCondition);
 
     if (articles.isEmpty()) {
       log.debug("뉴스 목록 조회 성공 - keyword={}, interestid={}, size=0",
           request.keyword(), request.interestId());
-      return new CursorPageResponseDto<>(Collections.emptyList(), null, null, 0, 0L, false);
+      return new CursorPageResponseDto<>(Collections.emptyList(), null, null, 0, totalElements,
+          false);
     }
 
-    Long totalElements = newsArticleRepository.countByCondition(searchCondition);
     boolean hasNext = articles.size() > request.limit();
     Object nextCursor = null;
     Instant nextAfter = null;

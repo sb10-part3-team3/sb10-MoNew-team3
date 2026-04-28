@@ -30,44 +30,45 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public Long countByCondition(ArticleSearchCondition cond) {
+  public Long countByCondition(ArticleSearchCondition condition) {
 
     JPAQuery<Long> query = queryFactory
         .select(newsArticle.countDistinct())
         .from(newsArticle)
         .join(newsArticle.source, newsSource);
 
-    if (cond.interestId() != null) {
+    if (condition.interestId() != null) {
       query.join(newsArticle.articleInterests, articleInterest);
     }
 
     Long value = query
-        .where(searchPredicate(cond))
+        .where(searchPredicate(condition))
         .fetchOne();
 
     return value != null ? value : 0L;
   }
 
   @Override
-  public List<NewsArticle> searchByCondition(ArticleSearchCondition cond) {
+  public List<NewsArticle> searchByCondition(ArticleSearchCondition condition) {
 
     JPAQuery<NewsArticle> query = queryFactory
         .selectFrom(newsArticle)
         .distinct()
         .join(newsArticle.source, newsSource);     // 나중에 select 쿼리 최적화 예정
 
-    if (cond.interestId() != null) {
+    if (condition.interestId() != null) {
       query.join(newsArticle.articleInterests, articleInterest);
     }
 
     return query
-        .where(searchPredicate(cond))      // 일반 조건
-        .where(cursorCondition(cond.cursor(), cond.articleOrderBy(), cond.direction())) // 커서 조건
+        .where(searchPredicate(condition))      // 일반 조건
+        .where(cursorCondition(condition.cursor(), condition.articleOrderBy(),
+            condition.direction())) // 커서 조건
         .orderBy(
-            articleSort(cond.articleOrderBy(), cond.direction()).toArray(
+            articleSort(condition.articleOrderBy(), condition.direction()).toArray(
                 OrderSpecifier[]::new)
         )
-        .limit(cond.limit() + 1L)
+        .limit(condition.limit() + 1L)
         .fetch();
   }
 
@@ -171,7 +172,7 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
     };
 
     orders.add(orderSpecifier);
-    orders.add(new OrderSpecifier<>(order, newsArticle.createdAt)); // 2차 정렬로 생성시간 역순
+    orders.add(new OrderSpecifier<>(order, newsArticle.createdAt)); // 2차 정렬은 생성시간
 
     return orders;
   }
