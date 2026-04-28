@@ -5,6 +5,7 @@ import com.team3.monew.global.exception.BusinessException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -31,7 +32,10 @@ public record ErrorResponse(
     Map<String, Object> details = new HashMap<>();
 
     e.getBindingResult().getFieldErrors().forEach(error -> {
-      details.putIfAbsent(error.getField(), error.getDefaultMessage());
+      details.putIfAbsent(error.getField(),
+          Objects.equals(error.getCode(), "typeMismatch")
+              ? error.getRejectedValue()
+              : error.getDefaultMessage());
     });
 
     return new ErrorResponse(
