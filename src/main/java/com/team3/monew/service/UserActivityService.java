@@ -151,6 +151,15 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 댓글 수정 성공: userId={} commentId={}", userId, commentId);
   }
 
+  public void removeCommentLikeSummary(UUID userId, UUID commentLikeId) {
+    log.debug("사용자 활동 내역 댓글 좋아요 삭제 시작: userId={} commentLikeId={}", userId, commentLikeId);
+    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+    userActivityDocument.removeCommentLikeSummary(commentLikeId);
+    userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
+  }
+
   @Recover
   public void recoverUpdateSubscriptionSummary(
       OptimisticLockingFailureException e,

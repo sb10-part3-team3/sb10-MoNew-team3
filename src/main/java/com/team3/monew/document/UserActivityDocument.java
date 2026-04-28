@@ -121,6 +121,10 @@ public class UserActivityDocument {
         ).toList();
   }
 
+  public void removeCommentLikeSummary(UUID commentLikeId) {
+    commentLikes.removeIf(commentLike -> Objects.equals(commentLike.id(), commentLikeId));
+  }
+
 
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
     // 중복 제거

@@ -4,6 +4,7 @@ import com.team3.monew.event.ArticleViewEvent;
 import com.team3.monew.event.CommentDeletedEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
+import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.event.CommentUpdatedEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.event.UserDeletedEvent;
@@ -149,6 +150,17 @@ public class UserActivityEventListener {
   )
   public void handleCommentUpdatedEvent(CommentUpdatedEvent event) {
     userActivityService.updateCommentContent(event.userId(), event.commentId(), event.content());
+  }
+
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {TransientDataAccessException.class, CannotAcquireLockException.class},
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleCommentUnlikedEvent(CommentUnlikedEvent event) {
+    userActivityService.removeCommentLikeSummary(event.userId(), event.commentLikeId());
   }
 
   @Recover
