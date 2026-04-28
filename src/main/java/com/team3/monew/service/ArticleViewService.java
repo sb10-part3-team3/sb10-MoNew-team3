@@ -51,7 +51,7 @@ public class ArticleViewService {
         });
 
     eventPublisher.publishEvent(ArticleViewEvent.from(articleView));
-    log.info("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
+    log.debug("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
         articleId, requestUserId, articleView.getId());
 
     return articleViewMapper.toArticleViewDto(articleView);

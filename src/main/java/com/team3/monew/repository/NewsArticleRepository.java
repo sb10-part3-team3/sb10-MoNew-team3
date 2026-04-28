@@ -10,7 +10,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID> {
+public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
+    NewsArticleRepositoryCustom {
 
   @Modifying(flushAutomatically = true)
   @Query("update NewsArticle article set article.commentCount = article.commentCount + 1 where article.id = :articleId")
