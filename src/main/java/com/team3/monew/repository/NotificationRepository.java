@@ -36,4 +36,12 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       + "where n.user.id = :userId and n.isConfirmed = false")
   int confirmAllByUserId(UUID userId, Instant confirmedAt);
 
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(value = "delete from notifications where id in( "
+      + "select id from notifications "
+      + "where is_confirmed = true "
+      + "and confirmed_at is not null "
+      + "and confirmed_at <= :targetDate "
+      + "limit :batchSize)", nativeQuery = true)
+  int deleteOldConfirmedNotifications(Instant targetDate, int batchSize);
 }
