@@ -160,7 +160,7 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleCommentUnlikedEvent(CommentUnlikedEvent event) {
-    userActivityService.removeCommentLikeSummary(event.userId(), event.commentLikeId());
+    userActivityService.removeCommentLikeSummary(event.actorUserId(), event.commentLikeId());
   }
 
   @Recover

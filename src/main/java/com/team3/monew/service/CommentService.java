@@ -238,7 +238,12 @@ public class CommentService {
     comment.decreaseLikeCount();
     commentLikeRepository.delete(commentLike);
     log.info("Comment unliked: commentId={}, requestUserId={}", commentId, requestUserId);
-    eventPublisher.publishEvent(new CommentUnlikedEvent(commentLike.getId(), requestUserId));
+    eventPublisher.publishEvent(
+        new CommentUnlikedEvent(
+          requestUserId,
+          commentLike.getId()
+        )
+    );
   }
 
   // 조회 파라미터를 검증하고 내부 검색 조건으로 변환한다.
