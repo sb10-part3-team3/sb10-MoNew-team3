@@ -12,6 +12,7 @@ import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.event.CommentLikedEvent;
+import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.exception.comment.CommentLikeAlreadyExistsException;
@@ -814,7 +815,7 @@ class CommentServiceTest {
             // then
             assertThat(comment.getLikeCount()).isZero();
             then(commentLikeRepository).should().delete(commentLike);
-            then(eventPublisher).shouldHaveNoInteractions();
+            then(eventPublisher).should().publishEvent(any(CommentUnlikedEvent.class));
         }
 
         @Test
