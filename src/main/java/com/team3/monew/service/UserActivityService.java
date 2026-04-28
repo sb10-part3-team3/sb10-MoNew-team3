@@ -212,6 +212,11 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 관심사 삭제에 따른 구독 삭제 성공: interestId={}",interestId);
   }
 
+  @Retryable(
+      retryFor = OptimisticLockingFailureException.class,
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 100)
+  )
   public void updateSubscriptionsByKeywords(UUID interestId, List<String> keywords) {
     log.debug("사용자 활동 내역 관심사 키워드 업데이트 시작: interestId={}",interestId);
     List<UserActivityDocument> userActivityDocuments =
