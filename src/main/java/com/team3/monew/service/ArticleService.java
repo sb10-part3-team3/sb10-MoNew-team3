@@ -2,8 +2,8 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
-import com.team3.monew.dto.article.internal.enums.ArticleCursor;
-import com.team3.monew.dto.article.internal.enums.ArticleSearchCondition;
+import com.team3.monew.dto.article.internal.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.global.enums.ErrorCode;
@@ -65,7 +65,7 @@ public class ArticleService {
       nextCursor = nextCursor.toString() + CURSOR_DELIMITER + lastArticle.getCreatedAt();
       nextAfter = lastArticle.getCreatedAt();
     }
-    log.debug("다음 커서 생성 완료: nextCursor={}, nextAfter={}", nextAfter, nextCursor);
+    log.debug("다음 커서 생성 완료: nextCursor={}, nextAfter={}", nextCursor, nextAfter);
 
     // article
     List<UUID> articleIds = articles.stream().map(NewsArticle::getId).toList();
@@ -91,13 +91,17 @@ public class ArticleService {
     }
 
     String[] cursorSplit = cursor.split(CURSOR_DELIMITER);
+    if (cursorSplit.length < 2) {
+      throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+          Map.of("cursor", "Invalid cursor format"));
+    }
 
     try {
       Object value = switch (request.orderBy()) {
         case PUBLISH_DATE -> Instant.parse(cursorSplit[0]);
         case COMMENT_COUNT, VIEW_COUNT -> Integer.valueOf(cursorSplit[0]);
       };
-      Instant after = request.after() == null ? Instant.parse(cursorSplit[1]) : null;
+      Instant after = Instant.parse(cursorSplit[1]);
 
       return new ArticleCursor(value, after);
     } catch (DateTimeParseException | NumberFormatException e) {

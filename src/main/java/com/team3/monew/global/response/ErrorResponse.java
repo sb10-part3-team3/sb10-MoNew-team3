@@ -34,8 +34,8 @@ public record ErrorResponse(
     e.getBindingResult().getFieldErrors().forEach(error -> {
       details.putIfAbsent(error.getField(),
           Objects.equals(error.getCode(), "typeMismatch")
-              ? details.putIfAbsent(error.getField(), error.getRejectedValue())
-              : details.putIfAbsent(error.getField(), error.getDefaultMessage()));
+              ? error.getRejectedValue()
+              : error.getDefaultMessage());
     });
 
     return new ErrorResponse(

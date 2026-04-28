@@ -1,4 +1,4 @@
-package com.team3.monew.dto.article.internal.enums;
+package com.team3.monew.dto.article.internal;
 
 import java.time.Instant;
 

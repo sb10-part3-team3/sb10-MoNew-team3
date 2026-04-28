@@ -14,11 +14,11 @@ public class WebConfig implements WebMvcConfigurer {
 
   @Override
   public void addFormatters(FormatterRegistry registry) {
-    registry.addConverter(new StringToArticleOrderByByConverter());      // 대소문자 무시하는 Enum 변환자 등록
+    registry.addConverter(new StringToArticleOrderByConverter());      // 대소문자 무시하는 Enum 변환자 등록
     registry.addConverter(new StringToArticleDirectionByConverter());
   }
 
-  public static class StringToArticleOrderByByConverter implements
+  public static class StringToArticleOrderByConverter implements
       Converter<String, ArticleOrderBy> {
 
     @Override

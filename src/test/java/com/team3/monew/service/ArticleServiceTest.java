@@ -9,10 +9,10 @@ import static org.mockito.BDDMockito.given;
 
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
-import com.team3.monew.dto.article.internal.enums.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
-import com.team3.monew.dto.article.internal.enums.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
@@ -28,7 +28,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -83,9 +82,6 @@ class ArticleServiceTest {
         null, null, 10);
   }
 
-  @AfterEach
-  void tearDown() {
-  }
 
   @Nested
   @DisplayName("뉴스기사 목록을 조회한다")

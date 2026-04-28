@@ -5,6 +5,7 @@ import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
 import com.team3.monew.entity.enums.NewsSourceType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
@@ -43,7 +44,7 @@ public record ArticleSearchRequest(
     Instant after,
 
     @Schema(requiredMode = RequiredMode.REQUIRED, description = "커서 페이지 크기")
-    @NotNull @Min(1)
+    @NotNull @Min(1) @Max(100)
     Integer limit
 ) {
 

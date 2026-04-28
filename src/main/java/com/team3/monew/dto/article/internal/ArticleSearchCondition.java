@@ -1,5 +1,7 @@
-package com.team3.monew.dto.article.internal.enums;
+package com.team3.monew.dto.article.internal;
 
+import com.team3.monew.dto.article.internal.enums.ArticleDirection;
+import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
 import com.team3.monew.entity.enums.NewsSourceType;
 import java.time.Instant;
 import java.util.List;

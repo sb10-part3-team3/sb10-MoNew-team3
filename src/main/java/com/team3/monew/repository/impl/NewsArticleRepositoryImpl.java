@@ -10,10 +10,10 @@ import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.team3.monew.dto.article.internal.enums.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
-import com.team3.monew.dto.article.internal.enums.ArticleSearchCondition;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
@@ -30,12 +30,19 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
   private final JPAQueryFactory queryFactory;
 
   @Override
-  public Long countByCondition(ArticleSearchCondition condition) {
-    Long value = queryFactory
-        .select(newsArticle.count())
+  public Long countByCondition(ArticleSearchCondition cond) {
+
+    JPAQuery<Long> query = queryFactory
+        .select(newsArticle.countDistinct())
         .from(newsArticle)
-        .join(newsArticle.source, newsSource)
-        .where(searchPredicate(condition))
+        .join(newsArticle.source, newsSource);
+
+    if (cond.interestId() != null) {
+      query.join(newsArticle.articleInterests, articleInterest);
+    }
+
+    Long value = query
+        .where(searchPredicate(cond))
         .fetchOne();
 
     return value != null ? value : 0L;
@@ -66,7 +73,7 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
 
   private BooleanExpression[] searchPredicate(ArticleSearchCondition condition) {
     return new BooleanExpression[]{
-        deleteStatusEq(DeleteStatus.ACTIVE),
+        deleteStatusEqActive(),
         interestIdEq(condition.interestId()),
         titleOrSummaryContains(condition.keyword()),
         newsSourceTypeIn(condition.sourceIn()),
@@ -74,8 +81,8 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
     };
   }
 
-  private BooleanExpression deleteStatusEq(DeleteStatus deleteStatusCond) {
-    return deleteStatusCond != null ? newsArticle.deleteStatus.eq(DeleteStatus.ACTIVE) : null;
+  private BooleanExpression deleteStatusEqActive() {
+    return newsArticle.deleteStatus.eq(DeleteStatus.ACTIVE);
   }
 
   private BooleanExpression interestIdEq(UUID uuid) {
@@ -164,7 +171,7 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
     };
 
     orders.add(orderSpecifier);
-    orders.add(new OrderSpecifier<>(Order.DESC, newsArticle.createdAt)); // 2차 정렬로 생성시간 역순
+    orders.add(new OrderSpecifier<>(order, newsArticle.createdAt)); // 2차 정렬로 생성시간 역순
 
     return orders;
   }

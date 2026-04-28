@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.team3.monew.config.JpaAuditingConfig;
 import com.team3.monew.config.QueryDslConfig;
-import com.team3.monew.dto.article.internal.enums.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleCursor;
+import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
-import com.team3.monew.dto.article.internal.enums.ArticleSearchCondition;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
@@ -160,10 +160,14 @@ class NewsArticleRepositoryImplTest {
         "제목", null, List.of(NewsSourceType.NAVER, NewsSourceType.CHOSUN),
         null, null, ArticleOrderBy.VIEW_COUNT, ArticleDirection.DESC,
         cursor, 5);
-    ReflectionTestUtils.setField(article1, "viewCount", 6);
-    ReflectionTestUtils.setField(article2, "viewCount", 5);
-    ReflectionTestUtils.setField(article3, "viewCount", 4);
-    newsArticleRepository.saveAll(List.of(article1, article2, article3));
+    // 엔티티 값 다시 설정
+    NewsArticle a1 = newsArticleRepository.findById(article1.getId()).orElseThrow();
+    NewsArticle a2 = newsArticleRepository.findById(article2.getId()).orElseThrow();
+    NewsArticle a3 = newsArticleRepository.findById(article3.getId()).orElseThrow();
+    ReflectionTestUtils.setField(a1, "viewCount", 6);
+    ReflectionTestUtils.setField(a2, "viewCount", 5);
+    ReflectionTestUtils.setField(a3, "viewCount", 4);
+    newsArticleRepository.saveAll(List.of(a1, a2, a3));
     em.flush();
     em.clear();
 
@@ -172,7 +176,7 @@ class NewsArticleRepositoryImplTest {
 
     // then
     assertThat(articles)
-        .hasSize(2);  // 생성시간이 같아서 2개가 반환됨
+        .hasSize(2);
   }
 
 }
