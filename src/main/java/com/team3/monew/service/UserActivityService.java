@@ -135,7 +135,11 @@ public class UserActivityService {
   public void removeCommentSummary(UUID userId, UUID commentId) {
     log.debug("사용자 활동 내역 댓글 삭제 시작: userId={} commentId={}", userId, commentId);
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
-        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+        .orElse(null);
+    if (userActivityDocument == null) {
+      log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
+      return;
+    }
     userActivityDocument.removeCommentSummary(commentId);
     userActivityRepository.save(userActivityDocument);
     log.debug("사용자 활동 내역 댓글 삭제 성공: userId={} commentId={}", userId, commentId);
@@ -149,7 +153,11 @@ public class UserActivityService {
   public void updateCommentContent(UUID userId, UUID commentId, String newContent) {
     log.debug("사용자 활동 내역 댓글 수정 시작: userId={} commentId={}", userId, commentId);
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
-        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+        .orElse(null);
+    if (userActivityDocument == null) {
+      log.debug("사용자 활동 내역 문서가 이미 없어 댓글 수정를 건너뜁니다: userId={} commentId={}", userId, commentId);
+      return;
+    }
     userActivityDocument.updateCommentContent(commentId, newContent);
     userActivityRepository.save(userActivityDocument);
     log.debug("사용자 활동 내역 댓글 수정 성공: userId={} commentId={}", userId, commentId);
@@ -158,7 +166,11 @@ public class UserActivityService {
   public void removeCommentLikeSummary(UUID userId, UUID commentLikeId) {
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 시작: userId={} commentLikeId={}", userId, commentLikeId);
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
-        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+        .orElse(null);
+    if (userActivityDocument == null) {
+      log.debug("사용자 활동 내역 문서가 이미 없어 좋아요 삭제를 건너뜁니다: userId={} commentLikeId={}", userId, commentLikeId);
+      return;
+    }
     userActivityDocument.removeCommentLikeSummary(commentLikeId);
     userActivityRepository.save(userActivityDocument);
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
@@ -179,7 +191,11 @@ public class UserActivityService {
   public void removeSubscriptionSummary(UUID userId, UUID subscriptionId) {
     log.debug("사용자 활동 내역 구독 삭제 시작: userId={} subscriptionId={}", userId, subscriptionId);
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
-            .orElseThrow(() -> new UserActivityNotFoundException(userId));
+        .orElse(null);
+    if (userActivityDocument == null) {
+      log.debug("사용자 활동 내역 문서가 이미 없어 구독 삭제를 건너뜁니다: userId={} subscriptionId={}", userId, subscriptionId);
+      return;
+    }
     userActivityDocument.removeSubscriptionSummary(subscriptionId);
     userActivityRepository.save(userActivityDocument);
     log.debug("사용자 활동 내역 구독 삭제 성공: userId={} subscriptionId={}", userId, subscriptionId);
