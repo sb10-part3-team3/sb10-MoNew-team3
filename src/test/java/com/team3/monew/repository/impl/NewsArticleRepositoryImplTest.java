@@ -1,6 +1,7 @@
 package com.team3.monew.repository.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.team3.monew.config.JpaAuditingConfig;
 import com.team3.monew.config.QueryDslConfig;
@@ -122,8 +123,8 @@ class NewsArticleRepositoryImplTest {
 
     // then
     assertThat(articles)
-        .filteredOn(a -> a.getTitle().contains(keyword) || a.getSummary().contains(keyword))
-        .hasSize(2);
+        .hasSize(2)
+        .allMatch(a -> a.getTitle().contains(keyword) || a.getSummary().contains(keyword));
     assertThat(articles)
         .extracting(NewsArticle::getTitle)
         .anyMatch(s -> s.contains("제목2 HBM Nvidia"));
@@ -145,8 +146,10 @@ class NewsArticleRepositoryImplTest {
     List<NewsArticle> articles = newsArticleRepository.searchByCondition(cond);
 
     assertThat(articles)
-        .filteredOn(a -> a.getTitle().contains("애플") || a.getSummary().contains("아이폰"))
-        .hasSize(1);
+        .hasSize(1)
+        .first()
+        .extracting(NewsArticle::getTitle)
+        .matches(a -> a.contains("애플") || a.contains("아이폰"));
 
   }
 
@@ -176,7 +179,12 @@ class NewsArticleRepositoryImplTest {
 
     // then
     assertThat(articles)
-        .hasSize(2);
+        .filteredOn(na -> na.getViewCount() <= 5)
+        .extracting("viewCount", "originalLink")
+        .containsExactly(
+            tuple(5, "link2"),
+            tuple(4, "link3")
+        );
   }
 
 }

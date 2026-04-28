@@ -1,6 +1,7 @@
 package com.team3.monew.integration;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
@@ -43,7 +44,10 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
             .param("orderBy", ArticleOrderBy.PUBLISH_DATE.toString())
             .param("direction", ArticleDirection.DESC.toString())
             .param("limit", "10"))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.size").value(0))
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.hasNext").value(false));
   }
 
 }

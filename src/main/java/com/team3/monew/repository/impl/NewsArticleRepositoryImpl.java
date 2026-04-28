@@ -54,7 +54,7 @@ public class NewsArticleRepositoryImpl implements NewsArticleRepositoryCustom {
     JPAQuery<NewsArticle> query = queryFactory
         .selectFrom(newsArticle)
         .distinct()
-        .join(newsArticle.source, newsSource);
+        .join(newsArticle.source, newsSource);     // 나중에 select 쿼리 최적화 예정
 
     if (cond.interestId() != null) {
       query.join(newsArticle.articleInterests, articleInterest);

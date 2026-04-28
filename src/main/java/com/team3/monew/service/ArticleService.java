@@ -39,9 +39,9 @@ public class ArticleService {
       ArticleSearchRequest request, UUID requestUserId) {
     log.debug("뉴스 목록 조회 요청 - keyword={}, interestid={}", request.keyword(), request.interestId());
     ArticleCursor cursor = parseCursor(request);
-    ArticleSearchCondition cond = articleMapper.toCondition(request, cursor);
+    ArticleSearchCondition searchCondition = articleMapper.toCondition(request, cursor);
 
-    List<NewsArticle> articles = newsArticleRepository.searchByCondition(cond);
+    List<NewsArticle> articles = newsArticleRepository.searchByCondition(searchCondition);
 
     if (articles.isEmpty()) {
       log.debug("뉴스 목록 조회 성공 - keyword={}, interestid={}, size=0",
@@ -49,7 +49,7 @@ public class ArticleService {
       return new CursorPageResponseDto<>(Collections.emptyList(), null, null, 0, 0L, false);
     }
 
-    Long totalElements = newsArticleRepository.countByCondition(cond);
+    Long totalElements = newsArticleRepository.countByCondition(searchCondition);
     boolean hasNext = articles.size() > request.limit();
     Object nextCursor = null;
     Instant nextAfter = null;

@@ -171,9 +171,11 @@ class ArticleServiceTest {
           Instant.now().minus(6, ChronoUnit.DAYS), "요약2");
       NewsArticle newsArticle3 = NewsArticle.create(naverSource, "link3", "제목3",
           Instant.now().minus(9, ChronoUnit.DAYS), "요약3");
+      Instant cursorAfter = Instant.now().minus(1, ChronoUnit.HOURS);
       List<NewsArticle> articles = List.of(newsArticle1, newsArticle2, newsArticle3);
       ReflectionTestUtils.setField(newsArticle1, "id", articleId1);
       ReflectionTestUtils.setField(newsArticle2, "id", articleId2);
+      ReflectionTestUtils.setField(newsArticle2, "createdAt", cursorAfter);
 
       given(newsArticleRepository.searchByCondition(any())).willReturn(articles);
       Long totalElements = 3L;
@@ -195,9 +197,9 @@ class ArticleServiceTest {
       // then
       assertThat(actual)
           .returns(articleDtoList, CursorPageResponseDto::content)
-          .returns(articles.get(1).getPublishedAt() + ", " + articles.get(1).getCreatedAt(),
+          .returns(articles.get(1).getPublishedAt() + ", " + cursorAfter,
               CursorPageResponseDto::nextCursor)
-          .returns(articles.get(1).getCreatedAt(), CursorPageResponseDto::nextAfter)
+          .returns(cursorAfter, CursorPageResponseDto::nextAfter)
           .returns(requestPublishDate.limit(), CursorPageResponseDto::size)
           .returns(totalElements, CursorPageResponseDto::totalElements)
           .returns(articles.size() > requestPublishDate.limit(), CursorPageResponseDto::hasNext);
