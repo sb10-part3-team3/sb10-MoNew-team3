@@ -30,6 +30,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -211,6 +212,69 @@ class ArticleViewServiceTest {
             && articleViewEvent.userId().equals(userId)
             && articleViewEvent.articleId().equals(articleId)
             && Integer.valueOf(5).equals(articleViewEvent.articleViewCount());
+      }));
+      then(articleViewMapper).should().toArticleViewDto(any(ArticleView.class));
+    }
+
+    @Test
+    @DisplayName("동시 첫 조회 요청으로 중복 저장 충돌이 발생하면 기존 조회 이력을 재사용한다.")
+    void shouldReuseExistingArticleView_whenDuplicateInsertOccurs() {
+      // given
+      UUID articleViewId = UUID.randomUUID();
+      Instant firstViewedAt = Instant.parse("2026-04-20T09:00:00Z");
+      Instant previousLastViewedAt = Instant.parse("2026-04-20T10:00:00Z");
+
+      ArticleView existingArticleView = ArticleView.create(article, user);
+      assignId(existingArticleView, articleViewId);
+      ReflectionTestUtils.setField(existingArticleView, "firstViewedAt", firstViewedAt);
+      ReflectionTestUtils.setField(existingArticleView, "lastViewedAt", previousLastViewedAt);
+
+      ArticleViewDto expected = new ArticleViewDto(
+          articleViewId,
+          userId,
+          previousLastViewedAt,
+          articleId,
+          "NAVER",
+          article.getOriginalLink(),
+          article.getTitle(),
+          article.getPublishedAt(),
+          article.getSummary(),
+          article.getCommentCount(),
+          1L
+      );
+
+      given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
+      given(userRepository.findById(userId)).willReturn(Optional.of(user));
+      given(articleViewRepository.findByArticleIdAndUserId(articleId, userId))
+          .willReturn(Optional.empty(), Optional.of(existingArticleView));
+      given(articleViewRepository.saveAndFlush(any(ArticleView.class)))
+          .willThrow(new DataIntegrityViolationException("duplicate article view"));
+      given(articleViewMapper.toArticleViewDto(any(ArticleView.class))).willReturn(expected);
+      willAnswer(invocation -> {
+        ReflectionTestUtils.setField(article, "viewCount", 1);
+        return null;
+      }).given(entityManager).refresh(article);
+
+      // when
+      ArticleViewDto actual = articleViewService.registerArticleView(articleId, userId);
+
+      // then
+      assertThat(actual).isEqualTo(expected);
+      assertThat(article.getViewCount()).isEqualTo(1);
+      assertThat(existingArticleView.getLastViewedAt()).isAfter(previousLastViewedAt);
+
+      then(articleViewRepository).should().saveAndFlush(any(ArticleView.class));
+      then(newsArticleRepository).should(never()).incrementViewCountById(any(UUID.class));
+      then(entityManager).should().refresh(article);
+      then(eventPublisher).should().publishEvent(argThat((Object event) -> {
+        if (!(event instanceof ArticleViewEvent articleViewEvent)) {
+          return false;
+        }
+
+        return articleViewEvent.id().equals(articleViewId)
+            && articleViewEvent.userId().equals(userId)
+            && articleViewEvent.articleId().equals(articleId)
+            && Integer.valueOf(1).equals(articleViewEvent.articleViewCount());
       }));
       then(articleViewMapper).should().toArticleViewDto(any(ArticleView.class));
     }
