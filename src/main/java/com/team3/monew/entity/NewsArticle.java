@@ -78,4 +78,8 @@ public class NewsArticle extends SoftDeleteEntity {
     articleInterests.add(articleInterest);
     interest.getArticleInterests().add(articleInterest);
   }
+
+  public void increaseViewCount() {
+    this.viewCount++;
+  }
 }

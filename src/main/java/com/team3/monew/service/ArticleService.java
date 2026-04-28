@@ -1,19 +1,29 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.article.ArticleViewDto;
+import com.team3.monew.entity.ArticleView;
+import com.team3.monew.entity.NewsArticle;
+import com.team3.monew.entity.User;
+import com.team3.monew.event.ArticleViewEvent;
+import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
+import com.team3.monew.exception.user.DeletedUserException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.ArticleMapper;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ArticleService {
 
   private final NewsArticleRepository newsArticleRepository;
@@ -24,11 +34,46 @@ public class ArticleService {
 
   @Transactional
   public ArticleViewDto registerArticleView(UUID articleId, UUID requestUserId) {
-    throw new UnsupportedOperationException("registerArticleView is not implemented yet");
+    log.debug("기사 뷰 등록 요청 - articleId={}, requestUserId={}", articleId, requestUserId);
+    NewsArticle article = findActiveArticle(articleId);
+    User user = findActiveUser(requestUserId);
+
+    ArticleView articleView = articleViewRepository.findByArticleIdAndUserId(articleId, requestUserId)
+        .map(existingArticleView -> {
+          existingArticleView.touch();
+          return existingArticleView;
+        })
+        .orElseGet(() -> {
+          ArticleView newArticleView = ArticleView.create(article, user);
+          article.increaseViewCount();
+          return articleViewRepository.save(newArticleView);
+        });
+
+    eventPublisher.publishEvent(ArticleViewEvent.from(articleView));
+    log.info("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
+        articleId, requestUserId, articleView.getId());
+
+    return articleMapper.toArticleViewDto(articleView);
+  }
+  private NewsArticle findActiveArticle(UUID articleId) {
+    NewsArticle article = newsArticleRepository.findById(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
+
+    if (article.isDeleted()) {
+      throw new DeletedArticleException(articleId);
+    }
+
+    return article;
   }
 
-  @Transactional(readOnly = true)
-  public List<String> getSources() {
-    throw new UnsupportedOperationException("getSources is not implemented yet");
+  private User findActiveUser(UUID userId) {
+    User user = userRepository.findById(userId)
+        .orElseThrow(() -> new UserNotFoundException(userId));
+
+    if (user.isDeleted()) {
+      throw new DeletedUserException(userId);
+    }
+
+    return user;
   }
 }
