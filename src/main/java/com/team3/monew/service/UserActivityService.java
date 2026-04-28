@@ -182,6 +182,17 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 구독 삭제 성공: userId={} subscriptionId={}", userId, subscriptionId);
   }
 
+  public void removeAllSubscriptionSummaryByInterest(UUID interestId) {
+    log.debug("사용자 활동 내역 관심사 삭제에 따른 구독 삭제 시작: interestId={}",interestId);
+    List<UserActivityDocument> userActivityDocuments =
+        userActivityRepository.findAllBySubscriptionsInterestId(interestId);
+    userActivityDocuments.forEach(userActivityDocument -> {
+      userActivityDocument.removeSubscriptionSummaryByInterestId(interestId);
+      userActivityRepository.save(userActivityDocument);
+    });
+    log.debug("사용자 활동 내역 관심사 삭제에 따른 구독 삭제 성공: interestId={}",interestId);
+  }
+
   @Recover
   public void recoverUpdateSubscriptionSummary(
       OptimisticLockingFailureException e,

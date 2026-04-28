@@ -10,4 +10,7 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
 
   @Query("{ 'articleViews.articleId': ?0 }")
   List<UserActivityDocument> findAllByArticleViewsArticleId(UUID articleId);
+
+  @Query("{ 'subscriptions.interestId': ?0} ")
+  List<UserActivityDocument> findAllBySubscriptionsInterestId(UUID interestId);
 }

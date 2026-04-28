@@ -133,6 +133,10 @@ public class UserActivityDocument {
     subscriptions.removeIf(subscription -> Objects.equals(subscription.id(), subscriptionId));
   }
 
+  public void removeSubscriptionSummaryByInterestId(UUID interestId) {
+    subscriptions.removeIf(subscription -> Objects.equals(subscription.interestId(), interestId));
+  }
+
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
     // 중복 제거
     items.removeIf(item -> Objects.equals(idExtractor.apply(item), idExtractor.apply(newItem)));
