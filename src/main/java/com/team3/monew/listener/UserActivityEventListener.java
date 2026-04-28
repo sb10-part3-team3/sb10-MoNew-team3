@@ -4,7 +4,9 @@ import com.team3.monew.event.ArticleViewEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.SubscriptionEvent;
+import com.team3.monew.event.UserDeletedEvent;
 import com.team3.monew.event.UserRegisteredEvent;
+import com.team3.monew.event.UserUpdatedEvent;
 import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.service.UserActivityService;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +99,34 @@ public class UserActivityEventListener {
     userActivityService.updateArticleViewSummary(event.userId(), userActivityMapper.toArticleViewSummary(event));
   }
 
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {
+          TransientDataAccessException.class,
+          CannotAcquireLockException.class
+      },
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleUserUpdatedEvent(UserUpdatedEvent event) {
+    userActivityService.updateUserNickname(event.userId(), event.nickname());
+  }
+
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {
+          TransientDataAccessException.class,
+          CannotAcquireLockException.class
+      },
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleUserDeletedEvent(UserDeletedEvent event) {
+    userActivityService.deleteUserActivity(event.userId());
+  }
+
   @Recover
   public void recover(Exception e, UserRegisteredEvent event) {
     log.error("사용자 활동 내역 UserRegistered Event 처리 실패: userId={}", event.userId(), e);
@@ -120,5 +150,10 @@ public class UserActivityEventListener {
   @Recover
   public void recover(Exception e, ArticleViewEvent event) {
     log.error("사용자 활동 내역 ArticleView Event 처리 실패: userId={} articleId={}", event.userId(), event.articleId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, UserUpdatedEvent event) {
+    log.error("사용자 활동 내역 UserUpdated Event 처리 실패: userId={}", event.userId(), e);
   }
 }

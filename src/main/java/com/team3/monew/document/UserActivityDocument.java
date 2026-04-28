@@ -83,6 +83,24 @@ public class UserActivityDocument {
     this.createdAt = createdAt;
   }
 
+  public void updateNickname(String newNickname) {
+    this.nickname = newNickname;
+
+    comments = comments.stream()
+        .map(comment -> Objects.equals(comment.userId(), this.id)
+            ? new CommentSummary(
+            comment.id(),
+            comment.articleId(),
+            comment.articleTitle(),
+            comment.userId(),
+            newNickname,
+            comment.content(),
+            comment.likeCount(),
+            comment.createdAt()
+        ) : comment
+    ).toList();
+  }
+
   // 삭제는 추후 구현
 
 

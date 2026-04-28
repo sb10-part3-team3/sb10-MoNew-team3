@@ -108,6 +108,26 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 기사 뷰 업데이트 성공: userId={} articleViewId={}", userId, articleViewSummary.id());
   }
 
+  @Retryable(
+      retryFor = OptimisticLockingFailureException.class,
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 100)
+  )
+  public void updateUserNickname(UUID userId, String newNickname) {
+    log.debug("사용자 활동 내역 닉네임 업데이트 시작: userId={}", userId);
+    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+    userActivityDocument.updateNickname(newNickname);
+    userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 닉네임 업데이트 성공: userId={}", userId);
+  }
+
+  public void deleteUserActivity(UUID userId) {
+    log.debug("사용자 활동 내역 삭제 시작: userId={}", userId);
+    userActivityRepository.deleteById(userId);
+    log.debug("사용자 활동 내역 삭제 성공: userId={}", userId);
+  }
+
   @Recover
   public void recoverUpdateSubscriptionSummary(
       OptimisticLockingFailureException e,
@@ -149,6 +169,16 @@ public class UserActivityService {
   ) {
     log.error("기사 뷰 요약 업데이트 최종 실패: userId={}, articleViewId={}",
         userId, summary.id(), e);
+    throw new UserActivityConflictException(userId);
+  }
+
+  @Recover
+  public void recoverUpdateUserNickname(
+      OptimisticLockingFailureException e,
+      UUID userId,
+      String newNickname
+  ) {
+    log.error("사용자 활동 내역 닉네임 업데이트 최종 실패: userId={}", userId, e);
     throw new UserActivityConflictException(userId);
   }
 
