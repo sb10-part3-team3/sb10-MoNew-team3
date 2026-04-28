@@ -844,7 +844,7 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("관심사 삭제 시 활동 내역에서 해당 관심사의 구독 정보를 삭제합니다.")
+  @DisplayName("관심사 키워드 업데이트 시 활동 내역에서 해당 관심사의 키워드를 업데이트합니다.")
   void shouldRemoveAllSubscriptionSummary_whenInterestDeleted() {
     // given
     UUID interestId = UUID.randomUUID();

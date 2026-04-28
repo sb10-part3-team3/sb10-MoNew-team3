@@ -374,7 +374,7 @@ class UserActivityEventListenerTest {
   }
 
   @Test
-  @DisplayName("리스너가 관심사 삭제 이벤트를 받으면 서비스의 관심사의 모든 구독 삭제 메서드를 호출한다.")
+  @DisplayName("리스너가 구독 취소 이벤트를 받으면 서비스의 구독 요약 삭제 메서드를 호출한다.")
   void shouldCallRemoveAllSubscriptionSummaryByInterestMethod_whenListenInterestDeletedEvent() {
     // given
     UUID interestId = UUID.randomUUID();
