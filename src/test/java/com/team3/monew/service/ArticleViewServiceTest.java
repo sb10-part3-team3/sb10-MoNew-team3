@@ -16,6 +16,7 @@ import com.team3.monew.mapper.ArticleViewMapper;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willAnswer;
 import static org.mockito.Mockito.never;
 
 @Tag("unit")
@@ -57,6 +59,9 @@ class ArticleViewServiceTest {
 
   @Mock
   private ApplicationEventPublisher eventPublisher;
+
+  @Mock
+  private EntityManager entityManager;
 
   @InjectMocks
   private ArticleViewService articleViewService;
@@ -119,8 +124,12 @@ class ArticleViewServiceTest {
       given(newsArticleRepository.findById(articleId)).willReturn(Optional.of(article));
       given(userRepository.findById(userId)).willReturn(Optional.of(user));
       given(articleViewRepository.findByArticleIdAndUserId(articleId, userId)).willReturn(Optional.empty());
-      given(articleViewRepository.save(any(ArticleView.class))).willReturn(savedArticleView);
+      given(articleViewRepository.saveAndFlush(any(ArticleView.class))).willReturn(savedArticleView);
       given(articleViewMapper.toArticleViewDto(any(ArticleView.class))).willReturn(expected);
+      willAnswer(invocation -> {
+        ReflectionTestUtils.setField(article, "viewCount", 1);
+        return null;
+      }).given(entityManager).refresh(article);
 
       // when
       ArticleViewDto actual = articleViewService.registerArticleView(articleId, userId);
@@ -129,10 +138,12 @@ class ArticleViewServiceTest {
       assertThat(actual).isEqualTo(expected);
       assertThat(article.getViewCount()).isEqualTo(1);
 
-      then(articleViewRepository).should().save(argThat(articleView ->
+      then(articleViewRepository).should().saveAndFlush(argThat(articleView ->
           articleView.getArticle() == article
               && articleView.getUser() == user
       ));
+      then(newsArticleRepository).should().incrementViewCountById(articleId);
+      then(entityManager).should().refresh(article);
       then(eventPublisher).should().publishEvent(argThat((Object event) -> {
         if (!(event instanceof ArticleViewEvent articleViewEvent)) {
           return false;
@@ -188,7 +199,9 @@ class ArticleViewServiceTest {
       assertThat(article.getViewCount()).isEqualTo(5);
       assertThat(existingArticleView.getLastViewedAt()).isAfter(previousLastViewedAt);
 
-      then(articleViewRepository).should(never()).save(any(ArticleView.class));
+      then(articleViewRepository).should(never()).saveAndFlush(any(ArticleView.class));
+      then(newsArticleRepository).should(never()).incrementViewCountById(any(UUID.class));
+      then(entityManager).should(never()).refresh(any(NewsArticle.class));
       then(eventPublisher).should().publishEvent(argThat((Object event) -> {
         if (!(event instanceof ArticleViewEvent articleViewEvent)) {
           return false;

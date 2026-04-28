@@ -13,10 +13,12 @@ import com.team3.monew.mapper.ArticleViewMapper;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ public class ArticleViewService {
   private final ArticleViewRepository articleViewRepository;
   private final ArticleViewMapper articleViewMapper;
   private final ApplicationEventPublisher eventPublisher;
+  private final EntityManager entityManager;
 
   @Transactional
   public ArticleViewDto registerArticleView(UUID articleId, UUID requestUserId) {
@@ -44,17 +47,30 @@ public class ArticleViewService {
           existingArticleView.touch();
           return existingArticleView;
         })
-        .orElseGet(() -> {
-          ArticleView newArticleView = ArticleView.create(article, user);
-          article.increaseViewCount();
-          return articleViewRepository.save(newArticleView);
-        });
+        .orElseGet(() -> createFirstViewSafely(article, user));
 
     eventPublisher.publishEvent(ArticleViewEvent.from(articleView));
     log.debug("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
         articleId, requestUserId, articleView.getId());
 
     return articleViewMapper.toArticleViewDto(articleView);
+  }
+
+  // 첫 조회 저장을 안전하게 처리하고 조회 수를 반영한다.
+  private ArticleView createFirstViewSafely(NewsArticle article, User user) {
+    try {
+      ArticleView savedArticleView = articleViewRepository.saveAndFlush(ArticleView.create(article, user));
+      newsArticleRepository.incrementViewCountById(article.getId());
+      entityManager.refresh(article);
+      return savedArticleView;
+    } catch (DataIntegrityViolationException e) {
+      ArticleView existingArticleView = articleViewRepository.findByArticleIdAndUserId(
+              article.getId(), user.getId())
+          .orElseThrow(() -> e);
+      existingArticleView.touch();
+      entityManager.refresh(article);
+      return existingArticleView;
+    }
   }
   
   // 조회 가능한 기사만 반환한다.

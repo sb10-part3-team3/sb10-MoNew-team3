@@ -18,6 +18,10 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
   void incrementCommentCountById(@Param("articleId") UUID articleId);
 
   @Modifying(flushAutomatically = true)
+  @Query("update NewsArticle article set article.viewCount = article.viewCount + 1 where article.id = :articleId")
+  void incrementViewCountById(@Param("articleId") UUID articleId);
+
+  @Modifying(flushAutomatically = true)
   @Query("""
       update NewsArticle article
       set article.commentCount =
