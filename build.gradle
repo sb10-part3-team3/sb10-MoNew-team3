@@ -86,6 +86,22 @@ jacocoTestReport {
         xml.required = true
         html.required = true
     }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "**/*Application*",
+                    "**/config/**",
+                    "**/*Dto*",
+                    "**/*Request*",
+                    "**/*Response*",
+                    "**/Interceptor*",
+                    "**/Exception*",
+                    "**/Q*",
+                    "**/*Mapper*",
+                    "**/resources/**"
+            ])
+        }))
+    }
 }
 /* 커버리지 설정
 jacocoTestCoverageVerification {
