@@ -1,8 +1,10 @@
 package com.team3.monew.listener;
 
 import com.team3.monew.event.ArticleViewEvent;
+import com.team3.monew.event.CommentDeletedEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
+import com.team3.monew.event.CommentUpdatedEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.event.UserDeletedEvent;
 import com.team3.monew.event.UserRegisteredEvent;
@@ -127,6 +129,28 @@ public class UserActivityEventListener {
     userActivityService.deleteUserActivity(event.userId());
   }
 
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {TransientDataAccessException.class, CannotAcquireLockException.class},
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleCommentDeletedEvent(CommentDeletedEvent event) {
+    userActivityService.removeCommentSummary(event.userId(), event.commentId());
+  }
+
+  @Async("userActivityTaskExecutor")
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  @Retryable(
+      retryFor = {TransientDataAccessException.class, CannotAcquireLockException.class},
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 1000)
+  )
+  public void handleCommentUpdatedEvent(CommentUpdatedEvent event) {
+    userActivityService.updateCommentContent(event.userId(), event.commentId(), event.content());
+  }
+
   @Recover
   public void recover(Exception e, UserRegisteredEvent event) {
     log.error("사용자 활동 내역 UserRegistered Event 처리 실패: userId={}", event.userId(), e);
@@ -155,5 +179,11 @@ public class UserActivityEventListener {
   @Recover
   public void recover(Exception e, UserUpdatedEvent event) {
     log.error("사용자 활동 내역 UserUpdated Event 처리 실패: userId={}", event.userId(), e);
+  }
+
+  @Recover
+  public void recover(Exception e, CommentUpdatedEvent event) {
+    log.error("사용자 활동 내역 CommentUpdated Event 처리 실패: userId={} commentId={}",
+        event.userId(), event.commentId(), e);
   }
 }

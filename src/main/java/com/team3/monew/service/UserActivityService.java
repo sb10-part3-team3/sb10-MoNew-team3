@@ -128,6 +128,29 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 삭제 성공: userId={}", userId);
   }
 
+  public void removeCommentSummary(UUID userId, UUID commentId) {
+    log.debug("사용자 활동 내역 댓글 삭제 시작: userId={} commentId={}", userId, commentId);
+    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+    userActivityDocument.removeCommentSummary(commentId);
+    userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 댓글 삭제 성공: userId={} commentId={}", userId, commentId);
+  }
+
+  @Retryable(
+      retryFor = OptimisticLockingFailureException.class,
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 100)
+  )
+  public void updateCommentContent(UUID userId, UUID commentId, String newContent) {
+    log.debug("사용자 활동 내역 댓글 수정 시작: userId={} commentId={}", userId, commentId);
+    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+        .orElseThrow(() -> new UserActivityNotFoundException(userId));
+    userActivityDocument.updateCommentContent(commentId, newContent);
+    userActivityRepository.save(userActivityDocument);
+    log.debug("사용자 활동 내역 댓글 수정 성공: userId={} commentId={}", userId, commentId);
+  }
+
   @Recover
   public void recoverUpdateSubscriptionSummary(
       OptimisticLockingFailureException e,
@@ -185,5 +208,16 @@ public class UserActivityService {
   private UserActivityDocument getOrCreate(UUID userId) {
     return userActivityRepository.findById(userId)
         .orElseGet(() -> UserActivityDocument.empty(userId));
+  }
+
+  @Recover
+  public void recoverUpdateCommentContent(
+      OptimisticLockingFailureException e,
+      UUID userId,
+      UUID commentId,
+      String newContent
+  ) {
+    log.error("댓글 수정 활동 내역 업데이트 최종 실패: userId={}, commentId={}", userId, commentId, e);
+    throw new UserActivityConflictException(userId);
   }
 }

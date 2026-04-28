@@ -101,7 +101,25 @@ public class UserActivityDocument {
     ).toList();
   }
 
-  // 삭제는 추후 구현
+  public void removeCommentSummary(UUID commentId) {
+    comments.removeIf(c -> Objects.equals(c.id(), commentId));
+  }
+
+  public void updateCommentContent(UUID commentId, String newContent) {
+    comments = comments.stream()
+        .map(comment -> Objects.equals(comment.id(), commentId)
+            ? new CommentSummary(
+            comment.id(),
+            comment.articleId(),
+            comment.articleTitle(),
+            comment.userId(),
+            comment.userNickname(),
+            newContent,
+            comment.likeCount(),
+            comment.createdAt()
+            ) : comment
+        ).toList();
+  }
 
 
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
