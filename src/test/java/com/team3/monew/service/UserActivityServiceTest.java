@@ -466,4 +466,493 @@ class UserActivityServiceTest {
     assertEquals(1, savedDocument.getArticleViews().size());
     assertEquals(summary, savedDocument.getArticleViews().get(0));
   }
+
+  @Test
+  @DisplayName("사용자 삭제 이벤트 처리 시 활동 내역 문서 삭제에 성공합니다.")
+  void shouldDeleteUserActivity() {
+    // given
+    // when
+    userActivityService.deleteUserActivity(userId);
+
+    // then
+    then(userActivityRepository).should().deleteById(userId);
+  }
+
+  @Test
+  @DisplayName("사용자 닉네임 수정 시 활동 내역 문서 닉네임 업데이트에 성공합니다.")
+  void shouldUpdateUserNickname() {
+    // given
+    String newNickname = "newTester";
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+
+    // when
+    userActivityService.updateUserNickname(userId, newNickname);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(newNickname, savedDocument.getNickname());
+  }
+
+  @Test
+  @DisplayName("사용자 닉네임 수정 시 본인이 작성한 댓글의 닉네임도 함께 업데이트됩니다.")
+  void shouldUpdateNicknameInCommentSummaries() {
+    // given
+    String newNickname = "newTester";
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary comment = new CommentSummary(
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    document.addCommentSummary(comment);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+
+    // when
+    userActivityService.updateUserNickname(userId, newNickname);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(newNickname, savedDocument.getNickname());
+    assertEquals(1, savedDocument.getComments().size());
+    assertEquals(newNickname, savedDocument.getComments().get(0).userNickname());
+  }
+
+  @Test
+  @DisplayName("사용자 닉네임 수정 시 문서가 없으면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserActivityNotFoundOnUpdateNickname() {
+    // given
+    String newNickname = "newTester";
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThrows(
+        UserActivityNotFoundException.class,
+        () -> userActivityService.updateUserNickname(userId, newNickname)
+    );
+
+    then(userActivityRepository).should(never()).save(any());
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 시 활동 내역 댓글 목록에서 해당 댓글을 제거합니다.")
+  void shouldRemoveCommentSummary() {
+    // given
+    UUID commentId = UUID.randomUUID();
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary summary = new CommentSummary(
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    document.addCommentSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+
+    // when
+    userActivityService.removeCommentSummary(userId, commentId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(0, savedDocument.getComments().size());
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 시 문서가 없으면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserActivityNotFoundOnRemoveCommentSummary() {
+    // given
+    UUID commentId = UUID.randomUUID();
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThrows(
+        UserActivityNotFoundException.class,
+        () -> userActivityService.removeCommentSummary(userId, commentId)
+    );
+
+    then(userActivityRepository).should(never()).save(any());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 시 활동 내역 댓글 목록의 내용을 업데이트합니다.")
+  void shouldUpdateCommentContent() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    String newContent = "수정된 댓글 내용";
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary summary = new CommentSummary(
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "기존 댓글 내용",
+        0,
+        createdAt
+    );
+
+    document.addCommentSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+
+    // when
+    userActivityService.updateCommentContent(userId, commentId, newContent);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(1, savedDocument.getComments().size());
+    assertEquals(newContent, savedDocument.getComments().get(0).content());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 시 문서가 없으면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserActivityNotFoundOnUpdateCommentContent() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    String newContent = "수정된 댓글 내용";
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThrows(
+        UserActivityNotFoundException.class,
+        () -> userActivityService.updateCommentContent(userId, commentId, newContent)
+    );
+
+    then(userActivityRepository).should(never()).save(any());
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요 취소 시 활동 내역 좋아요 목록에서 해당 항목을 제거합니다.")
+  void shouldRemoveCommentLikeSummary() {
+    // given
+    UUID commentLikeId = UUID.randomUUID();
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentLikeSummary summary = new CommentLikeSummary(
+        commentLikeId,
+        createdAt,
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "기사 제목",
+        UUID.randomUUID(),
+        "commentWriter",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    document.addCommentLikeSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+
+    // when
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(0, savedDocument.getCommentLikes().size());
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요 취소 시 문서가 없으면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserActivityNotFoundOnRemoveCommentLikeSummary() {
+    // given
+    UUID commentLikeId = UUID.randomUUID();
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThrows(
+        UserActivityNotFoundException.class,
+        () -> userActivityService.removeCommentLikeSummary(userId, commentLikeId)
+    );
+
+    then(userActivityRepository).should(never()).save(any());
+  }
+
+  @Test
+  @DisplayName("뉴스 기사 삭제 시 활동 내역에서 해당 기사 뷰를 삭제합니다.")
+  void shouldRemoveArticleView_whenArticleRemoved() {
+    //given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    ArticleViewSummary articleViewSummary = new ArticleViewSummary(
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        Instant.now(),
+        articleId,
+        "source1",
+        "sourceUrl1",
+        "title1",
+        Instant.now(),
+        "summary1",
+        1,
+        100
+    );
+
+    document.addArticleViewSummary(articleViewSummary);
+    given(userActivityRepository.findAllByArticleViewsArticleId(articleId)).willReturn(List.of(document));
+
+    // when
+    userActivityService.removeArticleViewSummary(articleId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(0, savedDocument.getArticleViews().size());
+  }
+
+  @Test
+  @DisplayName("구독 해제 시 활동 내역의 구독 목록에서 해당 구독을 삭제합니다.")
+  void shouldRemoveSubscriptionSummary_whenSubscriptionCanceled() {
+    //given
+    UUID subscriptionId = UUID.randomUUID();
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    SubscriptionSummary subscriptionSummary = new SubscriptionSummary(
+        subscriptionId,
+        UUID.randomUUID(),
+        "interest1",
+        List.of("keyword1"),
+        1,
+        Instant.now()
+    );
+
+    document.addSubscriptionSummary(subscriptionSummary);
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+
+    // when
+    userActivityService.removeSubscriptionSummary(userId, subscriptionId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+    then(userActivityRepository).should().save(documentCaptor.capture());
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+    assertNotNull(savedDocument);
+    assertEquals(userId, savedDocument.getId());
+    assertEquals(0, savedDocument.getSubscriptions().size());
+  }
+
+  @Test
+  @DisplayName("관심사 삭제 시 활동 내역에서 해당 관심사의 구독 정보를 삭제합니다.")
+  void shouldRemoveAllSubscriptionSummary_whenInterestDeleted() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    UUID userId2 = UUID.randomUUID();
+
+    UserActivityDocument document1 = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    SubscriptionSummary subscriptionSummary1 = new SubscriptionSummary(
+        UUID.randomUUID(),
+        interestId,
+        "interest1",
+        List.of("keyword1"),
+        1,
+        Instant.now()
+    );
+
+    UserActivityDocument document2 = UserActivityDocument.create(
+        userId2,
+        "test2@test.com",
+        "tester2",
+        Instant.now()
+    );
+
+    SubscriptionSummary subscriptionSummary2 = new SubscriptionSummary(
+        UUID.randomUUID(),
+        interestId,
+        "interest2",
+        List.of("keyword2"),
+        1,
+        Instant.now()
+    );
+
+    document1.addSubscriptionSummary(subscriptionSummary1);
+    document2.addSubscriptionSummary(subscriptionSummary2);
+    given(userActivityRepository.findAllBySubscriptionsInterestId(interestId))
+        .willReturn(List.of(document1, document2));
+
+    // when
+    userActivityService.removeAllSubscriptionSummaryByInterest(interestId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+
+    List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
+    assertNotNull(savedDocuments);
+    assertEquals(2, savedDocuments.size());
+    assertTrue(savedDocuments.stream()
+        .allMatch(doc -> doc.getSubscriptions().isEmpty()));
+  }
+
+  @Test
+  @DisplayName("관심사 삭제 시 활동 내역에서 해당 관심사의 구독 정보를 삭제합니다.")
+  void shouldUpdatedAllSubscriptionKeywordsSummary_whenInterestKeywordsUpdated() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    UUID userId2 = UUID.randomUUID();
+    List<String> keywords = List.of("newKeyword1", "newKeyword2");
+
+    UserActivityDocument document1 = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    UserActivityDocument document2 = UserActivityDocument.create(
+        userId2,
+        "test2@test.com",
+        "tester2",
+        Instant.now()
+    );
+
+    SubscriptionSummary subscriptionSummary1 = new SubscriptionSummary(
+        UUID.randomUUID(),
+        interestId,
+        "interest1",
+        List.of("keyword1"),
+        1,
+        Instant.now()
+    );
+
+
+    document1.addSubscriptionSummary(subscriptionSummary1);
+    document2.addSubscriptionSummary(subscriptionSummary1);
+    given(userActivityRepository.findAllBySubscriptionsInterestId(interestId))
+        .willReturn(List.of(document1, document2));
+
+    // when
+    userActivityService.updateSubscriptionsByKeywords(interestId, keywords);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+
+    List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
+    assertNotNull(savedDocuments);
+    assertEquals(2, savedDocuments.size());
+
+    savedDocuments.forEach(savedDocument ->
+        assertEquals(keywords, savedDocument.getSubscriptions().get(0).interestKeywords())
+    );
+  }
 }
