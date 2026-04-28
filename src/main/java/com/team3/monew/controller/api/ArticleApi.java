@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @Tag(name = "뉴스 기사 관리", description = "뉴스 기사 관련 API")
@@ -34,4 +35,23 @@ public interface ArticleApi {
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 
+  @Operation(summary = "뉴스 기사 논리 삭제", description = "뉴스 기사를 논리적으로 삭제합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "논리 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description ="서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<Void> deleteArticle(@PathVariable UUID articleId);
+
+  @Operation(summary = "뉴스 기사 물리 삭제", description = "뉴스 기사를 물리적으로 삭제합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description ="서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<Void> hardDeleteArticle(@PathVariable UUID articleId);
 }

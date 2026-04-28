@@ -85,6 +85,14 @@ public class ArticleService {
         nextAfter, articleDtoList.size(), totalElements, hasNext);
   }
 
+  public void deleteArticle(UUID articleId) {
+
+  }
+
+  public void hardDeleteArticle(UUID articleId) {
+
+  }
+
   private ArticleCursor parseCursor(ArticleSearchRequest request) {
     String cursor = request.cursor();
     if (cursor == null || cursor.isEmpty()) {
