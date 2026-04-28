@@ -624,12 +624,10 @@ class UserActivityServiceTest {
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
-    // when & then
-    assertThrows(
-        UserActivityNotFoundException.class,
-        () -> userActivityService.removeCommentSummary(userId, commentId)
-    );
+    // when
+    userActivityService.removeCommentSummary(userId, commentId);
 
+    // then
     then(userActivityRepository).should(never()).save(any());
   }
 
@@ -688,12 +686,10 @@ class UserActivityServiceTest {
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
-    // when & then
-    assertThrows(
-        UserActivityNotFoundException.class,
-        () -> userActivityService.updateCommentContent(userId, commentId, newContent)
-    );
+    // when
+    userActivityService.updateCommentContent(userId, commentId, newContent);
 
+    // then
     then(userActivityRepository).should(never()).save(any());
   }
 
@@ -744,19 +740,17 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("댓글 좋아요 취소 시 문서가 없으면 예외가 발생합니다.")
+  @DisplayName("댓글 좋아요 취소 시 문서가 없으면 정상 종료합니다.")
   void shouldThrowExceptionWhenUserActivityNotFoundOnRemoveCommentLikeSummary() {
     // given
     UUID commentLikeId = UUID.randomUUID();
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
-    // when & then
-    assertThrows(
-        UserActivityNotFoundException.class,
-        () -> userActivityService.removeCommentLikeSummary(userId, commentLikeId)
-    );
+    // when
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
 
+    // then
     then(userActivityRepository).should(never()).save(any());
   }
 
