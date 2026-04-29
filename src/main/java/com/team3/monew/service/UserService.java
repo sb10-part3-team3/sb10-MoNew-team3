@@ -98,6 +98,7 @@ public class UserService {
     return userMapper.toDto(updatedUser);
   }
 
+  @Transactional
   public void deleteUser(UUID userId) {
     log.debug("사용자 소프트 삭제 시작: userId={}", userId);
     User user = userRepository.findById(userId)
@@ -110,6 +111,7 @@ public class UserService {
     applicationEventPublisher.publishEvent(new UserDeletedEvent(user.getId()));
   }
 
+  @Transactional
   public void hardDeleteUser(UUID userId) {
     log.debug("사용자 물리 삭제 시작: userId={}", userId);
     User user = userRepository.findById(userId)
