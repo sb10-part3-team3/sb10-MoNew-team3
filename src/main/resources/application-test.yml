@@ -4,19 +4,29 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password:
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/test
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false
   sql:
     init:
       mode: never
+  batch:
+    job:
+      enabled: false
 
 logging:
   level:
-    com.sprint.mission.discodeit: debug
+    com.team3.monew: debug
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
+
+cloud:
+  aws:
+    s3:
+      bucket: test-bucket
+    region:
+      static: ap-northeast-2
+    credentials:
+      access-key: test-access-key
+      secret-key: test-secret-key

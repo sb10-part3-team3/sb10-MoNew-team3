@@ -7,7 +7,29 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+  batch:
+    job:
+      enabled: false
 
 logging:
   level:
     root: info
+
+api:
+  naver:
+    credentials:
+      id: ${NAVER_API_ID}
+      secret: ${NAVER_API_SECRET}
+
+app:
+  cron:
+    # "초 분 시 일 월 요일" (cron)
+    news-collections: "0 0 * * * *" # 1시간 마다
+
+# 배치 크기, 시간 설정
+batch:
+  notification:
+    delete:
+      batch-size: 100
+      retention-days: 7
+      cron: "0 0 3 * * *"  # 매일 새벽 3시

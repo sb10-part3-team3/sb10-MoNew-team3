@@ -8,9 +8,9 @@ services:
       - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./src/main/resources/sql:/docker-entrypoint-initdb.d
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_USER: ${POSTGRES_USER_NAME:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-0000}
       POSTGRES_DB: ${POSTGRES_DB:-monew}
     env_file:
