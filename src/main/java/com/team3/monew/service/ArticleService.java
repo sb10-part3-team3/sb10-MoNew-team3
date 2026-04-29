@@ -6,6 +6,7 @@ import com.team3.monew.dto.article.internal.ArticleCursor;
 import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.NewsArticle;
+import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
@@ -16,6 +17,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -85,12 +87,26 @@ public class ArticleService {
         nextAfter, articleDtoList.size(), totalElements, hasNext);
   }
 
+  @Transactional
   public void deleteArticle(UUID articleId) {
+    log.debug("뉴스기사 삭제 요청 - articleId={}", articleId);
+    NewsArticle article = getArticleOrThrow(articleId);
+    if (article.isDeleted()) {
+      throw new ArticleNotFoundException(articleId);
+    }
 
+    article.markDeleted();
+    newsArticleRepository.save(article);
+    log.info("뉴스기사 삭제 성공 - articleId={}", articleId);
   }
 
+  @Transactional
   public void hardDeleteArticle(UUID articleId) {
+    log.debug("뉴스기사 물리삭제 요청 - articleId={}", articleId);
+    NewsArticle article = getArticleOrThrow(articleId);
 
+    newsArticleRepository.delete(article);
+    log.info("뉴스기사 물리삭제 성공 - articleId={}", articleId);
   }
 
   private ArticleCursor parseCursor(ArticleSearchRequest request) {
@@ -116,5 +132,10 @@ public class ArticleService {
     } catch (DateTimeParseException | NumberFormatException e) {
       throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, Map.of("cursor", e.getMessage()));
     }
+  }
+
+  private NewsArticle getArticleOrThrow(UUID articleId) {
+    return newsArticleRepository.findById(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
   }
 }
