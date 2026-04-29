@@ -123,7 +123,7 @@ class InterestControllerTest {
 
   @Test
   @DisplayName("유사한 관심사 이름이면 400 응답을 반환한다")
-  void shouldReturnBadRequest_whenInterestNameIsSimilar() throws Exception {
+  void shouldReturnConflict_whenInterestNameIsSimilar() throws Exception {
     // given
     given(interestService.createInterest(any()))
         .willThrow(new InterestDuplicateNameException());
