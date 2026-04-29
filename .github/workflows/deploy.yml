@@ -11,6 +11,11 @@ on:
       - '**/*.example'
       - '.gitignore'
 
+# 동일 브랜치 동일 작업 방지
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # docker 이미지 빌드 & 푸시
   build-and-push:
