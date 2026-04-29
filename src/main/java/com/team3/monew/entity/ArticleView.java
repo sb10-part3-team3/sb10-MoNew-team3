@@ -48,4 +48,8 @@ public class ArticleView {
 
         return view;
     }
+
+    public void touch() {
+        this.lastViewedAt = Instant.now();
+    }
 }

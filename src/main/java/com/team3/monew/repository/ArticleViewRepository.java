@@ -2,6 +2,7 @@ package com.team3.monew.repository;
 
 import com.team3.monew.entity.ArticleView;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,4 +15,6 @@ public interface ArticleViewRepository extends JpaRepository<ArticleView, UUID> 
   Set<UUID> findAllByArticleIdInAndUserId(
       @Param("articleIds") Collection<UUID> articleIds,
       @Param("userId") UUID userId);
+
+  Optional<ArticleView> findByArticleIdAndUserId(UUID articleId, UUID userId);
 }
