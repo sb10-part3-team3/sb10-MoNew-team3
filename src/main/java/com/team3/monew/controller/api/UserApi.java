@@ -47,4 +47,20 @@ public interface UserApi {
       @PathVariable UUID userId,
       @Valid @RequestBody UserUpdateRequest userUpdateRequest
   );
+
+  @Operation(summary = "사용자 논리 삭제", description = "사용자를 논리적으로 삭제합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  ResponseEntity<Void> deleteUser(@PathVariable UUID userId);
+
+  @Operation(summary = "사용자 물리 삭제", description = "사용자를 물리적으로 삭제합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "사용자 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "사용자 정보 없음"),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+  })
+  ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId);
 }
