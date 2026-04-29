@@ -48,6 +48,23 @@ public class InterestService {
   private final UserRepository userRepository;
   private final ApplicationEventPublisher eventPublisher;
 
+  private static final char[] CHOSEONG_JAMO = {
+      'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',
+      'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+  };
+
+  private static final char[] JUNGSEONG_JAMO = {
+      'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ',
+      'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ',
+      'ㅡ', 'ㅢ', 'ㅣ'
+  };
+
+  private static final char[] JONGSEONG_JAMO = {
+      '\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ',
+      'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ',
+      'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+  };
+
   public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
@@ -59,10 +76,12 @@ public class InterestService {
 
     List<Interest> interests = interestRepository.findAll();
     for (Interest interest : interests) {
-      double similarity = calculateSimilarity(interest.getName(), dto.name());
-      if (similarity >= 0.8) {
+      SimilarityResult result = checkInterestNameSimilarity(interest.getName(), dto.name());
+
+      if (result.similar()) {
         log.warn("관심사 등록 실패 - 유사한 이름 존재, requestName={}, existingName={}, similarity={}",
-            dto.name(), interest.getName(), similarity);
+            dto.name(), interest.getName(), result.similarity());
+
         throw new InterestDuplicateNameException();
       }
     }
@@ -285,6 +304,10 @@ public class InterestService {
         .orElseThrow(() -> new UserNotFoundException(userId));
   }
 
+  private record SimilarityResult(boolean similar, double similarity) {
+
+  }
+
   // 유니크 제약 위반 검증
   private boolean isDuplicateSubscriptionViolation(DataIntegrityViolationException e) {
     Throwable cause = e;
@@ -297,15 +320,43 @@ public class InterestService {
     return false;
   }
 
+  // 관심사 이름 유사도 판단
+  private SimilarityResult checkInterestNameSimilarity(String existingName, String requestName) {
+    String existing = normalize(existingName);
+    String request = normalize(requestName);
+
+    // 완전 동일 이름은 차단
+    if (existing.equals(request)) {
+      return new SimilarityResult(true, 1.0);
+    }
+
+    // 포함 관계는 허용
+    // 예: 삼성 != 삼성전자, 주식 != 해외주식
+    if (existing.contains(request) || request.contains(existing)) {
+      return new SimilarityResult(false, 0.0);
+    }
+
+    // 너무 짧은 이름은 유사도 검사하지 않음
+    // 예: 주식 vs 주석 같은 실제 단어 과차단 방지
+    if (existing.length() < 4 || request.length() < 4) {
+      return new SimilarityResult(false, 0.0);
+    }
+
+    // 길이가 충분한 경우에만 자모 분해 기반 유사도 검사
+    double similarity = calculateSimilarity(existing, request);
+
+    return new SimilarityResult(similarity >= 0.8, similarity);
+  }
+
   // 유사도 계산 메서드
   private double calculateSimilarity(String a, String b) {
-    String normalizedA = normalize(a);
-    String normalizedB = normalize(b);
+    String normalizedA = decomposeKorean(normalize(a));
+    String normalizedB = decomposeKorean(normalize(b));
+
     int distance = levenshtein(normalizedA, normalizedB);
     int maxLength = Math.max(normalizedA.length(), normalizedB.length());
 
     if (maxLength == 0) {
-      // 둘 다 빈 문자열이면 동일한 것으로 간주함
       return 1.0;
     }
 
@@ -315,6 +366,33 @@ public class InterestService {
   // 문자열 정규화
   private String normalize(String s) {
     return s.trim().toLowerCase();
+  }
+
+  // 한글 음절을 초성/중성/종성으로 분해
+  private String decomposeKorean(String s) {
+
+    StringBuilder result = new StringBuilder();
+
+    for (char ch : s.toCharArray()) {
+      if (ch >= '가' && ch <= '힣') {
+        int unicode = ch - '가';
+
+        int choIndex = unicode / (21 * 28);
+        int jungIndex = (unicode % (21 * 28)) / 28;
+        int jongIndex = unicode % 28;
+
+        result.append(CHOSEONG_JAMO[choIndex]);
+        result.append(JUNGSEONG_JAMO[jungIndex]);
+
+        if (jongIndex != 0) {
+          result.append(JONGSEONG_JAMO[jongIndex]);
+        }
+      } else {
+        result.append(ch);
+      }
+    }
+
+    return result.toString();
   }
 
   // 레벤슈타인 알고리즘

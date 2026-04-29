@@ -122,6 +122,27 @@ class InterestControllerTest {
   }
 
   @Test
+  @DisplayName("유사한 관심사 이름이면 400 응답을 반환한다")
+  void shouldReturnConflict_whenInterestNameIsSimilar() throws Exception {
+    // given
+    given(interestService.createInterest(any()))
+        .willThrow(new InterestDuplicateNameException());
+
+    String requestJson = """
+        {
+          "name": "삼셩전자",
+          "keywords": ["키워드"]
+        }
+        """;
+
+    // when & then
+    mockMvc.perform(post("/api/interests")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestJson))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   @DisplayName("관심사 키워드를 수정할 수 있다")
   void shouldUpdateInterestKeywords_whenValidRequest() throws Exception {
     // given
