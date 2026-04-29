@@ -27,6 +27,8 @@ import jakarta.persistence.PersistenceContext;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -101,25 +103,197 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
         .isInstanceOf(InterestDuplicateNameException.class);
   }
 
-  @Test
-  @DisplayName("관심사 이름의 유사도가 80% 이상이면 등록에 실패한다")
-  void shouldFailToRegisterInterest_whenNameSimilar80percentOver() {
-    // given
-    InterestRegisterRequest request = new InterestRegisterRequest(
-        "apple",
-        List.of("keyword")
-    );
+  @Nested
+  @DisplayName("관심사 이름 유사도 검증 테스트")
+  class InterestNameSimilarityTest {
 
-    InterestRegisterRequest request2 = new InterestRegisterRequest(
-        "applf",
-        List.of("keyword")
-    );
+    @BeforeEach
+    void setUp() {
+      subscriptionRepository.deleteAll();
+      interestKeywordRepository.deleteAll();
+      interestRepository.deleteAll();
 
-    interestService.createInterest(request);
+      entityManager.flush();
+      entityManager.clear();
+    }
 
-    // when & then
-    assertThatThrownBy(() -> interestService.createInterest(request2))
-        .isInstanceOf(InterestDuplicateNameException.class);
+    @Test
+    @DisplayName("영어 관심사 이름의 유사도가 80% 이상이면 등록에 실패하고 DB에 저장되지 않는다")
+    void shouldFailToRegisterInterest_whenEnglishNameSimilar80percentOver() {
+      // given
+      InterestRegisterRequest appleRequest = new InterestRegisterRequest(
+          "apple",
+          List.of("keyword")
+      );
+
+      InterestRegisterRequest similarRequest = new InterestRegisterRequest(
+          "applf",
+          List.of("similar")
+      );
+
+      interestService.createInterest(appleRequest);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // when & then
+      assertThatThrownBy(() -> interestService.createInterest(similarRequest))
+          .isInstanceOf(InterestDuplicateNameException.class);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      List<Interest> interests = interestRepository.findAll();
+      List<InterestKeyword> keywords = interestKeywordRepository.findAll();
+
+      assertThat(interests)
+          .extracting(Interest::getName)
+          .containsExactly("apple");
+
+      assertThat(keywords)
+          .extracting(InterestKeyword::getKeyword)
+          .containsExactly("keyword");
+    }
+
+    @Test
+    @DisplayName("한글 관심사 이름이 4글자 이상이고 자모 분해 기준 유사도가 80% 이상이면 등록에 실패하고 DB에 저장되지 않는다")
+    void shouldFailToRegisterInterest_whenKoreanNameSimilar80percentOver() {
+      // given
+      InterestRegisterRequest samsungRequest = new InterestRegisterRequest(
+          "삼성전자",
+          List.of("삼성", "전자")
+      );
+
+      InterestRegisterRequest similarRequest = new InterestRegisterRequest(
+          "삼셩전자",
+          List.of("오타", "유사이름")
+      );
+
+      interestService.createInterest(samsungRequest);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // when & then
+      assertThatThrownBy(() -> interestService.createInterest(similarRequest))
+          .isInstanceOf(InterestDuplicateNameException.class);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      List<Interest> interests = interestRepository.findAll();
+      List<InterestKeyword> keywords = interestKeywordRepository.findAll();
+
+      assertThat(interests)
+          .extracting(Interest::getName)
+          .containsExactly("삼성전자");
+
+      assertThat(keywords)
+          .extracting(InterestKeyword::getKeyword)
+          .containsExactlyInAnyOrder("삼성", "전자");
+    }
+
+    @Test
+    @DisplayName("짧은 한글 관심사 이름은 유사해도 각각 별도 관심사로 저장된다")
+    void shouldRegisterBothInterests_whenKoreanNamesAreShortEvenIfSimilar() {
+      // given
+      InterestRegisterRequest stockRequest = new InterestRegisterRequest(
+          "주식",
+          List.of("코스피")
+      );
+
+      InterestRegisterRequest annotationRequest = new InterestRegisterRequest(
+          "주석",
+          List.of("문서")
+      );
+
+      // when
+      InterestDto stock = interestService.createInterest(stockRequest);
+      InterestDto annotation = interestService.createInterest(annotationRequest);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // then
+      assertThat(interestRepository.findById(stock.id())).isPresent();
+      assertThat(interestRepository.findById(annotation.id())).isPresent();
+
+      assertThat(interestRepository.findAll())
+          .extracting(Interest::getName)
+          .containsExactlyInAnyOrder("주식", "주석");
+
+      assertThat(interestKeywordRepository.findAll())
+          .extracting(InterestKeyword::getKeyword)
+          .containsExactlyInAnyOrder("코스피", "문서");
+    }
+
+    @Test
+    @DisplayName("포함 관계인 한글 관심사 이름은 각각 별도 관심사로 저장된다")
+    void shouldRegisterBothInterests_whenNameIsContainmentRelationship() {
+      // given
+      InterestRegisterRequest samsungRequest = new InterestRegisterRequest(
+          "삼성",
+          List.of("기업")
+      );
+
+      InterestRegisterRequest samsungElectronicsRequest = new InterestRegisterRequest(
+          "삼성전자",
+          List.of("반도체", "전자")
+      );
+
+      // when
+      InterestDto samsung = interestService.createInterest(samsungRequest);
+      InterestDto samsungElectronics = interestService.createInterest(samsungElectronicsRequest);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // then
+      assertThat(interestRepository.findById(samsung.id())).isPresent();
+      assertThat(interestRepository.findById(samsungElectronics.id())).isPresent();
+
+      assertThat(interestRepository.findAll())
+          .extracting(Interest::getName)
+          .containsExactlyInAnyOrder("삼성", "삼성전자");
+
+      assertThat(interestKeywordRepository.findAll())
+          .extracting(InterestKeyword::getKeyword)
+          .containsExactlyInAnyOrder("기업", "반도체", "전자");
+    }
+
+    @Test
+    @DisplayName("기존 관심사 이름이 요청 관심사 이름을 포함해도 각각 별도 관심사로 저장된다")
+    void shouldRegisterBothInterests_whenExistingNameContainsRequestName() {
+      // given
+      InterestRegisterRequest overseasStockRequest = new InterestRegisterRequest(
+          "해외주식",
+          List.of("미국주식", "나스닥")
+      );
+
+      InterestRegisterRequest stockRequest = new InterestRegisterRequest(
+          "주식",
+          List.of("코스피")
+      );
+
+      // when
+      InterestDto overseasStock = interestService.createInterest(overseasStockRequest);
+      InterestDto stock = interestService.createInterest(stockRequest);
+
+      entityManager.flush();
+      entityManager.clear();
+
+      // then
+      assertThat(interestRepository.findById(overseasStock.id())).isPresent();
+      assertThat(interestRepository.findById(stock.id())).isPresent();
+
+      assertThat(interestRepository.findAll())
+          .extracting(Interest::getName)
+          .containsExactlyInAnyOrder("해외주식", "주식");
+
+      assertThat(interestKeywordRepository.findAll())
+          .extracting(InterestKeyword::getKeyword)
+          .containsExactlyInAnyOrder("미국주식", "나스닥", "코스피");
+    }
   }
 
   @Test

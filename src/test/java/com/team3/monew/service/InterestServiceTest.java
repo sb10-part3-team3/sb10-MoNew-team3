@@ -145,6 +145,163 @@ class InterestServiceTest {
   }
 
   @Test
+  @DisplayName("한글 관심사 이름이 4글자 이상이고 자모 분해 기준 유사도가 80% 이상이면 등록에 실패한다")
+  void shouldFailToRegisterInterest_whenKoreanNameSimilar80percentOver() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "삼셩전자",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("삼성전자");
+
+    given(interestRepository.existsByName("삼셩전자")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.createInterest(request))
+        .isInstanceOf(InterestDuplicateNameException.class);
+
+    then(interestRepository).should(never()).saveAndFlush(any());
+  }
+
+  @Test
+  @DisplayName("한글 관심사 이름이 4글자 미만이면 유사해도 등록할 수 있다")
+  void shouldRegisterInterest_whenKoreanNameIsShortEvenIfSimilar() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "주석",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("주식");
+    Interest savedInterest = Interest.create("주석");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "주석",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("주석")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("주석");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
+  @DisplayName("기존 관심사 이름과 포함 관계이면 유사도 검사 대상에서 제외되어 등록할 수 있다")
+  void shouldRegisterInterest_whenNameContainsExistingName() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "삼성전자",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("삼성");
+    Interest savedInterest = Interest.create("삼성전자");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "삼성전자",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("삼성전자")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("삼성전자");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
+  @DisplayName("요청 관심사 이름이 기존 관심사 이름을 포함해도 등록할 수 있다")
+  void shouldRegisterInterest_whenRequestNameContainsExistingName() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "해외주식",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("주식");
+    Interest savedInterest = Interest.create("해외주식");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "해외주식",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("해외주식")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("해외주식");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
+  @DisplayName("기존 관심사 이름이 요청 관심사 이름을 포함해도 등록할 수 있다")
+  void shouldRegisterInterest_whenExistingNameContainsRequestName() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "주식",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("해외주식");
+    Interest savedInterest = Interest.create("주식");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "주식",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("주식")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("주식");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
   @DisplayName("관심사 키워드를 수정할 수 있다")
   void shouldUpdateInterestKeyword_whenUpdateRequest() {
     // given
