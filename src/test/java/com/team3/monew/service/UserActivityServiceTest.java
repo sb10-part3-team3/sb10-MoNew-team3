@@ -685,8 +685,8 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("댓글 삭제 시 문서가 없으면 예외가 발생합니다.")
-  void shouldThrowExceptionWhenUserActivityNotFoundOnRemoveCommentSummary() {
+  @DisplayName("댓글 삭제 시 문서가 문서가 없으면 정상 종료합니다.")
+  void shouldDoNothingWhenUserActivityNotFoundOnRemoveCommentSummary() {
     // given
     UUID commentId = UUID.randomUUID();
 
@@ -814,8 +814,8 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("댓글 수정 시 문서가 없으면 예외가 발생합니다.")
-  void shouldThrowExceptionWhenUserActivityNotFoundOnUpdateCommentContent() {
+  @DisplayName("댓글 수정 시 문서가 문서가 없으면 정상 종료합니다.")
+  void shouldDoNothingWhenUserActivityNotFoundOnUpdateCommentContent() {
     // given
     UUID commentId = UUID.randomUUID();
     String newContent = "수정된 댓글 내용";
@@ -877,7 +877,7 @@ class UserActivityServiceTest {
 
   @Test
   @DisplayName("댓글 좋아요 취소 시 문서가 없으면 정상 종료합니다.")
-  void shouldThrowExceptionWhenUserActivityNotFoundOnRemoveCommentLikeSummary() {
+  void shouldDoNothingWhenUserActivityNotFoundOnRemoveCommentLikeSummary() {
     // given
     UUID commentLikeId = UUID.randomUUID();
 
