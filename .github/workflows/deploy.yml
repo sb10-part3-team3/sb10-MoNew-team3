@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: AWS CLI 설정
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
@@ -55,7 +55,6 @@ jobs:
 
       - name: 작업정의 환경 변수 치환
         run: |
-          sudo apt-get update -y && sudo apt-get install -y gettext-base
           export AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}
           export AWS_S3_ENV_ARN=${{ secrets.AWS_S3_ENV_ARN }}
           export ECR_REPOSITORY_URI=${{ vars.ECR_REPOSITORY_URI }}
@@ -64,7 +63,7 @@ jobs:
           envsubst < task-definition.json > task-definition-rendered.json
 
       - name: AWS CLI 설정
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
