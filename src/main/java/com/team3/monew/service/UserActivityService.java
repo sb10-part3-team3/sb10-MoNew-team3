@@ -122,7 +122,16 @@ public class UserActivityService {
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
         .orElseThrow(() -> new UserActivityNotFoundException(userId));
     userActivityDocument.updateNickname(newNickname);
+    userActivityDocument.updateCommentNickname(newNickname);
     userActivityRepository.save(userActivityDocument);
+
+    // 닉네임 변경하는 user가 작성한 모든 댓글 가져오고 닉네임 변경
+    List<UserActivityDocument> documents = userActivityRepository.findAllByCommentsUserId(userId);
+    documents.forEach(document -> {
+      document.updateCommentNickname(newNickname);
+      userActivityRepository.save(document);
+    });
+
     log.debug("사용자 활동 내역 닉네임 업데이트 성공: userId={}", userId);
   }
 

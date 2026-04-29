@@ -518,7 +518,7 @@ class UserActivityServiceTest {
     UserActivityDocument document = UserActivityDocument.create(
         userId,
         "test@test.com",
-        "tester",
+        newNickname,
         createdAt
     );
 
@@ -536,6 +536,7 @@ class UserActivityServiceTest {
     document.addCommentSummary(comment);
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+    given(userActivityRepository.findAllByCommentsUserId(userId)).willReturn(List.of());
 
     // when
     userActivityService.updateUserNickname(userId, newNickname);

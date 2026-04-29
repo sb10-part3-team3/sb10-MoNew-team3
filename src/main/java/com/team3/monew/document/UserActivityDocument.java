@@ -86,20 +86,22 @@ public class UserActivityDocument {
 
   public void updateNickname(String newNickname) {
     this.nickname = newNickname;
+  }
 
+  public void updateCommentNickname(String newNickname) {
     comments = comments.stream()
         .map(comment -> Objects.equals(comment.userId(), this.id)
-            ? new CommentSummary(
-            comment.id(),
-            comment.articleId(),
-            comment.articleTitle(),
-            comment.userId(),
-            newNickname,
-            comment.content(),
-            comment.likeCount(),
-            comment.createdAt()
-        ) : comment
-    ).collect(Collectors.toCollection(ArrayList::new));;
+                ? new CommentSummary(
+                comment.id(),
+                comment.articleId(),
+                comment.articleTitle(),
+                comment.userId(),
+                newNickname,
+                comment.content(),
+                comment.likeCount(),
+                comment.createdAt()
+            ) : comment
+        ).collect(Collectors.toCollection(ArrayList::new));
   }
 
   public void removeCommentSummary(UUID commentId) {
