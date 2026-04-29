@@ -33,3 +33,4 @@ batch:
       batch-size: 100
       retention-days: 7
       cron: "0 0 3 * * *"  # 매일 새벽 3시
+      zone: "Asia/Seoul"
