@@ -8,6 +8,10 @@ plugins {
 group = 'com.team3'
 version = '0.0.1-SNAPSHOT'
 
+bootJar {
+    archiveFileName = 'app.jar' // 파일명을 버전이나 이름 상관없이 고정
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
@@ -85,6 +89,22 @@ jacocoTestReport {
     reports {
         xml.required = true
         html.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "**/*Application*",
+                    "**/config/**",
+                    "**/*Dto*",
+                    "**/*Request*",
+                    "**/*Response*",
+                    "**/Interceptor*",
+                    "**/Exception*",
+                    "**/entity/Q*",
+                    "**/*Mapper*",
+                    "**/resources/**"
+            ])
+        }))
     }
 }
 /* 커버리지 설정
