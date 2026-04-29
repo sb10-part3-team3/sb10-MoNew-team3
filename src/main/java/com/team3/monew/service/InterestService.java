@@ -76,11 +76,11 @@ public class InterestService {
 
     List<Interest> interests = interestRepository.findAll();
     for (Interest interest : interests) {
-      if (isSimilarInterestName(interest.getName(), dto.name())) {
-        double similarity = calculateSimilarity(interest.getName(), dto.name());
+      SimilarityResult result = checkInterestNameSimilarity(interest.getName(), dto.name());
 
+      if (result.similar()) {
         log.warn("관심사 등록 실패 - 유사한 이름 존재, requestName={}, existingName={}, similarity={}",
-            dto.name(), interest.getName(), similarity);
+            dto.name(), interest.getName(), result.similarity());
 
         throw new InterestDuplicateNameException();
       }
@@ -304,6 +304,10 @@ public class InterestService {
         .orElseThrow(() -> new UserNotFoundException(userId));
   }
 
+  private record SimilarityResult(boolean similar, double similarity) {
+
+  }
+
   // 유니크 제약 위반 검증
   private boolean isDuplicateSubscriptionViolation(DataIntegrityViolationException e) {
     Throwable cause = e;
@@ -317,29 +321,31 @@ public class InterestService {
   }
 
   // 관심사 이름 유사도 판단
-  private boolean isSimilarInterestName(String existingName, String requestName) {
+  private SimilarityResult checkInterestNameSimilarity(String existingName, String requestName) {
     String existing = normalize(existingName);
     String request = normalize(requestName);
 
     // 완전 동일 이름은 차단
     if (existing.equals(request)) {
-      return true;
+      return new SimilarityResult(true, 1.0);
     }
 
     // 포함 관계는 허용
     // 예: 삼성 != 삼성전자, 주식 != 해외주식
     if (existing.contains(request) || request.contains(existing)) {
-      return false;
+      return new SimilarityResult(false, 0.0);
     }
 
     // 너무 짧은 이름은 유사도 검사하지 않음
     // 예: 주식 vs 주석 같은 실제 단어 과차단 방지
     if (existing.length() < 4 || request.length() < 4) {
-      return false;
+      return new SimilarityResult(false, 0.0);
     }
 
     // 길이가 충분한 경우에만 자모 분해 기반 유사도 검사
-    return calculateSimilarity(existing, request) >= 0.8;
+    double similarity = calculateSimilarity(existing, request);
+
+    return new SimilarityResult(similarity >= 0.8, similarity);
   }
 
   // 유사도 계산 메서드
