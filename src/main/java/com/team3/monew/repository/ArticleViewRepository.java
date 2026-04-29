@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,4 +18,8 @@ public interface ArticleViewRepository extends JpaRepository<ArticleView, UUID> 
       @Param("userId") UUID userId);
 
   Optional<ArticleView> findByArticleIdAndUserId(UUID articleId, UUID userId);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("DELETE FROM ArticleView av WHERE av.article.id = :articleId")
+  void deleteAllByArticleId(@Param("articleId") UUID articleId);
 }

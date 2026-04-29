@@ -10,14 +10,16 @@ import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
+import com.team3.monew.repository.CommentLikeRepository;
+import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,9 @@ public class ArticleService {
   private final ArticleViewRepository articleViewRepository;
 
   private static final String CURSOR_DELIMITER = ", ";
+  private final ArticleInterestRepository articleInterestRepository;
+  private final CommentLikeRepository commentLikeRepository;
+  private final CommentRepository commentRepository;
 
   public CursorPageResponseDto<ArticleDto> getArticleList(
       ArticleSearchRequest request, UUID requestUserId) {
@@ -103,9 +108,16 @@ public class ArticleService {
   @Transactional
   public void hardDeleteArticle(UUID articleId) {
     log.debug("뉴스기사 물리삭제 요청 - articleId={}", articleId);
-    NewsArticle article = getArticleOrThrow(articleId);
+    NewsArticle newsArticle = getArticleOrThrow(articleId);
 
-    newsArticleRepository.delete(article);
+    // 1. ArticleInterest 삭제
+    articleInterestRepository.deleteAllByArticleId(articleId);
+    // 2. ArticleViews 삭제
+    articleViewRepository.deleteAllByArticleId(articleId);
+    // 3. Comments 삭제
+    commentRepository.deleteAllByArticleId(articleId);
+
+    newsArticleRepository.delete(newsArticle);
     log.info("뉴스기사 물리삭제 성공 - articleId={}", articleId);
   }
 
