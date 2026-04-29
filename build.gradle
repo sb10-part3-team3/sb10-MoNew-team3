@@ -96,7 +96,7 @@ jacocoTestReport {
                     "**/*Response*",
                     "**/Interceptor*",
                     "**/Exception*",
-                    "**/Q*",
+                    "**/entity/Q*",
                     "**/*Mapper*",
                     "**/resources/**"
             ])
