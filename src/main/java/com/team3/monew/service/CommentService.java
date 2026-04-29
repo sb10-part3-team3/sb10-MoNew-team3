@@ -89,7 +89,7 @@ public class CommentService {
 
   @Transactional
   public CommentDto registerComment(CommentRegisterRequest request) {
-    log.debug("Register comment request: articleId={}, userId={}",
+    log.debug("댓글 등록 요청 - articleId={}, userId={}",
         request.articleId(), request.userId());
 
     NewsArticle article = findActiveArticle(request.articleId());
@@ -99,7 +99,7 @@ public class CommentService {
     Comment savedComment = commentRepository.save(comment);
     newsArticleRepository.incrementCommentCountById(request.articleId());
 
-    log.info("Comment registered: commentId={}, articleId={}, userId={}",
+    log.info("댓글 등록 성공 - commentId={}, articleId={}, userId={}",
         savedComment.getId(), request.articleId(), request.userId());
     // 댓글 등록 이벤트 발행
     eventPublisher.publishEvent(CommentRegisteredEvent.from(savedComment));
@@ -108,13 +108,13 @@ public class CommentService {
 
   @Transactional
   public CommentDto updateComment(UUID commentId, UUID requestUserId, CommentUpdateRequest request) {
-    log.debug("Update comment request: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.debug("댓글 수정 요청 - commentId={}, requestUserId={}", commentId, requestUserId);
 
     Comment comment = findActiveComment(commentId);
     validateCommentAuthor(comment, requestUserId, new UnauthorizedCommentUpdateException(commentId));
 
     comment.updateContent(request.content());
-    log.info("Comment updated: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.info("댓글 수정 성공 - commentId={}, requestUserId={}", commentId, requestUserId);
     eventPublisher.publishEvent(
         new CommentUpdatedEvent(
             comment.getId(),
@@ -127,18 +127,18 @@ public class CommentService {
 
   @Transactional
   public void deleteComment(UUID commentId) {
-    log.debug("Delete comment request: commentId={}", commentId);
+    log.debug("댓글 삭제 요청 - commentId={}", commentId);
 
     Comment comment = findActiveComment(commentId);
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
-    log.info("Comment deleted: commentId={}", commentId);
+    log.info("댓글 삭제 성공 - commentId={}", commentId);
     eventPublisher.publishEvent(new CommentDeletedEvent(comment.getId(), comment.getUser().getId()));
   }
 
   @Transactional
   public void hardDeleteComment(UUID commentId) {
-    log.debug("Hard delete comment request: commentId={}", commentId);
+    log.debug("댓글 물리 삭제 요청 - commentId={}", commentId);
 
     Comment comment = findComment(commentId);
 
@@ -152,7 +152,7 @@ public class CommentService {
         commentId
     );
     commentRepository.delete(comment);
-    log.info("Comment hard deleted: commentId={}", commentId);
+    log.info("댓글 물리 삭제 성공 - commentId={}", commentId);
     eventPublisher.publishEvent(new CommentDeletedEvent(comment.getId(), comment.getUser().getId()));
   }
 
@@ -166,7 +166,7 @@ public class CommentService {
       UUID requestUserId
   ) {
     log.debug(
-        "Find comments request: articleId={}, orderBy={}, direction={}, cursor={}, after={}, limit={}, requestUserId={}",
+        "댓글 목록 조회 요청 - articleId={}, orderBy={}, direction={}, cursor={}, after={}, limit={}, requestUserId={}",
         articleId,
         orderBy,
         direction,
@@ -192,20 +192,20 @@ public class CommentService {
     long totalElements = commentRepository.countActiveComments(articleId);
     CursorPageResponseCommentDto response = buildCommentPageResponse(condition, comments, totalElements);
 
-    log.debug("Find comments completed: articleId={}, size={}, totalElements={}, hasNext={}",
+    log.debug("댓글 목록 조회 완료 - articleId={}, size={}, totalElements={}, hasNext={}",
         articleId, response.size(), response.totalElements(), response.hasNext());
     return response;
   }
 
   @Transactional
   public CommentLikeDto likeComment(UUID commentId, UUID requestUserId) {
-    log.debug("Like comment request: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.debug("댓글 좋아요 요청 - commentId={}, requestUserId={}", commentId, requestUserId);
 
     Comment comment = findActiveCommentWithArticleAndUser(commentId);
     User user = findActiveUser(requestUserId);
 
     if (commentLikeRepository.existsByCommentIdAndUserId(commentId, requestUserId)) {
-      log.debug("Like comment rejected: commentId={}, requestUserId={}, reason=alreadyExists",
+      log.warn("댓글 좋아요 실패 - commentId={}, requestUserId={}, reason=이미 좋아요한 댓글입니다.",
           commentId, requestUserId);
       throw new CommentLikeAlreadyExistsException();
     }
@@ -215,29 +215,29 @@ public class CommentService {
 
     if (!comment.getUser().getId().equals(requestUserId)) {
       eventPublisher.publishEvent(CommentLikedEvent.from(savedCommentLike));
-      log.debug("Comment liked event published: commentId={}, requestUserId={}",
+      log.debug("댓글 좋아요 이벤트 발행 완료 - commentId={}, requestUserId={}",
           commentId, requestUserId);
     }
 
-    log.info("Comment liked: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.info("댓글 좋아요 성공 - commentId={}, requestUserId={}", commentId, requestUserId);
     return toCommentLikeDto(savedCommentLike);
   }
 
   @Transactional
   public void unlikeComment(UUID commentId, UUID requestUserId) {
-    log.debug("Unlike comment request: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.debug("댓글 좋아요 취소 요청 - commentId={}, requestUserId={}", commentId, requestUserId);
 
     Comment comment = findActiveComment(commentId);
     CommentLike commentLike = commentLikeRepository.findByCommentIdAndUserId(commentId, requestUserId)
         .orElseThrow(() -> {
-          log.debug("Unlike comment rejected: commentId={}, requestUserId={}, reason=notFound",
+          log.warn("댓글 좋아요 취소 실패 - commentId={}, requestUserId={}, reason=좋아요 이력이 없습니다.",
               commentId, requestUserId);
           return new CommentLikeNotFoundException();
         });
 
     comment.decreaseLikeCount();
     commentLikeRepository.delete(commentLike);
-    log.info("Comment unliked: commentId={}, requestUserId={}", commentId, requestUserId);
+    log.info("댓글 좋아요 취소 성공 - commentId={}, requestUserId={}", commentId, requestUserId);
     eventPublisher.publishEvent(
         new CommentUnlikedEvent(
           requestUserId,
