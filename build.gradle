@@ -8,6 +8,10 @@ plugins {
 group = 'com.team3'
 version = '0.0.1-SNAPSHOT'
 
+bootJar {
+    archiveFileName = 'app.jar' // 파일명을 버전이나 이름 상관없이 고정
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
