@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 70 # 이후 기준 80% 추가 예정
+        threshold: 0%
+        informational: false # 조건 불만족시 실패
+    patch:
+      default:
+        target: 70%   # 추가된 코드의 커버리지
+        informational: false # 조건 불만족시 실패
+
+comment:
+  #diff: 이번 PR로 인한 변화량 / flags: 설정된 플래그별 요약 / files: 파일별 상세 현황
+  layout: "diff, flags, files"
+  # 새커밋 시, 기존 댓글을 업데이트(새로운 댓글x)
+  behavior: default
+  # 커버리지 수치에 변화 없어도 댓글 달기
+  require_changes: false

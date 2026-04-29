@@ -1,0 +1,24 @@
+<configuration>
+
+    <!--
+        모든 콘솔 로그에 요청 추적 값을 함께 출력한다.
+        requestId, clientIp, userId는 RequestLoggingFilter가 MDC에 저장한 값이며,
+        HTTP 요청 밖에서 발생한 로그는 해당 값이 비어 있는 상태로 출력된다.
+    -->
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36}
+              [reqId=%X{requestId}] [ip=%X{clientIp}] [user=%X{userId}] - %msg%n"/>
+
+    <!-- 애플리케이션 로그를 표준 출력으로 내보내 Docker/배포 환경에서 수집하기 쉽게 한다. -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 기본 로그 레벨은 INFO이며, 프로파일별 세부 레벨은 application-*.yml에서 조정한다. -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>
