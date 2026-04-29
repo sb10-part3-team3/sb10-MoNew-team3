@@ -24,19 +24,34 @@ RUN ./gradlew clean bootJar -x test --no-daemon
 # ============ (2) Runtime ============
 # 1. 경량 이미지 사용
 FROM amazoncorretto:17-alpine
+
+# 비루트 사용자 생성
+# 그룹 아이디(1001), 시스템 그룹으로 생성, 그룹 이름(appgroup)
+# 시스템 사용자 생성,  사용자 아이디(1001, 관리 용이), 사용자 이름(appuser), appgroup에 사용자 추가
+RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup
+
 # 2. 작업 디렉토리
 WORKDIR /app
 # 3. 빌드 스테이지에서 생성한 jar 파일만 복사(app.jar로 복사)
-COPY --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
+COPY --from=builder /app/build/libs/app.jar app.jar
+
+# 파일 소유권 변경 및 사용자 전환
+# 소유자:그룹 대상파일
+RUN chown appuser:appgroup app.jar
+
 # 4. 노출 포트
 EXPOSE 80
 
-# 5. 환경변수 설정
+# 5. 헬스체크
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+ CMD wget --no-verbose --tries=1 --spider http://localhost:80/actuator/health || exit 1
+
+# 6. 환경변수 설정
 # 1) JVM 옵션(기본값은 빈 문자열)
 # 메모리나 gc 옵션 설정가능
 # 할당받은 메모리의 75%
 ENV JVM_OPTS=""
 
-# 6. 컨테이너 실행
+# 7. 컨테이너 실행
 # 환경변수 실행을 위해 쉘 형태로 작성
 ENTRYPOINT ["sh", "-c", "java ${JVM_OPTS} -jar app.jar"]
