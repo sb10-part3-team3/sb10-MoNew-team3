@@ -9,11 +9,20 @@ import com.team3.monew.document.CommentLikeSummary;
 import com.team3.monew.document.CommentSummary;
 import com.team3.monew.document.SubscriptionSummary;
 import com.team3.monew.document.UserActivityRequest;
+import com.team3.monew.event.ArticleDeletedEvent;
 import com.team3.monew.event.ArticleViewEvent;
+import com.team3.monew.event.CommentDeletedEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
+import com.team3.monew.event.CommentUnlikedEvent;
+import com.team3.monew.event.CommentUpdatedEvent;
+import com.team3.monew.event.InterestDeletedEvent;
+import com.team3.monew.event.InterestKeywordUpdatedEvent;
+import com.team3.monew.event.SubscriptionCanceledEvent;
 import com.team3.monew.event.SubscriptionEvent;
+import com.team3.monew.event.UserDeletedEvent;
 import com.team3.monew.event.UserRegisteredEvent;
+import com.team3.monew.event.UserUpdatedEvent;
 import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.service.UserActivityService;
 import java.time.Instant;
@@ -246,5 +255,154 @@ class UserActivityEventListenerTest {
     then(userActivityMapper).should(times(1)).toArticleViewSummary(event);
     then(userActivityService).should(times(1))
         .updateArticleViewSummary(userId, summary);
+  }
+
+  @Test
+  @DisplayName("리스너가 사용자 삭제 이벤트를 받으면 서비스의 사용자 활동 내역 삭제 메서드를 호출한다.")
+  void shouldCallDeleteUserActivityMethod_whenListenUserDeletedEvent() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    UserDeletedEvent event = new UserDeletedEvent(userId);
+
+    // when
+    userActivityEventListener.handleUserDeletedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1)).deleteUserActivity(userId);
+  }
+
+  @Test
+  @DisplayName("리스너가 사용자 수정 이벤트를 받으면 서비스의 닉네임 업데이트 메서드를 호출한다.")
+  void shouldCallUpdateUserNicknameMethod_whenListenUserUpdatedEvent() {
+    // given
+    UUID userId = UUID.randomUUID();
+    String newNickname = "newTester";
+
+    UserUpdatedEvent event = new UserUpdatedEvent(userId, newNickname);
+
+    // when
+    userActivityEventListener.handleUserUpdatedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1)).updateUserNickname(userId, newNickname);
+  }
+
+  @Test
+  @DisplayName("리스너가 댓글 삭제 이벤트를 받으면 서비스의 댓글 삭제 메서드를 호출한다.")
+  void shouldCallRemoveCommentSummaryMethod_whenListenCommentDeletedEvent() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId);
+
+    // when
+    userActivityEventListener.handleCommentDeletedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .removeCommentSummary(userId, commentId);
+  }
+
+  @Test
+  @DisplayName("리스너가 댓글 수정 이벤트를 받으면 서비스의 댓글 수정 메서드를 호출한다.")
+  void shouldCallUpdateCommentContentMethod_whenListenCommentUpdatedEvent() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    String newContent = "수정된 댓글 내용";
+
+    CommentUpdatedEvent event = new CommentUpdatedEvent(commentId, userId, newContent);
+
+    // when
+    userActivityEventListener.handleCommentUpdatedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .updateCommentContent(userId, commentId, newContent);
+  }
+
+  @Test
+  @DisplayName("리스너가 댓글 좋아요 취소 이벤트를 받으면 서비스의 댓글 좋아요 삭제 메서드를 호출한다.")
+  void shouldCallRemoveCommentLikeSummaryMethod_whenListenCommentUnlikedEvent() {
+    // given
+    UUID commentLikeId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    CommentUnlikedEvent event = new CommentUnlikedEvent(userId, commentLikeId);
+
+    // when
+    userActivityEventListener.handleCommentUnlikedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .removeCommentLikeSummary(userId, commentLikeId);
+  }
+
+  @Test
+  @DisplayName("리스너가 기사 삭제 이벤트를 받으면 서비스의 기사 뷰 삭제 메서드를 호출한다.")
+  void shouldCallRemoveArticleViewSummaryMethod_whenListenArticleDeletedEvent() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    ArticleDeletedEvent event = new ArticleDeletedEvent(articleId);
+
+    // when
+    userActivityEventListener.handleArticleDeletedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .removeArticleViewSummary(articleId);
+  }
+
+  @Test
+  @DisplayName("리스너가 관심사 삭제 이벤트를 받으면 서비스의 관심사의 구독 모든 구독 삭제 메서드를 호출한다.")
+  void shouldCallRemoveSubscriptionSummaryMethod_whenListenSubscriptionCanceledEvent() {
+    // given
+    UUID subscriptionId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    SubscriptionCanceledEvent event = new SubscriptionCanceledEvent(userId, subscriptionId);
+
+    // when
+    userActivityEventListener.handleSubscriptionCanceledEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .removeSubscriptionSummary(userId, subscriptionId);
+  }
+
+  @Test
+  @DisplayName("리스너가 구독 취소 이벤트를 받으면 서비스의 구독 요약 삭제 메서드를 호출한다.")
+  void shouldCallRemoveAllSubscriptionSummaryByInterestMethod_whenListenInterestDeletedEvent() {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    InterestDeletedEvent event = new InterestDeletedEvent(interestId);
+
+    // when
+    userActivityEventListener.handleInterestDeletedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .removeAllSubscriptionSummaryByInterest(interestId);
+  }
+
+  @Test
+  @DisplayName("리스너가 관심사 키워드 수정 이벤트를 받으면 활동 내역 서비스의 관심사의 키워드 수정 메서드를 호출한다.")
+  void shouldCallUpdateSubscriptionsByKeywordsByInterestMethod_whenListenInterestKeywordUpdatedEvent() {
+    // given
+    UUID interestId = UUID.randomUUID();
+    List<String> keywords = List.of("keyword1", "keyword2");
+
+    InterestKeywordUpdatedEvent event = new InterestKeywordUpdatedEvent(interestId, keywords);
+
+    // when
+    userActivityEventListener.handleInterestKeywordUpdatedEvent(event);
+
+    // then
+    then(userActivityService).should(times(1))
+        .updateSubscriptionsByKeywords(interestId, keywords);
   }
 }

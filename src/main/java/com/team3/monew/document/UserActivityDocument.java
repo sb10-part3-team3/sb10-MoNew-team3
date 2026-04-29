@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -83,8 +84,97 @@ public class UserActivityDocument {
     this.createdAt = createdAt;
   }
 
-  // 삭제는 추후 구현
+  public void updateNickname(String newNickname) {
+    this.nickname = newNickname;
+  }
 
+  public void updateCommentNickname(String newNickname) {
+    comments = comments.stream()
+        .map(comment -> Objects.equals(comment.userId(), this.id)
+                ? new CommentSummary(
+                comment.id(),
+                comment.articleId(),
+                comment.articleTitle(),
+                comment.userId(),
+                newNickname,
+                comment.content(),
+                comment.likeCount(),
+                comment.createdAt()
+            ) : comment
+        ).collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  public void removeCommentSummary(UUID commentId) {
+    comments.removeIf(c -> Objects.equals(c.id(), commentId));
+  }
+
+  public void updateCommentContent(UUID commentId, String newContent) {
+    comments = comments.stream()
+        .map(comment -> Objects.equals(comment.id(), commentId)
+            ? new CommentSummary(
+            comment.id(),
+            comment.articleId(),
+            comment.articleTitle(),
+            comment.userId(),
+            comment.userNickname(),
+            newContent,
+            comment.likeCount(),
+            comment.createdAt()
+            ) : comment
+        ).collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  public void removeArticleViewSummary(UUID articleId) {
+    articleViews.removeIf(articleView -> Objects.equals(articleView.articleId(), articleId));
+  }
+
+  public void removeCommentLikeSummary(UUID commentLikeId) {
+    commentLikes.removeIf(commentLike -> Objects.equals(commentLike.id(), commentLikeId));
+  }
+
+  public void removeSubscriptionSummary(UUID subscriptionId) {
+    subscriptions.removeIf(subscription -> Objects.equals(subscription.id(), subscriptionId));
+  }
+
+  public void removeSubscriptionSummaryByInterestId(UUID interestId) {
+    subscriptions.removeIf(subscription -> Objects.equals(subscription.interestId(), interestId));
+  }
+
+  public void updateKeywords(UUID interestId, List<String> keywords) {
+    subscriptions = subscriptions.stream()
+        .map(subscription -> subscription.interestId().equals(interestId)
+            ? new SubscriptionSummary(
+            subscription.id(),
+            subscription.interestId(),
+            subscription.interestName(),
+            List.copyOf(keywords),
+            subscription.interestSubscriberCount(),
+            subscription.createdAt()
+            ) : subscription
+        ).collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  public void removeCommentLikeSummaryByCommentId(UUID commentId) {
+    commentLikes.removeIf(commentLike -> Objects.equals(commentLike.commentId(), commentId));
+  }
+
+  public void updateCommentLikeContent(UUID commentId, String newContent) {
+    commentLikes = commentLikes.stream()
+        .map(commentLike -> commentLike.commentId().equals(commentId)
+            ? new CommentLikeSummary(
+            commentLike.id(),
+            commentLike.createdAt(),
+            commentLike.commentId(),
+            commentLike.articleId(),
+            commentLike.articleTitle(),
+            commentLike.commentUserId(),
+            commentLike.commentUserNickname(),
+            newContent,
+            commentLike.commentLikeCount(),
+            commentLike.commentCreatedAt()
+            ) : commentLike
+        ).collect(Collectors.toCollection(ArrayList::new));
+  }
 
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
     // 중복 제거

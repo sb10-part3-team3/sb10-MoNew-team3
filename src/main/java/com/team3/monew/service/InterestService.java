@@ -9,6 +9,9 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.InterestDeletedEvent;
+import com.team3.monew.event.InterestKeywordUpdatedEvent;
+import com.team3.monew.event.SubscriptionCanceledEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
@@ -204,6 +207,7 @@ public class InterestService {
     log.info("관심사 키워드 수정 성공 - interestId={}, updatedKeywordsCount={}, subscribedByMe={}",
         interestId, keywords.size(), null);
 
+    eventPublisher.publishEvent(new InterestKeywordUpdatedEvent(interestId, keywords));
     return interestMapper.toDto(interest, null);
   }
 
@@ -214,6 +218,7 @@ public class InterestService {
     interestRepository.delete(interest);
 
     log.info("관심사 삭제 성공 - interestId={}", interestId);
+    eventPublisher.publishEvent(new InterestDeletedEvent(interestId));
   }
 
   public SubscriptionDto subscribe(UUID userId, UUID interestId) {
@@ -260,6 +265,9 @@ public class InterestService {
     interestRepository.decreaseSubscriberCount(interestId);
 
     log.info("관심사 구독 취소 성공 - interestId={}", interestId);
+    eventPublisher.publishEvent(
+        new SubscriptionCanceledEvent(userId, subscription.getId())
+    );
   }
 
   private Interest findInterestOrElseThrow(UUID interestId) {
