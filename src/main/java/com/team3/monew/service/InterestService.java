@@ -48,18 +48,18 @@ public class InterestService {
   private final UserRepository userRepository;
   private final ApplicationEventPublisher eventPublisher;
 
-  private static final char[] CHO = {
+  private static final char[] CHOSEONG_JAMO = {
       'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',
       'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
   };
 
-  private static final char[] JUNG = {
+  private static final char[] JUNGSEONG_JAMO = {
       'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ',
       'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ',
       'ㅡ', 'ㅢ', 'ㅣ'
   };
 
-  private static final char[] JONG = {
+  private static final char[] JONGSEONG_JAMO = {
       '\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ',
       'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ',
       'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
@@ -375,11 +375,11 @@ public class InterestService {
         int jungIndex = (unicode % (21 * 28)) / 28;
         int jongIndex = unicode % 28;
 
-        result.append(CHO[choIndex]);
-        result.append(JUNG[jungIndex]);
+        result.append(CHOSEONG_JAMO[choIndex]);
+        result.append(JUNGSEONG_JAMO[jungIndex]);
 
         if (jongIndex != 0) {
-          result.append(JONG[jongIndex]);
+          result.append(JONGSEONG_JAMO[jongIndex]);
         }
       } else {
         result.append(ch);
