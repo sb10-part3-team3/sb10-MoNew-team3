@@ -92,4 +92,6 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
   void deleteAllByArticleId(@Param("articleId") UUID articleId);
 
   List<Comment> findAllByArticleId(UUID articleId);
+
+  void deleteAllByUserId(UUID userId);
 }

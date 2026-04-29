@@ -44,4 +44,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       + "and confirmed_at <= :targetDate "
       + "limit :batchSize)", nativeQuery = true)
   int deleteOldConfirmedNotifications(Instant targetDate, int batchSize);
+
+  void deleteAllByUserId(UUID userId);
 }

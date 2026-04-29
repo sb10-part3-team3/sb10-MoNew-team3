@@ -38,4 +38,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
       @Param("userId") UUID userId,
       @Param("interestIds") List<UUID> interestIds
   );
+
+  void deleteAllByUserId(UUID userId);
 }

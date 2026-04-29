@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.temporal.ChronoUnit;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -65,5 +66,11 @@ public class User extends SoftDeleteEntity {
             throw new InvalidNicknameException();
         }
         this.nickname = nickname;
+    }
+
+    @Override
+    public void markDeleted() {
+        super.markDeleted();
+        this.purgeScheduledAt = Instant.now().plus(1, ChronoUnit.DAYS);
     }
 }
