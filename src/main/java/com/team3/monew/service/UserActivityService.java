@@ -151,6 +151,13 @@ public class UserActivityService {
     }
     userActivityDocument.removeCommentSummary(commentId);
     userActivityRepository.save(userActivityDocument);
+
+    // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
+    List<UserActivityDocument> documents = userActivityRepository.findAllByCommentLikesCommentId(commentId);
+    documents.forEach(document -> {
+      document.removeCommentLikeSummaryByCommentId(commentId);
+      userActivityRepository.save(document);
+    });
     log.debug("사용자 활동 내역 댓글 삭제 성공: userId={} commentId={}", userId, commentId);
   }
 
@@ -169,6 +176,13 @@ public class UserActivityService {
     }
     userActivityDocument.updateCommentContent(commentId, newContent);
     userActivityRepository.save(userActivityDocument);
+
+    // 다른 사람 활동내역 좋아요 댓글에도 수정 반영
+    List<UserActivityDocument> documents = userActivityRepository.findAllByCommentLikesCommentId(commentId);
+    documents.forEach(document -> {
+      document.updateCommentLikeContent(commentId, newContent);
+      userActivityRepository.save(document);
+    });
     log.debug("사용자 활동 내역 댓글 수정 성공: userId={} commentId={}", userId, commentId);
   }
 

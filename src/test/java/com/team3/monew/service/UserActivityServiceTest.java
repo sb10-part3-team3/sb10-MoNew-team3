@@ -618,6 +618,73 @@ class UserActivityServiceTest {
   }
 
   @Test
+  @DisplayName("댓글 삭제 시 다른 유저의 활동 내역 좋아요 목록에서도 해당 댓글의 좋아요를 제거합니다.")
+  void shouldRemoveCommentLikeSummaryFromOtherUserActivity_whenCommentDeleted() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    UUID otherUserId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary commentSummary = new CommentSummary(
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    UserActivityDocument otherUserActivityDocument = UserActivityDocument.create(
+        otherUserId,
+        "other@test.com",
+        "otherTester",
+        createdAt
+    );
+
+    CommentLikeSummary commentLikeSummary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        commentId,         // 삭제될 댓글 ID
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    userActivityDocument.addCommentSummary(commentSummary);
+    otherUserActivityDocument.addCommentLikeSummary(commentLikeSummary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+    given(userActivityRepository.findAllByCommentLikesCommentId(commentId))
+        .willReturn(List.of(otherUserActivityDocument));
+
+    // when
+    userActivityService.removeCommentSummary(userId, commentId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+
+    List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
+
+    assertEquals(0, savedDocuments.get(0).getComments().size());
+    assertEquals(0, savedDocuments.get(1).getCommentLikes().size());
+  }
+
+  @Test
   @DisplayName("댓글 삭제 시 문서가 없으면 예외가 발생합니다.")
   void shouldThrowExceptionWhenUserActivityNotFoundOnRemoveCommentSummary() {
     // given
@@ -676,6 +743,74 @@ class UserActivityServiceTest {
     assertEquals(userId, savedDocument.getId());
     assertEquals(1, savedDocument.getComments().size());
     assertEquals(newContent, savedDocument.getComments().get(0).content());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 시 다른 유저의 활동 내역 좋아요 목록의 댓글 내용도 함께 업데이트됩니다.")
+  void shouldUpdateCommentLikeContentFromOtherUserActivity_whenCommentUpdated() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    UUID otherUserId = UUID.randomUUID();
+    String newContent = "수정된 댓글 내용";
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary commentSummary = new CommentSummary(
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "기존 댓글 내용",
+        0,
+        createdAt
+    );
+
+    UserActivityDocument otherUserActivityDocument = UserActivityDocument.create(
+        otherUserId,
+        "other@test.com",
+        "otherTester",
+        createdAt
+    );
+
+    CommentLikeSummary commentLikeSummary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        commentId,         // 수정될 댓글 ID
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "기존 댓글 내용",
+        1,
+        createdAt
+    );
+
+    userActivityDocument.addCommentSummary(commentSummary);
+    otherUserActivityDocument.addCommentLikeSummary(commentLikeSummary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+    given(userActivityRepository.findAllByCommentLikesCommentId(commentId))
+        .willReturn(List.of(otherUserActivityDocument));
+
+    // when
+    userActivityService.updateCommentContent(userId, commentId, newContent);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+
+    List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
+
+    assertEquals(newContent, savedDocuments.get(0).getComments().get(0).content());
+    assertEquals(newContent, savedDocuments.get(1).getCommentLikes().get(0).commentContent());
   }
 
   @Test

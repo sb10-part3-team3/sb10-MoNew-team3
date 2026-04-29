@@ -121,7 +121,7 @@ public class UserActivityDocument {
             comment.likeCount(),
             comment.createdAt()
             ) : comment
-        ).collect(Collectors.toCollection(ArrayList::new));;
+        ).collect(Collectors.toCollection(ArrayList::new));
   }
 
   public void removeArticleViewSummary(UUID articleId) {
@@ -151,7 +151,29 @@ public class UserActivityDocument {
             subscription.interestSubscriberCount(),
             subscription.createdAt()
             ) : subscription
-        ).collect(Collectors.toCollection(ArrayList::new));;
+        ).collect(Collectors.toCollection(ArrayList::new));
+  }
+
+  public void removeCommentLikeSummaryByCommentId(UUID commentId) {
+    commentLikes.removeIf(commentLike -> Objects.equals(commentLike.commentId(), commentId));
+  }
+
+  public void updateCommentLikeContent(UUID commentId, String newContent) {
+    commentLikes = commentLikes.stream()
+        .map(commentLike -> commentLike.commentId().equals(commentId)
+            ? new CommentLikeSummary(
+            commentLike.id(),
+            commentLike.createdAt(),
+            commentLike.commentId(),
+            commentLike.articleId(),
+            commentLike.articleTitle(),
+            commentLike.commentUserId(),
+            commentLike.commentUserNickname(),
+            newContent,
+            commentLike.commentLikeCount(),
+            commentLike.commentCreatedAt()
+            ) : commentLike
+        ).collect(Collectors.toCollection(ArrayList::new));
   }
 
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
