@@ -29,9 +29,9 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> 
       @Param("commentIds") List<UUID> commentIds
   );
 
-  void deleteAllByUserId(UUID userId);
+  void deleteAllByUserId(@Param("userId") UUID userId);
 
   @Modifying
   @Query("DELETE FROM CommentLike cl WHERE cl.user.id IN :userIds")
-  void deleteByUserIds(List<UUID> userIds);
+  void deleteByUserIds(@Param("userIds") List<UUID> userIds);
 }

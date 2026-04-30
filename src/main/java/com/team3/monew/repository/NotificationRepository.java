@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
@@ -46,9 +47,9 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       + "limit :batchSize)", nativeQuery = true)
   int deleteOldConfirmedNotifications(Instant targetDate, int batchSize);
 
-  void deleteAllByUserId(UUID userId);
+  void deleteAllByUserId(@Param("userId") UUID userId);
 
   @Modifying
   @Query("DELETE FROM Notification n WHERE n.user.id IN :userIds")
-  void deleteByUserIds(List<UUID> userIds);
+  void deleteByUserIds(@Param("userIds") List<UUID> userIds);
 }

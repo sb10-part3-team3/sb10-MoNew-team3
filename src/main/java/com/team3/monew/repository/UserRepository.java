@@ -23,12 +23,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   @Query("""
     SELECT u.id FROM User u
-    WHERE u.deleteStatus = 'DELETED'
+    WHERE u.deleteStatus = com.team3.monew.entity.enums.DeleteStatus.DELETED
       AND u.deletedAt < :targetDate
 """)
-  List<UUID> findDeletableUserIds(Instant targetDate, Pageable pageable);
+  List<UUID> findDeletableUserIds(@Param("targetDate") Instant targetDate, Pageable pageable);
 
   @Modifying
   @Query("DELETE FROM User u WHERE u.id IN :userIds")
-  int deleteByIds(List<UUID> userIds);
+  int deleteByIds(@Param("userIds") List<UUID> userIds);
 }

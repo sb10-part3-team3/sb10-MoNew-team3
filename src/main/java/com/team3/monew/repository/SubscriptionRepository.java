@@ -40,9 +40,9 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
       @Param("interestIds") List<UUID> interestIds
   );
 
-  void deleteAllByUserId(UUID userId);
+  void deleteAllByUserId(@Param("userId") UUID userId);
 
   @Modifying
   @Query("DELETE FROM Subscription s WHERE s.user.id IN :userIds")
-  void deleteByUserIds(List<UUID> userIds);
+  void deleteByUserIds(@Param("userIds") List<UUID> userIds);
 }
