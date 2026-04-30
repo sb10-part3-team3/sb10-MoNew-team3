@@ -21,23 +21,14 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   Optional<User> findByIdAndDeleteStatus(UUID id, DeleteStatus deleteStatus);
 
-  @Modifying
-  @Query(value = """
-        DELETE FROM users
-        WHERE id IN (
-            SELECT id FROM users
-            WHERE delete_status = 'DELETED'
-              AND deleted_at < :targetDate
-            LIMIT :batchSize
-        )
-        """, nativeQuery = true)
-  int deleteSoftDeletedUsers(@Param("targetDate") Instant targetDate,
-      @Param("batchSize") int batchSize);
-
   @Query("""
     SELECT u.id FROM User u
     WHERE u.deleteStatus = 'DELETED'
       AND u.deletedAt < :targetDate
 """)
   List<UUID> findDeletableUserIds(Instant targetDate, Pageable pageable);
+
+  @Modifying
+  @Query("DELETE FROM User u WHERE u.id IN :userIds")
+  int deleteByIds(List<UUID> userIds);
 }

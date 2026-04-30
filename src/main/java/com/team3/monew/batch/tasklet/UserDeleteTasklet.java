@@ -49,7 +49,7 @@ public class UserDeleteTasklet {
     userActivityRepository.deleteByIdIn(userIds);
     userActivityRepository.removeEmbeddedCommentsByUserIds(userIds);
 
-    int deleted = userRepository.deleteSoftDeletedUsers(targetDate, batchSize);
+    int deleted = userRepository.deleteByIds(userIds);
     log.debug("deleted count={}", deleted);
     return deleted > 0 ? RepeatStatus.CONTINUABLE : RepeatStatus.FINISHED;
   }

@@ -61,7 +61,7 @@ class UserDeleteTaskletTest {
     given(userRepository.findDeletableUserIds(any(), any(PageRequest.class)))
         .willReturn(userIds);
 
-    given(userRepository.deleteSoftDeletedUsers(any(), anyInt()))
+    given(userRepository.deleteByIds(userIds))
         .willReturn(2);
 
     // when
@@ -77,7 +77,7 @@ class UserDeleteTaskletTest {
     then(userActivityRepository).should().deleteByIdIn(userIds);
     then(userActivityRepository).should().removeEmbeddedCommentsByUserIds(userIds);
 
-    then(userRepository).should().deleteSoftDeletedUsers(any(), anyInt());
+    then(userRepository).should().deleteByIds(userIds);
 
     assertThat(status).isEqualTo(RepeatStatus.CONTINUABLE);
   }
@@ -112,7 +112,7 @@ class UserDeleteTaskletTest {
     given(userRepository.findDeletableUserIds(any(), any()))
         .willReturn(userIds);
 
-    given(userRepository.deleteSoftDeletedUsers(any(), anyInt()))
+    given(userRepository.deleteByIds(userIds))
         .willReturn(0);
 
     // when
