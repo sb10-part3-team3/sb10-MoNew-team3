@@ -518,8 +518,9 @@ class InterestServiceTest {
     // then
     assertThat(response.content()).hasSize(2);
     assertThat(response.hasNext()).isTrue();
-    assertThat(response.nextCursor()).isEqualTo("나무");
     assertThat(response.nextAfter()).isNotNull();
+    assertThat(response.nextCursor())
+        .isEqualTo("나무, " + response.nextAfter());
   }
 
   private Interest createInterest(String name) {
@@ -611,6 +612,41 @@ class InterestServiceTest {
 
     // then
     assertThat(response.content().get(0).subscribedByMe()).isTrue();
+  }
+
+  @Test
+  @DisplayName("after 없이 cursor에 포함된 값으로 다음 페이지 조회 조건을 복원한다")
+  void shouldNormalizeCursor_whenAfterIsMissing() {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.now();
+
+    InterestCursor cursor = new InterestCursor("나무, " + after, null);
+
+    InterestSearchCondition requestCondition = new InterestSearchCondition(
+        null, "name", "ASC", cursor, 2
+    );
+
+    InterestSearchCondition normalizedCondition = new InterestSearchCondition(
+        null, "name", "ASC", new InterestCursor("나무", after), 2
+    );
+
+    given(interestRepository.searchByCondition(normalizedCondition))
+        .willReturn(List.of());
+
+    given(interestRepository.countByCondition(normalizedCondition))
+        .willReturn(0L);
+
+    // when
+    CursorPageResponseDto<InterestDto> response =
+        interestService.findAll(requestCondition, userId);
+
+    // then
+    assertThat(response.content()).isEmpty();
+    assertThat(response.hasNext()).isFalse();
+
+    then(interestRepository).should().searchByCondition(normalizedCondition);
+    then(interestRepository).should().countByCondition(normalizedCondition);
   }
 
   @Test
