@@ -19,10 +19,12 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -135,6 +137,14 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 닉네임 업데이트 성공: userId={}", userId);
   }
 
+  @Retryable(
+      retryFor = {
+          TransientDataAccessException.class,
+          OptimisticLockingFailureException.class
+      },
+      maxAttempts = 3,
+      backoff = @Backoff(delay = 100)
+  )
   public void deleteUserActivity(UUID userId) {
     log.debug("사용자 활동 내역 삭제 시작: userId={}", userId);
     UserActivityDocument document = userActivityRepository.findById(userId)
@@ -345,5 +355,11 @@ public class UserActivityService {
     log.error("댓글 수정 활동 내역 업데이트 최종 실패: interestId={}, keywords={}", interestId, keywords, e);
     throw new UserActivityException(ErrorCode.USER_ACTIVITY_CONFLICT,
         Map.of("interestId", interestId, "keywords", keywords));
+  }
+
+  @Recover
+  public void recoverDeleteUserActivity(Exception e, UUID userId) {
+    log.error("사용자 활동 내역 삭제 최종 실패: userId={}", userId, e);
+    throw new UserActivityConflictException(userId);
   }
 }
