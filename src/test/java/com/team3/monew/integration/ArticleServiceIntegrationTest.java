@@ -76,6 +76,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   private static final String ARTICLES_BASE_URL = "/api/articles";
 
   private NewsArticle newsArticle;
+  private UUID commentLikeId;
 
 
   @BeforeEach
@@ -107,8 +108,9 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     Comment u2comment = Comment.create(newsArticle, user2, "comment2");
     commentRepository.saveAll(List.of(u1comment, u2comment));
 
-    CommentLike u2commentLike = CommentLike.create(u2comment, user2);
-    commentLikeRepository.save(u2commentLike);
+    CommentLike u2CommentLike = CommentLike.create(u2comment, user2);
+    commentLikeRepository.save(u2CommentLike);
+    commentLikeId = u2CommentLike.getId();
 
     em.flush();
     em.clear();
@@ -173,9 +175,9 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     assertThat(articleViews).isEmpty();
 
     List<Comment> comments = commentRepository.findAllByArticleId(newsArticle.getId());
-    long commentLikeSize = commentLikeRepository.count();
+    Optional<CommentLike> commentLike = commentLikeRepository.findById(commentLikeId);
     assertThat(comments).isEmpty();
-    assertThat(commentLikeSize).isZero();
+    assertThat(commentLike).isEmpty();
   }
 
   @Test
