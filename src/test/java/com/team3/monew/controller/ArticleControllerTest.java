@@ -153,6 +153,21 @@ class ArticleControllerTest {
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
     }
+
+    @Test
+    @DisplayName("존재하지 않는 기사 ID로 조회하면 404를 반환한다")
+    void shouldThrowException_whenArticleDoesNotExists() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(articleService.getArticle(userId, articleId))
+          .willThrow(new ArticleNotFoundException(articleId));
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/{articleId}", articleId)
+              .header(REQUEST_USER_ID_HEADER, userId))
+          .andExpect(status().isNotFound());
+    }
   }
 
 

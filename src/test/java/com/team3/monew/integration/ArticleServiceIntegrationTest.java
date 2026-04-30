@@ -142,8 +142,8 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   }
 
   @Test
-  @DisplayName("뉴스기사 단건 조회 시 첫 조회에만 조회수가 증가한다")
-  void shouldIncreaseViewCountOnlyOnce_whenFirstView() throws Exception {
+  @DisplayName("뉴스기사 단건 조회 시 동일 사용자 재조회에서는 조회수가 증가하지 않는다")
+  void shouldNotIncreaseViewCount_whenSameUserViewsTwice() throws Exception {
     // given
     User user = userRepository.saveAndFlush(
         User.create("test@example.com", "tester", "test1234!")
@@ -162,6 +162,10 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     UUID articleId = article.getId();
 
     // when
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(REQUEST_USER_ID_HEADER, userId))
+        .andExpect(status().isOk());
+
     mockMvc.perform(get("/api/articles/{articleId}", articleId)
             .header(REQUEST_USER_ID_HEADER, userId))
         .andExpect(status().isOk());
