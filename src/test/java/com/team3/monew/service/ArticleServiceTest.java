@@ -355,6 +355,7 @@ class ArticleServiceTest {
       assertThat(actual)
           .usingRecursiveComparison()
           .isEqualTo(expected);
+      then(articleViewService).should().registerArticleView(articleId, userId);
     }
 
     @Test
