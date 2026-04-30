@@ -52,12 +52,12 @@ public class UserController implements UserApi {
   @DeleteMapping("/{userId}")
   public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
     userService.deleteUser(userId);
-    return ResponseEntity.ok().build();
+    return ResponseEntity.noContent().build();
   }
 
   @DeleteMapping("/{userId}/hard")
   public ResponseEntity<Void> hardDeleteUser(@PathVariable UUID userId) {
     userService.hardDeleteUser(userId);
-    return ResponseEntity.ok().build();
+    return ResponseEntity.noContent().build();
   }
 }
