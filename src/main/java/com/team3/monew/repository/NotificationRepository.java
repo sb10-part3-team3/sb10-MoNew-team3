@@ -3,6 +3,7 @@ package com.team3.monew.repository;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,4 +47,8 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
   int deleteOldConfirmedNotifications(Instant targetDate, int batchSize);
 
   void deleteAllByUserId(UUID userId);
+
+  @Modifying
+  @Query("DELETE FROM Notification n WHERE n.user.id IN :userIds")
+  void deleteByUserIds(List<UUID> userIds);
 }

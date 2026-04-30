@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,4 +30,8 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, UUID> 
   );
 
   void deleteAllByUserId(UUID userId);
+
+  @Modifying
+  @Query("DELETE FROM CommentLike cl WHERE cl.user.id IN :userIds")
+  void deleteByUserIds(List<UUID> userIds);
 }

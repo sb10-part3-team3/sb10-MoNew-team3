@@ -110,7 +110,6 @@ public class UserService {
     }
     user.markDeleted();
     log.debug("사용자 소프트 삭제 성공: userId={}", userId);
-    applicationEventPublisher.publishEvent(new UserDeletedEvent(user.getId()));
   }
 
   @Transactional
