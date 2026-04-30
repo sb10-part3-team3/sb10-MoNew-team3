@@ -1085,4 +1085,71 @@ class UserActivityServiceTest {
         assertEquals(keywords, savedDocument.getSubscriptions().get(0).interestKeywords())
     );
   }
+
+  @Test
+  @DisplayName("사용자 삭제 시 해당 사용자의 댓글에 다른 사람이 좋아요한 활동 내역도 함께 삭제됩니다.")
+  void shouldRemoveOtherUserCommentLikeSummary_whenUserActivityDeleted() {
+    // given
+    UUID otherUserId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary commentSummary = new CommentSummary(
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    UserActivityDocument otherUserActivityDocument = UserActivityDocument.create(
+        otherUserId,
+        "other@test.com",
+        "otherTester",
+        createdAt
+    );
+
+    CommentLikeSummary commentLikeSummary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    userActivityDocument.addCommentSummary(commentSummary);
+    otherUserActivityDocument.addCommentLikeSummary(commentLikeSummary);
+
+    given(userActivityRepository.findById(userId))
+        .willReturn(Optional.of(userActivityDocument));
+    given(userActivityRepository.findAllByCommentLikesCommentIdIn(List.of(commentId)))
+        .willReturn(List.of(otherUserActivityDocument));
+
+    // when
+    userActivityService.deleteUserActivity(userId);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should().save(documentCaptor.capture());
+    then(userActivityRepository).should().deleteById(userId);
+
+    UserActivityDocument savedDocument = documentCaptor.getValue();
+    assertEquals(0, savedDocument.getCommentLikes().size());
+  }
 }

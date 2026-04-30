@@ -137,6 +137,21 @@ public class UserActivityService {
 
   public void deleteUserActivity(UUID userId) {
     log.debug("사용자 활동 내역 삭제 시작: userId={}", userId);
+    UserActivityDocument document = userActivityRepository.findById(userId)
+        .orElse(null);
+    if (document == null) {
+      return;
+    }
+    // 다른 사람의 활동 내역 중 좋아요 한 댓글 삭제 반영
+    List<UUID> commentIds = document.getComments().stream()
+        .map(CommentSummary::id)
+        .toList();
+
+    userActivityRepository.findAllByCommentLikesCommentIdIn(commentIds)
+        .forEach(otherDocument -> {
+          commentIds.forEach(otherDocument::removeCommentLikeSummaryByCommentId);
+          userActivityRepository.save(otherDocument);
+        });
     userActivityRepository.deleteById(userId);
     log.debug("사용자 활동 내역 삭제 성공: userId={}", userId);
   }

@@ -19,4 +19,7 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
 
   @Query("{ 'commentLikes.commentId': ?0 }")
   List<UserActivityDocument> findAllByCommentLikesCommentId(UUID commentId);
+
+  @Query("{ 'commentLikes.commentId':  { $in:  ?0}}")
+  List<UserActivityDocument> findAllByCommentLikesCommentIdIn(List<UUID> commentIds);
 }
