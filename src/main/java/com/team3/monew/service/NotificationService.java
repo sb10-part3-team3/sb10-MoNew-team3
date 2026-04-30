@@ -7,6 +7,7 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.notification.NotificationConfirmForbiddenException;
@@ -150,7 +151,7 @@ public class NotificationService {
   }
 
   private void checkUserAvailable(UUID requestUserId) {
-    if (!userRepository.existsById(requestUserId)) {
+    if (!userRepository.existsByIdAndDeleteStatus(requestUserId, DeleteStatus.ACTIVE)) {
       throw new UserNotFoundException(requestUserId);
     }
     log.debug("유효한 사용자 검증 완료");

@@ -9,6 +9,7 @@ import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.event.InterestDeletedEvent;
 import com.team3.monew.event.InterestKeywordUpdatedEvent;
 import com.team3.monew.event.SubscriptionCanceledEvent;
@@ -300,7 +301,7 @@ public class InterestService {
   }
 
   private User findUserOrElseThrow(UUID userId) {
-    return userRepository.findById(userId)
+    return userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)
         .orElseThrow(() -> new UserNotFoundException(userId));
   }
 

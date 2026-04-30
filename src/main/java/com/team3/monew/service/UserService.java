@@ -70,8 +70,7 @@ public class UserService {
     log.debug("사용자 로그인 요청: email={},", userLoginRequest.email());
     User user = userRepository.findByEmail(userLoginRequest.email())
         .orElseThrow(AuthException::new);
-
-    if (!passwordEncoder.matches(userLoginRequest.password(), user.getPassword())) {
+    if (user.isDeleted() || !passwordEncoder.matches(userLoginRequest.password(), user.getPassword())) {
       throw new AuthException();
     }
     log.debug("사용자 로그인 성공: userId={}, email={}", user.getId(), user.getEmail());
@@ -87,6 +86,9 @@ public class UserService {
     User findUser = userRepository.findById(userId)
         .orElseThrow(() -> new UserNotFoundException(userId));
 
+    if (findUser.isDeleted()) {
+      throw new DeletedUserException(userId);
+    }
     Optional.ofNullable(userUpdateRequest.nickname())
         .ifPresent(findUser::updateNickname);
     User updatedUser = userRepository.save(findUser);
