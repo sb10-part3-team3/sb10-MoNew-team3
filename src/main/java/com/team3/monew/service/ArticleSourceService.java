@@ -19,8 +19,10 @@ public class ArticleSourceService {
     log.debug("뉴스 기사 출처 목록 조회 요청");
 
     List<String> articleSources = newsSourceRepository.findAll().stream()
-        .map(newsSource -> newsSource.getSourceType().name())
+        .map(newsSource -> newsSource.getSourceType())
         .distinct()
+        .sorted()
+        .map(Enum::name)
         .toList();
 
     log.debug("뉴스 기사 출처 목록 조회 성공 - size={}", articleSources.size());
