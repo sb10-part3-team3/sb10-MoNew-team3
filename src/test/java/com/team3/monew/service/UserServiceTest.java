@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -12,13 +13,19 @@ import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.entity.User;
+import com.team3.monew.event.UserDeletedEvent;
 import com.team3.monew.event.UserRegisteredEvent;
 import com.team3.monew.exception.user.AuthException;
+import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.exception.user.InvalidNicknameException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.UserMapper;
+import com.team3.monew.repository.CommentLikeRepository;
+import com.team3.monew.repository.CommentRepository;
+import com.team3.monew.repository.NotificationRepository;
+import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
 import java.util.Optional;
@@ -40,6 +47,14 @@ class UserServiceTest {
 
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private NotificationRepository notificationRepository;
+  @Mock
+  private CommentLikeRepository commentLikeRepository;
+  @Mock
+  private CommentRepository commentRepository;
+  @Mock
+  private SubscriptionRepository subscriptionRepository;
   @Mock
   private UserMapper userMapper;
   @Mock
@@ -234,5 +249,139 @@ class UserServiceTest {
     verify(userRepository).findById(userId);
     verify(userRepository).save(user);
     verify(userMapper).toDto(user);
+  }
+
+  @Test
+  @DisplayName("사용자 논리 삭제에 성공합니다.")
+  void shouldSoftDeleteUser() {
+    UUID userId = UUID.randomUUID();
+
+    // given
+    User user = mock(User.class);
+    given(user.getId()).willReturn(userId);
+    given(user.isDeleted()).willReturn(false);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    // when
+    userService.deleteUser(userId);
+
+    // then
+    verify(user).markDeleted();
+    verify(eventPublisher).publishEvent(any(UserDeletedEvent.class));
+  }
+
+  @Test
+  @DisplayName("사용자 논리 삭제 시 이미 삭제된 사용자면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserAlreadyDeleted() {
+    UUID userId = UUID.randomUUID();
+
+    // given
+    User user = mock(User.class);
+    given(user.isDeleted()).willReturn(true);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    // when & then
+    assertThatThrownBy(() -> userService.deleteUser(userId))
+        .isInstanceOf(DeletedUserException.class);
+
+    verify(user, never()).markDeleted();
+    verify(eventPublisher, never()).publishEvent(any(UserDeletedEvent.class));
+  }
+
+  @Test
+  @DisplayName("사용자 논리 삭제 시 사용자가 없으면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserNotFoundOnSoftDelete() {
+    UUID userId = UUID.randomUUID();
+
+    // given
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> userService.deleteUser(userId))
+        .isInstanceOf(UserNotFoundException.class);
+
+    verify(eventPublisher, never()).publishEvent(any(UserDeletedEvent.class));
+  }
+
+  @Test
+  @DisplayName("사용자 물리 삭제에 성공합니다.")
+  void shouldHardDeleteUser() {
+    UUID userId = UUID.randomUUID();
+
+    // given
+    User user = mock(User.class);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    // when
+    userService.hardDeleteUser(userId);
+
+    // then
+    verify(notificationRepository).deleteAllByUserId(userId);
+    verify(commentLikeRepository).deleteAllByUserId(userId);
+    verify(commentRepository).deleteAllByUserId(userId);
+    verify(subscriptionRepository).deleteAllByUserId(userId);
+    verify(userRepository).delete(user);
+    verify(eventPublisher).publishEvent(any(UserDeletedEvent.class));
+  }
+
+  @Test
+  @DisplayName("사용자 물리 삭제 시 사용자가 없으면 예외가 발생합니다.")
+  void shouldThrowExceptionWhenUserNotFoundOnHardDelete() {
+    UUID userId = UUID.randomUUID();
+
+    // given
+    given(userRepository.findById(userId)).willReturn(Optional.empty());
+
+    // when & then
+    assertThatThrownBy(() -> userService.hardDeleteUser(userId))
+        .isInstanceOf(UserNotFoundException.class);
+
+    verify(notificationRepository, never()).deleteAllByUserId(any());
+    verify(commentLikeRepository, never()).deleteAllByUserId(any());
+    verify(commentRepository, never()).deleteAllByUserId(any());
+    verify(subscriptionRepository, never()).deleteAllByUserId(any());
+    verify(userRepository, never()).delete(any());
+    verify(eventPublisher, never()).publishEvent(any(UserDeletedEvent.class));
+  }
+
+  @Test
+  @DisplayName("논리 삭제된 사용자는 로그인 시 예외가 발생합니다.")
+  void shouldThrowExceptionWhenDeletedUserLogin() {
+    // given
+    String email = "email1@naver.com";
+    String rawPassword = "rawPassword";
+    String encodedPassword = "encoded-password";
+
+    User user = mock(User.class);
+    given(user.isDeleted()).willReturn(true);
+    given(userRepository.findByEmail(email)).willReturn(Optional.of(user));
+
+    UserLoginRequest request = new UserLoginRequest(email, rawPassword);
+
+    // when & then
+    assertThatThrownBy(() -> userService.loginUser(request))
+        .isInstanceOf(AuthException.class);
+
+    verify(passwordEncoder, never()).matches(any(), any());
+    verify(userMapper, never()).toDto(any());
+  }
+
+  @Test
+  @DisplayName("논리 삭제된 사용자는 수정 시 예외가 발생합니다.")
+  void shouldThrowExceptionWhenDeletedUserUpdate() {
+    // given
+    UUID userId = UUID.randomUUID();
+    UserUpdateRequest request = new UserUpdateRequest("newname");
+
+    User user = mock(User.class);
+    given(user.isDeleted()).willReturn(true);
+    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+
+    // when & then
+    assertThatThrownBy(() -> userService.updateUser(userId, request))
+        .isInstanceOf(DeletedUserException.class);
+
+    verify(userRepository, never()).save(any());
+    verify(userMapper, never()).toDto(any());
   }
 }
