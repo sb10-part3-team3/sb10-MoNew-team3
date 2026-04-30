@@ -101,8 +101,11 @@ public class ArticleService {
     // 단건 조회에도 조회수 등록을 위함
     articleViewService.registerArticleView(article.getId(), userId);
 
-    log.debug("뉴스 단건 조회 성공 - articleId={}", article.getId());
-    return articleMapper.toDto(article, true);
+    // registerArticleView()에서 벌크 업데이트 수행으로 기존 엔티티의 viewCount가 갱신되지 않아 재조회
+    NewsArticle updatedArticle = findActiveArticleOrElseThrow(articleId);
+
+    log.debug("뉴스 단건 조회 성공 - articleId={}", updatedArticle.getId());
+    return articleMapper.toDto(updatedArticle, true);
   }
 
   @Transactional
