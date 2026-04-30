@@ -314,7 +314,7 @@ class UserControllerTest {
 
     // when & then
     mockMvc.perform(delete("/api/users/{userId}", userId))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     verify(userService).deleteUser(userId);
   }
@@ -357,7 +357,7 @@ class UserControllerTest {
 
     // when & then
     mockMvc.perform(delete("/api/users/{userId}/hard", userId))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     verify(userService).hardDeleteUser(userId);
   }

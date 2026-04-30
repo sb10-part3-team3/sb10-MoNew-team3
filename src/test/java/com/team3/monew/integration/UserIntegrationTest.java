@@ -235,7 +235,7 @@ class UserIntegrationTest extends IntegrationTestSupport {
 
     // when & then
     mockMvc.perform(delete("/api/users/{userId}", savedUser.getId()))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     User deletedUser = userRepository.findById(savedUser.getId()).orElseThrow();
     assertThat(deletedUser.isDeleted()).isTrue();
@@ -251,7 +251,7 @@ class UserIntegrationTest extends IntegrationTestSupport {
 
     // when & then
     mockMvc.perform(delete("/api/users/{userId}/hard", savedUser.getId()))
-        .andExpect(status().isOk());
+        .andExpect(status().isNoContent());
 
     assertThat(userRepository.findById(savedUser.getId())).isEmpty();
   }
