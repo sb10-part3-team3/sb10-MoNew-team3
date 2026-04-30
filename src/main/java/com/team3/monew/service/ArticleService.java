@@ -92,6 +92,8 @@ public class ArticleService {
         nextAfter, articleDtoList.size(), totalElements, hasNext);
   }
 
+  // 조회수 등록 때문에 readOnly=true 불가능으로 어노테이션 추가함
+  @Transactional
   public ArticleDto getArticle(UUID userId, UUID articleId) {
     log.debug("뉴스 단건 조회 요청 - articleId={}", articleId);
     NewsArticle article = findArticleOrElseThrow(articleId);
