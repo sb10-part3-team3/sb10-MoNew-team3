@@ -20,6 +20,7 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
 import com.team3.monew.repository.ArticleInterestRepository;
@@ -371,6 +372,30 @@ class ArticleServiceTest {
       // when & then
       assertThrows(ArticleNotFoundException.class,
           () -> articleService.getArticle(userId, articleId));
+    }
+
+    @Test
+    @DisplayName("삭제된 기사 조회 시 예외가 발생한다")
+    void shouldThrowException_whenArticleIsDeleted() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      NewsArticle article = NewsArticle.create(naverSource, "link", "제목",
+          Instant.now(), "요약");
+      ReflectionTestUtils.setField(article, "id", articleId);
+
+      // SoftDeleteEntity의 삭제 상태를 테스트용으로 직접 세팅
+      ReflectionTestUtils.setField(article, "deleteStatus", DeleteStatus.DELETED);
+
+      given(newsArticleRepository.findById(articleId))
+          .willReturn(Optional.of(article));
+
+      // when & then
+      assertThrows(DeletedArticleException.class,
+          () -> articleService.getArticle(userId, articleId));
+
+      then(articleViewService).shouldHaveNoInteractions();
     }
   }
 
