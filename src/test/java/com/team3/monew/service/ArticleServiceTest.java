@@ -20,6 +20,7 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
 import com.team3.monew.repository.ArticleInterestRepository;
@@ -62,6 +63,8 @@ class ArticleServiceTest {
   private ArticleInterestRepository articleInterestRepository;
   @Mock
   private CommentRepository commentRepository;
+  @Mock
+  private ArticleViewService articleViewService;
 
   @InjectMocks
   private ArticleService articleService;
@@ -322,6 +325,77 @@ class ArticleServiceTest {
       // when & then
       assertThrows(BusinessException.class,
           () -> articleService.getArticleList(request2, UUID.randomUUID()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 단건 조회를 한다")
+  class GetArticle {
+
+    @Test
+    @DisplayName("정상적으로 단건 조회 시 조회 이력이 등록되고 기사 정보를 반환한다")
+    void shouldReturnArticle_whenValidRequest() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      NewsArticle article = NewsArticle.create(naverSource, "link", "제목",
+          Instant.now(), "요약");
+      ReflectionTestUtils.setField(article, "id", articleId);
+
+      given(newsArticleRepository.findById(articleId)).willReturn(java.util.Optional.of(article));
+      given(articleViewService.registerArticleView(articleId, userId))
+          .willReturn(null); // void로 바꾸면 이 줄 제거 가능
+
+      ArticleDto expected = articleMapper.toDto(article, true);
+
+      // when
+      ArticleDto actual = articleService.getArticle(userId, articleId);
+
+      // then
+      assertThat(actual)
+          .usingRecursiveComparison()
+          .isEqualTo(expected);
+      then(articleViewService).should().registerArticleView(articleId, userId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 기사 조회 시 예외가 발생한다")
+    void shouldThrowException_whenArticleNotFound() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      given(newsArticleRepository.findById(articleId))
+          .willReturn(java.util.Optional.empty());
+
+      // when & then
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.getArticle(userId, articleId));
+    }
+
+    @Test
+    @DisplayName("삭제된 기사 조회 시 예외가 발생한다")
+    void shouldThrowException_whenArticleIsDeleted() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      NewsArticle article = NewsArticle.create(naverSource, "link", "제목",
+          Instant.now(), "요약");
+      ReflectionTestUtils.setField(article, "id", articleId);
+
+      // SoftDeleteEntity의 삭제 상태를 테스트용으로 직접 세팅
+      ReflectionTestUtils.setField(article, "deleteStatus", DeleteStatus.DELETED);
+
+      given(newsArticleRepository.findById(articleId))
+          .willReturn(Optional.of(article));
+
+      // when & then
+      assertThrows(DeletedArticleException.class,
+          () -> articleService.getArticle(userId, articleId));
+
+      then(articleViewService).shouldHaveNoInteractions();
     }
   }
 
