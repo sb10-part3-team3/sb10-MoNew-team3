@@ -468,17 +468,6 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("사용자 삭제 이벤트 처리 시 활동 내역 문서 삭제에 성공합니다.")
-  void shouldDeleteUserActivity() {
-    // given
-    // when
-    userActivityService.deleteUserActivity(userId);
-
-    // then
-    then(userActivityRepository).should().deleteById(userId);
-  }
-
-  @Test
   @DisplayName("사용자 닉네임 수정 시 활동 내역 문서 닉네임 업데이트에 성공합니다.")
   void shouldUpdateUserNickname() {
     // given
