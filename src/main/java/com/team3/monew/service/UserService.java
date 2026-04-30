@@ -13,6 +13,7 @@ import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.DuplicateEmailException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.mapper.UserMapper;
+import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
@@ -39,6 +40,7 @@ public class UserService {
   private final CommentLikeRepository commentLikeRepository;
   private final CommentRepository commentRepository;
   private final SubscriptionRepository subscriptionRepository;
+  private final ArticleViewRepository articleViewRepository;
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
   private final ApplicationEventPublisher applicationEventPublisher;
@@ -123,6 +125,7 @@ public class UserService {
     commentLikeRepository.deleteAllByUserId(userId);
     commentRepository.deleteAllByUserId(userId);
     subscriptionRepository.deleteAllByUserId(userId);
+    articleViewRepository.deleteAllByUserId(userId);
 
     userRepository.delete(user);
     log.debug("사용자 물리 삭제 성공: userId={}", userId);

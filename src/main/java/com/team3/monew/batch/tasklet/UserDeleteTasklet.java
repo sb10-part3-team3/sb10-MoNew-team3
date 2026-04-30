@@ -1,5 +1,6 @@
 package com.team3.monew.batch.tasklet;
 
+import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
@@ -26,6 +27,7 @@ public class UserDeleteTasklet {
   private final CommentRepository commentRepository;
   private final SubscriptionRepository subscriptionRepository;
   private final UserActivityRepository userActivityRepository;
+  private final ArticleViewRepository articleViewRepository;
 
   public RepeatStatus execute(Instant targetDate, int batchSize) {
 
@@ -42,6 +44,7 @@ public class UserDeleteTasklet {
     commentLikeRepository.deleteByUserIds(userIds);
     commentRepository.deleteByUserIds(userIds);
     subscriptionRepository.deleteByUserIds(userIds);
+    articleViewRepository.deleteByUserIds(userIds);
 
     userActivityRepository.deleteByIdIn(userIds);
     userActivityRepository.removeEmbeddedCommentsByUserIds(userIds);
