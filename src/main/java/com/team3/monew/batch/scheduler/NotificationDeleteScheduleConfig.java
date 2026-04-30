@@ -20,7 +20,7 @@ public class NotificationDeleteScheduleConfig {
   private final JobLauncher jobLauncher;
   private final Job notificationDeleteBatchJob;// Bean 이름으로 자동 주입
 
-  @Scheduled(cron = "${batch.notification.delete.cron:0 0 3 * * *}")
+  @Scheduled(cron = "${batch.notification.delete.cron:0 0 3 * * *}", zone = "${batch.notification.delete.zone:Asia/Seoul}")
   public void runDeleteNotifications() {
     try {
       log.info("알림 삭제 배치 스케줄러 시작");
