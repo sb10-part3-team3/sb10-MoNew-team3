@@ -8,6 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
+import com.team3.monew.entity.NewsArticle;
+import com.team3.monew.entity.NewsSource;
+import com.team3.monew.entity.User;
 import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.ArticleView;
 import com.team3.monew.entity.Comment;
@@ -18,6 +21,11 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.repository.ArticleViewRepository;
+import com.team3.monew.repository.NewsArticleRepository;
+import com.team3.monew.repository.NewsSourceRepository;
+import com.team3.monew.repository.UserRepository;
+import com.team3.monew.service.ArticleService;
 import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
@@ -27,6 +35,7 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.support.IntegrationTestSupport;
+import java.time.Instant;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
@@ -95,7 +104,6 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     newsArticle.addArticleInterest(samsungInterest, "메모리");
     newsArticle.addArticleInterest(appleInterest, "아이폰");
     newsArticleRepository.save(newsArticle);
-
     User user1 = User.create("email@naver.com", "닉닉", "@qwer!!");
     User user2 = User.create("user2@gmail.com", "ha", "orange@1234");
     userRepository.saveAll(List.of(user1, user2));
@@ -131,6 +139,36 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
         .andExpect(jsonPath("$.size").value(0))
         .andExpect(jsonPath("$.totalElements").value(0))
         .andExpect(jsonPath("$.hasNext").value(false));
+  }
+
+  @Test
+  @DisplayName("뉴스기사 단건 조회 시 첫 조회에만 조회수가 증가한다")
+  void shouldIncreaseViewCountOnlyOnce_whenFirstView() throws Exception {
+    // given
+    User user = userRepository.saveAndFlush(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    NewsSource source = newsSourceRepository.findAll().stream()
+        .filter(s -> s.getName().equals("NAVER"))
+        .findFirst()
+        .orElseThrow();
+
+    NewsArticle article = newsArticleRepository.saveAndFlush(
+        NewsArticle.create(source, "link", "제목", Instant.now(), "요약")
+    );
+
+    UUID articleId = article.getId();
+
+    // when
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(REQUEST_USER_ID_HEADER, userId))
+        .andExpect(status().isOk());
+
+    // then
+    NewsArticle updated = newsArticleRepository.findById(articleId).orElseThrow();
+    assertThat(updated.getViewCount()).isEqualTo(1);
   }
 
   @Test

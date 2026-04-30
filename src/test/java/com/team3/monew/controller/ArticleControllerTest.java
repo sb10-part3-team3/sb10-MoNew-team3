@@ -116,6 +116,45 @@ class ArticleControllerTest {
     }
   }
 
+  @Nested
+  class GetArticle {
+
+    @Test
+    @DisplayName("유효한 기사ID와 요청자ID를 받으면 뉴스기사 단건을 반환한다")
+    void shouldGetArticle_whenArticleIdAndRequestUserIdAreValid() throws Exception {
+      // given
+      UUID articleId = articleDto.id();
+      UUID requestUserId = UUID.randomUUID();
+
+      given(articleService.getArticle(requestUserId, articleId)).willReturn(articleDto);
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/{articleId}", articleId)
+              .header(REQUEST_USER_ID_HEADER, requestUserId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(articleId.toString()))
+          .andExpect(jsonPath("$.source").value(NewsSourceType.NAVER.name()))
+          .andExpect(jsonPath("$.sourceUrl").value(articleDto.sourceUrl()))
+          .andExpect(jsonPath("$.title").value(articleDto.title()))
+          .andExpect(jsonPath("$.summary").value(articleDto.summary()))
+          .andExpect(jsonPath("$.commentCount").value(articleDto.commentCount()))
+          .andExpect(jsonPath("$.viewCount").value(articleDto.viewCount()))
+          .andExpect(jsonPath("$.viewedByMe").value(articleDto.viewedByMe()));
+    }
+
+    @Test
+    @DisplayName("뉴스기사 단건 조회 시 헤더에 요청자ID가 없으면 오류를 반환한다")
+    void shouldReturnError_whenRequestUserIdHeaderIsMissingInGetArticle() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/{articleId}", articleId))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
+    }
+  }
+
 
   @Nested
   @DisplayName("뉴스기사 논리삭제")
