@@ -49,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -128,7 +129,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   @DisplayName("뉴스기사 목록 조회 통합 테스트에 성공합니다")
   void shouldReturnArticlePage_whenAPICalls() throws Exception {
     // when & then
-    mockMvc.perform(get(ARTICLES_BASE_URL)
+    mockMvc.perform(get("/api/articles")
             .header(REQUEST_USER_ID_HEADER, UUID.randomUUID())
             .param("keyword", "삼성 메모리")
             .param("sourceIn", NewsSourceType.NAVER.name())
@@ -173,6 +174,35 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     // then
     NewsArticle updated = newsArticleRepository.findById(articleId).orElseThrow();
     assertThat(updated.getViewCount()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("삭제된 기사 조회 시 400 오류가 발생한다")
+  void shouldReturn400_whenArticleIsDeleted() throws Exception {
+    // given
+    User user = userRepository.saveAndFlush(
+        User.create("test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    NewsSource source = newsSourceRepository.findByName("NAVER")
+        .orElseThrow();
+
+    NewsArticle article = newsArticleRepository.saveAndFlush(
+        NewsArticle.create(source, "link-delete", "삭제된 기사",
+            Instant.now(), "요약")
+    );
+
+    UUID articleId = article.getId();
+
+    // ⭐ soft delete 상태로 변경
+    ReflectionTestUtils.setField(article, "deleteStatus", DeleteStatus.DELETED);
+    newsArticleRepository.saveAndFlush(article);
+
+    // when & then
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(REQUEST_USER_ID_HEADER, userId))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
