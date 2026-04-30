@@ -71,6 +71,6 @@ public class User extends SoftDeleteEntity {
     @Override
     public void markDeleted() {
         super.markDeleted();
-        this.purgeScheduledAt = Instant.now().plus(1, ChronoUnit.DAYS);
+        this.purgeScheduledAt = getDeletedAt().plus(1, ChronoUnit.DAYS);
     }
 }
