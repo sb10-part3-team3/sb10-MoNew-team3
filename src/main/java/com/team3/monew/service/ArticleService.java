@@ -12,7 +12,6 @@ import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
 import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
-import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import java.time.Instant;
@@ -39,7 +38,6 @@ public class ArticleService {
 
   private static final String CURSOR_DELIMITER = ", ";
   private final ArticleInterestRepository articleInterestRepository;
-  private final CommentLikeRepository commentLikeRepository;
   private final CommentRepository commentRepository;
 
   public CursorPageResponseDto<ArticleDto> getArticleList(

@@ -7,7 +7,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.BDDMockito.willThrow;
 
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
@@ -335,8 +334,7 @@ class ArticleServiceTest {
     void shouldThrowArticleNotFoundException_whenArticleDoesNotExist() {
       // given
       UUID articleId = UUID.randomUUID();
-      willThrow(new ArticleNotFoundException(articleId)).
-          given(newsArticleRepository).findById(any(UUID.class));
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.empty());
 
       // when & then
       assertThrows(ArticleNotFoundException.class,
@@ -373,8 +371,7 @@ class ArticleServiceTest {
       // then
       ArgumentCaptor<NewsArticle> captor = ArgumentCaptor.forClass(NewsArticle.class);
       then(newsArticleRepository).should().save(captor.capture());
-      assertThat(captor.getValue())
-          .extracting("DeleteStatus").isEqualTo(DeleteStatus.DELETED);
+      assertThat(captor.getValue().getDeleteStatus()).isEqualTo(DeleteStatus.DELETED);
     }
   }
 
@@ -387,8 +384,7 @@ class ArticleServiceTest {
     void shouldThrowArticleNotFoundException_whenArticleDoesNotExist() {
       // given
       UUID articleId = UUID.randomUUID();
-      willThrow(new ArticleNotFoundException(articleId)).
-          given(newsArticleRepository).findById(any(UUID.class));
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.empty());
 
       // when & then
       assertThrows(ArticleNotFoundException.class,

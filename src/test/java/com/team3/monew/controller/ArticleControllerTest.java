@@ -119,7 +119,7 @@ class ArticleControllerTest {
 
   @Nested
   @DisplayName("뉴스기사 논리삭제")
-  class deleteArticle {
+  class DeleteArticle {
 
     @Test
     @DisplayName("논리 삭제에 성공하면 204 NoContent를 반환한다")
@@ -167,11 +167,11 @@ class ArticleControllerTest {
 
   @Nested
   @DisplayName("뉴스기사 물리삭제")
-  class hardDeleteArticle {
+  class HardDeleteArticle {
 
     @Test
     @DisplayName("물리 삭제에 성공하면 204 NoContent를 반환한다")
-    void shouldReturnNoContent_whenLogicalDeleteSucceeds() throws Exception {
+    void shouldReturnNoContent_whenHardDeleteSucceeds() throws Exception {
       // given
       UUID articleId = UUID.randomUUID();
 

@@ -140,8 +140,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
 
     NewsArticle findNewsArticle = newsArticleRepository.findById(newsArticle.getId())
         .orElseThrow(RuntimeException::new);
-    assertThat(findNewsArticle)
-        .extracting("DeleteStatus").isEqualTo(DeleteStatus.DELETED);
+    assertThat(findNewsArticle.getDeleteStatus()).isEqualTo(DeleteStatus.DELETED);
 
     List<ArticleInterest> articleInterests = articleInterestRepository
         .findAllByArticleId(findNewsArticle.getId());
@@ -174,7 +173,9 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     assertThat(articleViews).isEmpty();
 
     List<Comment> comments = commentRepository.findAllByArticleId(newsArticle.getId());
+    long commentLikeSize = commentLikeRepository.count();
     assertThat(comments).isEmpty();
+    assertThat(commentLikeSize).isZero();
   }
 
   @Test
