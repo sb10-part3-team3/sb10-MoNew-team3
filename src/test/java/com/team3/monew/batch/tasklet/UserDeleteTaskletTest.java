@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
+import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
@@ -40,6 +41,8 @@ class UserDeleteTaskletTest {
   private SubscriptionRepository subscriptionRepository;
   @Mock
   private UserActivityRepository userActivityRepository;
+  @Mock
+  private ArticleViewRepository articleViewRepository;
 
   private final Instant targetDate = Instant.now();
   private final int batchSize = 100;
@@ -69,6 +72,7 @@ class UserDeleteTaskletTest {
     then(commentLikeRepository).should().deleteByUserIds(userIds);
     then(commentRepository).should().deleteByUserIds(userIds);
     then(subscriptionRepository).should().deleteByUserIds(userIds);
+    then(articleViewRepository).should().deleteByUserIds(userIds);
 
     then(userActivityRepository).should().deleteByIdIn(userIds);
     then(userActivityRepository).should().removeEmbeddedCommentsByUserIds(userIds);
@@ -94,6 +98,7 @@ class UserDeleteTaskletTest {
     then(commentRepository).shouldHaveNoInteractions();
     then(subscriptionRepository).shouldHaveNoInteractions();
     then(userActivityRepository).shouldHaveNoInteractions();
+    then(articleViewRepository).shouldHaveNoInteractions();
 
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
   }

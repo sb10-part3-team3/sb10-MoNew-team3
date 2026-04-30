@@ -22,6 +22,7 @@ import com.team3.monew.exception.user.InvalidNicknameException;
 import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.mapper.UserMapper;
+import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NotificationRepository;
@@ -55,6 +56,8 @@ class UserServiceTest {
   private CommentRepository commentRepository;
   @Mock
   private SubscriptionRepository subscriptionRepository;
+  @Mock
+  private ArticleViewRepository articleViewRepository;
   @Mock
   private UserMapper userMapper;
   @Mock
@@ -258,7 +261,6 @@ class UserServiceTest {
 
     // given
     User user = mock(User.class);
-    given(user.getId()).willReturn(userId);
     given(user.isDeleted()).willReturn(false);
     given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
@@ -267,7 +269,6 @@ class UserServiceTest {
 
     // then
     verify(user).markDeleted();
-    verify(eventPublisher).publishEvent(any(UserDeletedEvent.class));
   }
 
   @Test
@@ -285,7 +286,6 @@ class UserServiceTest {
         .isInstanceOf(DeletedUserException.class);
 
     verify(user, never()).markDeleted();
-    verify(eventPublisher, never()).publishEvent(any(UserDeletedEvent.class));
   }
 
   @Test
@@ -299,8 +299,6 @@ class UserServiceTest {
     // when & then
     assertThatThrownBy(() -> userService.deleteUser(userId))
         .isInstanceOf(UserNotFoundException.class);
-
-    verify(eventPublisher, never()).publishEvent(any(UserDeletedEvent.class));
   }
 
   @Test
@@ -320,6 +318,7 @@ class UserServiceTest {
     verify(commentLikeRepository).deleteAllByUserId(userId);
     verify(commentRepository).deleteAllByUserId(userId);
     verify(subscriptionRepository).deleteAllByUserId(userId);
+    verify(articleViewRepository).deleteAllByUserId(userId);
     verify(userRepository).delete(user);
     verify(eventPublisher).publishEvent(any(UserDeletedEvent.class));
   }
@@ -340,6 +339,7 @@ class UserServiceTest {
     verify(commentLikeRepository, never()).deleteAllByUserId(any());
     verify(commentRepository, never()).deleteAllByUserId(any());
     verify(subscriptionRepository, never()).deleteAllByUserId(any());
+    verify(articleViewRepository, never()).deleteAllByUserId(any());
     verify(userRepository, never()).delete(any());
     verify(eventPublisher, never()).publishEvent(any(UserDeletedEvent.class));
   }
