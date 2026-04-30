@@ -147,20 +147,10 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   void shouldNotIncreaseViewCount_whenSameUserViewsTwice() throws Exception {
     // given
     User user = userRepository.saveAndFlush(
-        User.create("test@example.com", "tester", "test1234!")
+        User.create("view-test@example.com", "tester", "test1234!")
     );
     UUID userId = user.getId();
-
-    NewsSource source = newsSourceRepository.findAll().stream()
-        .filter(s -> s.getName().equals("NAVER"))
-        .findFirst()
-        .orElseThrow();
-
-    NewsArticle article = newsArticleRepository.saveAndFlush(
-        NewsArticle.create(source, "link", "제목", Instant.now(), "요약")
-    );
-
-    UUID articleId = article.getId();
+    UUID articleId = newsArticle.getId();
 
     // when
     mockMvc.perform(get("/api/articles/{articleId}", articleId)
@@ -181,23 +171,13 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   void shouldReturn400_whenArticleIsDeleted() throws Exception {
     // given
     User user = userRepository.saveAndFlush(
-        User.create("test@example.com", "tester", "test1234!")
+        User.create("deleted-article-test@example.com", "tester", "test1234!")
     );
     UUID userId = user.getId();
+    UUID articleId = newsArticle.getId();
 
-    NewsSource source = newsSourceRepository.findByName("NAVER")
-        .orElseThrow();
-
-    NewsArticle article = newsArticleRepository.saveAndFlush(
-        NewsArticle.create(source, "link-delete", "삭제된 기사",
-            Instant.now(), "요약")
-    );
-
-    UUID articleId = article.getId();
-
-    // ⭐ soft delete 상태로 변경
-    ReflectionTestUtils.setField(article, "deleteStatus", DeleteStatus.DELETED);
-    newsArticleRepository.saveAndFlush(article);
+    ReflectionTestUtils.setField(newsArticle, "deleteStatus", DeleteStatus.DELETED);
+    newsArticleRepository.saveAndFlush(newsArticle);
 
     // when & then
     mockMvc.perform(get("/api/articles/{articleId}", articleId)
