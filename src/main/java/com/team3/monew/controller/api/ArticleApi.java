@@ -38,7 +38,7 @@ public interface ArticleApi {
   @Operation(summary = "뉴스 기사 단건 조회", description = "조건에 맞는 뉴스 기사를 단건 조회합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "조회 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청 (헤더 누락, articleId 형식 오류 등)",
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (헤더 누락, articleId 형식 오류, 삭제된 기사 조회 등)",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
       @ApiResponse(responseCode = "404", description = "해당 ID에 맞는 뉴스기사가 존재하지 않음",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),

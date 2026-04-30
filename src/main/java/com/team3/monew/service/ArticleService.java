@@ -8,6 +8,7 @@ import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
@@ -96,7 +97,7 @@ public class ArticleService {
   @Transactional
   public ArticleDto getArticle(UUID userId, UUID articleId) {
     log.debug("뉴스 단건 조회 요청 - articleId={}", articleId);
-    NewsArticle article = findArticleOrElseThrow(articleId);
+    NewsArticle article = findActiveArticleOrElseThrow(articleId);
     // 단건 조회에도 조회수 등록을 위함
     articleViewService.registerArticleView(article.getId(), userId);
 
@@ -158,9 +159,16 @@ public class ArticleService {
     }
   }
 
-  private NewsArticle findArticleOrElseThrow(UUID articleId) {
-    return newsArticleRepository.findById(articleId)
+  private NewsArticle findActiveArticleOrElseThrow(UUID articleId) {
+    NewsArticle article = newsArticleRepository.findById(articleId)
         .orElseThrow(() -> new ArticleNotFoundException(articleId));
+
+    // 논리삭제 여부 판단
+    if (article.isDeleted()) {
+      throw new DeletedArticleException(articleId);
+    }
+
+    return article;
   }
 
   private NewsArticle getArticleOrThrow(UUID articleId) {
