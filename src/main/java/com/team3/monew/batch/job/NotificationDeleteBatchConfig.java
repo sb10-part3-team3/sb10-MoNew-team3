@@ -75,6 +75,14 @@ public class NotificationDeleteBatchConfig {
 
           int deletedCount = notificationRepository.deleteOldConfirmedNotifications(targetDate,
               batchSize);
+          long totalDeletedCount = contribution.getStepExecution()
+              .getJobExecution()
+              .getExecutionContext()
+              .getLong("notificationDelete.deletedCount", 0L);
+          contribution.getStepExecution()
+              .getJobExecution()
+              .getExecutionContext()
+              .putLong("notificationDelete.deletedCount", totalDeletedCount + deletedCount);
           log.info("알림 배치 삭제: {}건 삭제", deletedCount);
 
           if (deletedCount > 0) {//0건 삭제 시까지 반복 삭제
