@@ -62,6 +62,8 @@ class ArticleServiceTest {
   private ArticleInterestRepository articleInterestRepository;
   @Mock
   private CommentRepository commentRepository;
+  @Mock
+  private ArticleViewService articleViewService;
 
   @InjectMocks
   private ArticleService articleService;
@@ -322,6 +324,52 @@ class ArticleServiceTest {
       // when & then
       assertThrows(BusinessException.class,
           () -> articleService.getArticleList(request2, UUID.randomUUID()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 단건 조회를 한다")
+  class GetArticle {
+
+    @Test
+    @DisplayName("정상적으로 단건 조회 시 조회 이력이 등록되고 기사 정보를 반환한다")
+    void shouldReturnArticle_whenValidRequest() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      NewsArticle article = NewsArticle.create(naverSource, "link", "제목",
+          Instant.now(), "요약");
+      ReflectionTestUtils.setField(article, "id", articleId);
+
+      given(newsArticleRepository.findById(articleId)).willReturn(java.util.Optional.of(article));
+      given(articleViewService.registerArticleView(articleId, userId))
+          .willReturn(null); // void로 바꾸면 이 줄 제거 가능
+
+      ArticleDto expected = articleMapper.toDto(article, true);
+
+      // when
+      ArticleDto actual = articleService.getArticle(userId, articleId);
+
+      // then
+      assertThat(actual)
+          .usingRecursiveComparison()
+          .isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 기사 조회 시 예외가 발생한다")
+    void shouldThrowException_whenArticleNotFound() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      given(newsArticleRepository.findById(articleId))
+          .willReturn(java.util.Optional.empty());
+
+      // when & then
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.getArticle(userId, articleId));
     }
   }
 
