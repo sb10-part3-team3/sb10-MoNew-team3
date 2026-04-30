@@ -35,6 +35,19 @@ public interface ArticleApi {
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 
+  @Operation(summary = "뉴스 기사 단건 조회", description = "조건에 맞는 뉴스 기사를 단건 조회합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "조회 성공"),
+      @ApiResponse(responseCode = "404", description = "해당 ID에 맞는 뉴스기사가 존재하지 않음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<ArticleDto> getArticle(
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
+      @PathVariable UUID articleId
+  );
+
   @Operation(summary = "뉴스 기사 논리 삭제", description = "뉴스 기사를 논리적으로 삭제합니다.")
   @ApiResponses({
       @ApiResponse(responseCode = "204", description = "논리 삭제 성공"),

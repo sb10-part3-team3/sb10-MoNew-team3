@@ -34,6 +34,14 @@ public class ArticleController implements ArticleApi {
         .body(articleService.getArticleList(searchRequest, requestUserId));
   }
 
+  @GetMapping("/{articleId}")
+  public ResponseEntity<ArticleDto> getArticle(
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
+      @PathVariable UUID articleId
+  ) {
+    return ResponseEntity.ok(articleService.getArticle(requestUserId, articleId));
+  }
+
   @DeleteMapping("/{articleId}")
   public ResponseEntity<Void> deleteArticle(@PathVariable UUID articleId) {
     articleService.deleteArticle(articleId);
