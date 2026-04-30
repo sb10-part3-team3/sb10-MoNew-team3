@@ -11,6 +11,22 @@ spring:
     job:
       enabled: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,scheduledtasks
+  endpoint:
+    health:
+      show-components: when_authorized
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      cloudwatch:
+        enabled: false
+
 logging:
   level:
     root: info
