@@ -15,4 +15,6 @@ public interface ArticleInterestRepository extends JpaRepository<ArticleInterest
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("DELETE FROM ArticleInterest ai WHERE ai.article.id = :articleId")
   void deleteAllByArticleId(@Param("articleId") UUID articleId);
+
+  List<ArticleInterest> findAllByArticleId(UUID articleId);
 }

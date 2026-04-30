@@ -94,7 +94,7 @@ public class ArticleService {
 
   @Transactional
   public void deleteArticle(UUID articleId) {
-    log.debug("뉴스기사 삭제 요청 - articleId={}", articleId);
+    log.debug("뉴스기사 논리삭제 요청 - articleId={}", articleId);
     NewsArticle article = getArticleOrThrow(articleId);
     if (article.isDeleted()) {
       throw new ArticleNotFoundException(articleId);
@@ -102,7 +102,7 @@ public class ArticleService {
 
     article.markDeleted();
     newsArticleRepository.save(article);
-    log.info("뉴스기사 삭제 성공 - articleId={}", articleId);
+    log.info("뉴스기사 논리삭제 성공 - articleId={}", articleId);
   }
 
   @Transactional

@@ -2,6 +2,7 @@ package com.team3.monew.repository;
 
 import com.team3.monew.entity.ArticleView;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -22,4 +23,6 @@ public interface ArticleViewRepository extends JpaRepository<ArticleView, UUID> 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("DELETE FROM ArticleView av WHERE av.article.id = :articleId")
   void deleteAllByArticleId(@Param("articleId") UUID articleId);
+
+  List<ArticleView> findAllByArticleId(UUID articleId);
 }
