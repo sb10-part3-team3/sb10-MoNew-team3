@@ -4,6 +4,7 @@ import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
+import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
@@ -66,6 +67,8 @@ public class InterestService {
       'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
   };
 
+  private static final String CURSOR_DELIMITER = ", ";
+
   public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
@@ -105,35 +108,40 @@ public class InterestService {
   }
 
   @Transactional(readOnly = true)
-  public CursorPageResponseDto<InterestDto> findAll(InterestSearchCondition condition,
-      UUID userId) {
+  public CursorPageResponseDto<InterestDto> findAll(
+      InterestSearchCondition condition,
+      UUID userId
+  ) {
+    InterestSearchCondition normalizedCondition = normalizeCursor(condition);
+
     log.debug(
         "관심사 목록 조회 요청 - userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
         userId,
-        condition.keyword(),
-        condition.orderBy(),
-        condition.direction(),
-        condition.cursor() == null ? null : condition.cursor().cursor(),
-        condition.cursor() == null ? null : condition.cursor().after(),
-        condition.limit());
+        normalizedCondition.keyword(),
+        normalizedCondition.orderBy(),
+        normalizedCondition.direction(),
+        normalizedCondition.cursor() == null ? null : normalizedCondition.cursor().cursor(),
+        normalizedCondition.cursor() == null ? null : normalizedCondition.cursor().after(),
+        normalizedCondition.limit()
+    );
 
-    List<Interest> result = interestRepository.searchByCondition(condition);
-    boolean hasNext = result.size() > condition.limit();
+    List<Interest> result = interestRepository.searchByCondition(normalizedCondition);
+    boolean hasNext = result.size() > normalizedCondition.limit();
     List<Interest> content = hasNext
-        ? result.subList(0, condition.limit())
+        ? result.subList(0, normalizedCondition.limit())
         : result;
 
-    long totalElements = interestRepository.countByCondition(condition);
+    long totalElements = interestRepository.countByCondition(normalizedCondition);
 
     if (content.isEmpty()) {
       log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
-          userId, condition.keyword());
+          userId, normalizedCondition.keyword());
 
-      return new CursorPageResponseDto<InterestDto>(
+      return new CursorPageResponseDto<>(
           List.of(),
           null,
           null,
-          condition.limit(),
+          normalizedCondition.limit(),
           totalElements,
           false
       );
@@ -145,13 +153,12 @@ public class InterestService {
     if (hasNext) {
       Interest last = content.get(content.size() - 1);
 
-      if ("subscriberCount".equals(condition.orderBy())) {
-        nextCursor = String.valueOf(last.getSubscriberCount());
-      } else {
-        nextCursor = last.getName();
-      }
+      String cursorValue = "subscriberCount".equals(normalizedCondition.orderBy())
+          ? String.valueOf(last.getSubscriberCount())
+          : last.getName();
 
       nextAfter = last.getCreatedAt();
+      nextCursor = cursorValue + CURSOR_DELIMITER + nextAfter;
     }
 
     List<UUID> interestIds = content.stream()
@@ -172,11 +179,11 @@ public class InterestService {
         "관심사 목록 조회 성공 - userId={}, contentSize={}, totalElements={}, hasNext={}, nextCursor={}, nextAfter={}",
         userId, dtoList.size(), totalElements, hasNext, nextCursor, nextAfter);
 
-    return new CursorPageResponseDto<InterestDto>(
+    return new CursorPageResponseDto<>(
         dtoList,
         nextCursor,
         nextAfter,
-        condition.limit(),
+        normalizedCondition.limit(),
         totalElements,
         hasNext
     );
@@ -307,6 +314,32 @@ public class InterestService {
 
   private record SimilarityResult(boolean similar, double similarity) {
 
+  }
+
+  private InterestSearchCondition normalizeCursor(InterestSearchCondition condition) {
+    if (condition.cursor() == null) {
+      return condition;
+    }
+
+    String cursor = condition.cursor().cursor();
+    Instant after = condition.cursor().after();
+
+    if (cursor == null || cursor.isBlank() || after != null) {
+      return condition;
+    }
+
+    String[] parts = cursor.split(CURSOR_DELIMITER, 2);
+    if (parts.length != 2) {
+      return condition;
+    }
+
+    return new InterestSearchCondition(
+        condition.keyword(),
+        condition.orderBy(),
+        condition.direction(),
+        new InterestCursor(parts[0], Instant.parse(parts[1])),
+        condition.limit()
+    );
   }
 
   // 유니크 제약 위반 검증
