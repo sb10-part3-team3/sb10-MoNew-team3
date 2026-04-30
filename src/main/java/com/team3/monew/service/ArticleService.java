@@ -2,6 +2,7 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
+import com.team3.monew.dto.article.ArticleViewDto;
 import com.team3.monew.dto.article.internal.ArticleCursor;
 import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
@@ -35,6 +36,7 @@ public class ArticleService {
   private final ArticleMapper articleMapper;
   private final NewsArticleRepository newsArticleRepository;
   private final ArticleViewRepository articleViewRepository;
+  private final ArticleViewService articleViewService;
 
   private static final String CURSOR_DELIMITER = ", ";
   private final ArticleInterestRepository articleInterestRepository;
@@ -90,6 +92,16 @@ public class ArticleService {
         nextAfter, articleDtoList.size(), totalElements, hasNext);
   }
 
+  public ArticleDto getArticle(UUID userId, UUID articleId) {
+    log.debug("뉴스 단건 조회 요청 - articleId={}", articleId);
+    NewsArticle article = findArticleOrElseThrow(articleId);
+    // 단건 조회에도 조회수 등록을 위함
+    articleViewService.registerArticleView(article.getId(), userId);
+
+    log.debug("뉴스 단건 조회 성공 - articleId={}", article.getId());
+    return articleMapper.toDto(article, true);
+  }
+
   @Transactional
   public void deleteArticle(UUID articleId) {
     log.debug("뉴스기사 논리삭제 요청 - articleId={}", articleId);
@@ -142,6 +154,11 @@ public class ArticleService {
     } catch (DateTimeParseException | NumberFormatException e) {
       throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, Map.of("cursor", e.getMessage()));
     }
+  }
+
+  private NewsArticle findArticleOrElseThrow(UUID articleId) {
+    return newsArticleRepository.findById(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
   }
 
   private NewsArticle getArticleOrThrow(UUID articleId) {
