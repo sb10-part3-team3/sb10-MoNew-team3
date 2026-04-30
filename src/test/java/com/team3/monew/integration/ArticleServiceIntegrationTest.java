@@ -114,19 +114,6 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     em.clear();
   }
 
-//  @AfterEach
-//  void tearDown() {
-//    commentLikeRepository.deleteAll();
-//    articleInterestRepository.deleteAll();
-//    interestRepository.deleteAll();
-//    userRepository.deleteAll();
-//    articleViewRepository.deleteAll();
-//    commentRepository.deleteAll();
-//    newsArticleRepository.deleteAll();
-//    newsSourceRepository.deleteAll();
-//  }
-
-
   @Test
   @DisplayName("뉴스기사 목록 조회 통합 테스트에 성공합니다")
   void shouldReturnArticlePage_whenAPICalls() throws Exception {
