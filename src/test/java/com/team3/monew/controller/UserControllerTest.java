@@ -2,7 +2,11 @@ package com.team3.monew.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -14,7 +18,9 @@ import com.team3.monew.dto.user.UserLoginRequest;
 import com.team3.monew.dto.user.UserRegisterRequest;
 import com.team3.monew.dto.user.UserUpdateRequest;
 import com.team3.monew.exception.user.AuthException;
+import com.team3.monew.exception.user.DeletedUserException;
 import com.team3.monew.exception.user.DuplicateEmailException;
+import com.team3.monew.exception.user.UserNotFoundException;
 import com.team3.monew.global.exception.GlobalExceptionHandler;
 import com.team3.monew.service.UserService;
 import java.time.Instant;
@@ -296,5 +302,77 @@ class UserControllerTest {
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("논리 삭제 요청이 유효하면 200을 반환한다.")
+  void shouldDeleteUser_whenRequestIsValid() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    willDoNothing().given(userService).deleteUser(userId);
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}", userId))
+        .andExpect(status().isNoContent());
+
+    verify(userService).deleteUser(userId);
+  }
+
+  @Test
+  @DisplayName("논리 삭제 시 사용자가 없으면 예외가 발생한다.")
+  void shouldThrowException_whenUserNotFoundOnSoftDelete() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    willThrow(new UserNotFoundException(userId))
+        .given(userService).deleteUser(userId);
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}", userId))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("논리 삭제 시 이미 삭제된 사용자면 예외가 발생한다.")
+  void shouldThrowException_whenUserAlreadyDeletedOnSoftDelete() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    willThrow(new DeletedUserException(userId))
+        .given(userService).deleteUser(userId);
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}", userId))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("물리 삭제 요청이 유효하면 200을 반환한다.")
+  void shouldHardDeleteUser_whenRequestIsValid() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    willDoNothing().given(userService).hardDeleteUser(userId);
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}/hard", userId))
+        .andExpect(status().isNoContent());
+
+    verify(userService).hardDeleteUser(userId);
+  }
+
+  @Test
+  @DisplayName("물리 삭제 시 사용자가 없으면 예외가 발생한다.")
+  void shouldThrowException_whenUserNotFoundOnHardDelete() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    willThrow(new UserNotFoundException(userId))
+        .given(userService).hardDeleteUser(userId);
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}/hard", userId))
+        .andExpect(status().isNotFound());
   }
 }

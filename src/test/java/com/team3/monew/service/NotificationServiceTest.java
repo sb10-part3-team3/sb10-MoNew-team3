@@ -19,6 +19,7 @@ import com.team3.monew.entity.Comment;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.Notification;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.exception.comment.CommentNotFoundException;
 import com.team3.monew.exception.notification.NotificationConfirmForbiddenException;
@@ -418,7 +419,7 @@ class NotificationServiceTest {
   @DisplayName("사용자 아이디가 존재하지 않을 때 알림 확인 상태 변경에 실패한다.")
   void shouldFailToConfirmNotification_whenUserNotFound() {
     // given
-    given(userRepository.existsById(userId1))
+    given(userRepository.existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE))
         .willReturn(false);
 
     // when & then
@@ -431,7 +432,7 @@ class NotificationServiceTest {
   @DisplayName("알림이 존재하지 않을 때 알림 확인 상태 변경에 실패한다.")
   void shouldFailToConfirmNotification_whenNotificationNotFound() {
     // given
-    given(userRepository.existsById(userId1)).willReturn(true);
+    given(userRepository.existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE)).willReturn(true);
     given(notificationRepository.findById(likeNotification1.getId()))
         .willReturn(Optional.empty());
 
@@ -445,7 +446,7 @@ class NotificationServiceTest {
   @DisplayName("알림이 존재하지만 권한이 없는 사용자 일때, 알림 확인 상태 변경에 실패한다.")
   void shouldFailToConfirmNotification_whenUnAuthorized() {
     // given
-    given(userRepository.existsById(userId2)).willReturn(true);
+    given(userRepository.existsByIdAndDeleteStatus(userId2, DeleteStatus.ACTIVE)).willReturn(true);
     given(notificationRepository.findById(likeNotification1.getId()))
         .willReturn(Optional.of(likeNotification1));
 
@@ -459,7 +460,7 @@ class NotificationServiceTest {
   @DisplayName("사용자 아이디와 알림 아이디로 미확인 알림의 확인 상태 변경에 성공한다.")
   void shouldConfirmNotification() {
     // given
-    given(userRepository.existsById(userId1)).willReturn(true);
+    given(userRepository.existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE)).willReturn(true);
     given(notificationRepository.findById(likeNotification1.getId()))
         .willReturn(Optional.of(likeNotification1));
 
@@ -477,7 +478,7 @@ class NotificationServiceTest {
     ReflectionTestUtils.setField(likeNotification1, "confirmedAt",
         Instant.parse("2026-03-01T12:00:00Z"));
 
-    given(userRepository.existsById(userId1)).willReturn(true);
+    given(userRepository.existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE)).willReturn(true);
     given(notificationRepository.findById(likeNotification1.getId()))
         .willReturn(Optional.of(likeNotification1));
 
@@ -493,7 +494,7 @@ class NotificationServiceTest {
   @DisplayName("사용자 아이디가 존재하지 않을 때 전체 알림 확인 상태 변경에 실패한다.")
   void shouldFailToConfirmAllNotifications_whenUserNotFound() {
     // given
-    given(userRepository.existsById(userId1))
+    given(userRepository.existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE))
         .willReturn(false);
 
     // when & then
@@ -508,7 +509,7 @@ class NotificationServiceTest {
   @DisplayName("유효한 사용자 아이디로 전체 미확인 알림의 확인 상태 변경에 성공한다.")
   void shouldConfirmAllNotifications() {
     // given
-    given(userRepository.existsById(userId1)).willReturn(true);
+    given(userRepository.existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE)).willReturn(true);
     given(notificationRepository.confirmAllByUserId(eq(userId1), any(Instant.class)))
         .willReturn(4);//4개 알림 확인 상태로 변경
 
@@ -516,7 +517,7 @@ class NotificationServiceTest {
     notificationService.confirmAll(userId1);
 
     //then
-    then(userRepository).should(times(1)).existsById(userId1);
+    then(userRepository).should(times(1)).existsByIdAndDeleteStatus(userId1, DeleteStatus.ACTIVE);
     then(notificationRepository).should(times(1))
         .confirmAllByUserId(eq(userId1), any(Instant.class));
   }

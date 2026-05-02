@@ -11,6 +11,7 @@ import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
@@ -635,7 +636,7 @@ class InterestServiceTest {
         savedSubscription.getCreatedAt()
     );
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
@@ -650,7 +651,7 @@ class InterestServiceTest {
     assertThat(result.interestName()).isEqualTo("주식");
     assertThat(result.interestSubscriberCount()).isEqualTo(1);
 
-    then(userRepository).should().findById(userId);
+    then(userRepository).should().findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE);
     then(interestRepository).should(times(1)).findById(interestId);
     then(interestRepository).should(times(1)).findByIdWithKeywords(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
@@ -665,7 +666,7 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
-    given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
@@ -686,7 +687,7 @@ class InterestServiceTest {
 
     User user = User.create("test@example.com", "password", "tester");
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.empty());
 
     // when & then
@@ -708,7 +709,7 @@ class InterestServiceTest {
     User user = User.create("test@example.com", "password", "tester");
     Interest interest = Interest.create("주식");
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(true);
 
@@ -731,7 +732,7 @@ class InterestServiceTest {
     User user = User.create("test@example.com", "password", "tester");
     Interest interest = Interest.create("주식");
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
 
@@ -752,7 +753,7 @@ class InterestServiceTest {
           assertThat(e.getMessage()).isEqualTo(ErrorCode.INTEREST_ALREADY_SUBSCRIBING.getMessage());
         });
 
-    then(userRepository).should().findById(userId);
+    then(userRepository).should().findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE);
     then(interestRepository).should().findById(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
     then(subscriptionRepository).should().save(any(Subscription.class));
@@ -771,7 +772,7 @@ class InterestServiceTest {
     Interest interest = mock(Interest.class);
     Subscription subscription = mock(Subscription.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.findByUserIdAndInterestId(userId, interestId))
         .willReturn(Optional.of(subscription));
@@ -791,7 +792,7 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
-    given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> interestService.cancelSubscribe(userId, interestId))
@@ -812,7 +813,7 @@ class InterestServiceTest {
 
     User user = mock(User.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.empty());
 
     // when & then
@@ -834,7 +835,7 @@ class InterestServiceTest {
     User user = mock(User.class);
     Interest interest = mock(Interest.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.findByUserIdAndInterestId(userId, interestId))
         .willReturn(Optional.empty());

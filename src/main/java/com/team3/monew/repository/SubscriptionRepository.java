@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -38,4 +39,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
       @Param("userId") UUID userId,
       @Param("interestIds") List<UUID> interestIds
   );
+
+  void deleteAllByUserId(@Param("userId") UUID userId);
+
+  @Modifying
+  @Query("DELETE FROM Subscription s WHERE s.user.id IN :userIds")
+  void deleteByUserIds(@Param("userIds") List<UUID> userIds);
 }
