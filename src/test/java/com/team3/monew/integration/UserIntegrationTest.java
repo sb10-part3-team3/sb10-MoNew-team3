@@ -1,6 +1,8 @@
 package com.team3.monew.integration;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -221,5 +223,36 @@ class UserIntegrationTest extends IntegrationTestSupport {
             .contentType(APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("유효한 요청이면 논리 삭제에 성공한다.")
+  void shouldSoftDeleteUser_whenRequestIsValid() throws Exception {
+    // given
+    User savedUser = userRepository.save(
+        User.create("soft-delete@example.com", "nickname", "password123!")
+    );
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}", savedUser.getId()))
+        .andExpect(status().isNoContent());
+
+    User deletedUser = userRepository.findById(savedUser.getId()).orElseThrow();
+    assertThat(deletedUser.isDeleted()).isTrue();
+  }
+
+  @Test
+  @DisplayName("유효한 요청이면 물리 삭제에 성공한다.")
+  void shouldHardDeleteUser_whenRequestIsValid() throws Exception {
+    // given
+    User savedUser = userRepository.save(
+        User.create("hard-delete@example.com", "nickname", "password123!")
+    );
+
+    // when & then
+    mockMvc.perform(delete("/api/users/{userId}/hard", savedUser.getId()))
+        .andExpect(status().isNoContent());
+
+    assertThat(userRepository.findById(savedUser.getId())).isEmpty();
   }
 }

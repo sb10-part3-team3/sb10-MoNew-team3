@@ -8,6 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
+import com.team3.monew.entity.NewsArticle;
+import com.team3.monew.entity.NewsSource;
+import com.team3.monew.entity.User;
 import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.ArticleView;
 import com.team3.monew.entity.Comment;
@@ -18,6 +21,11 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.repository.ArticleViewRepository;
+import com.team3.monew.repository.NewsArticleRepository;
+import com.team3.monew.repository.NewsSourceRepository;
+import com.team3.monew.repository.UserRepository;
+import com.team3.monew.service.ArticleService;
 import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
@@ -27,6 +35,7 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.support.IntegrationTestSupport;
+import java.time.Instant;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -95,7 +105,6 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     newsArticle.addArticleInterest(samsungInterest, "메모리");
     newsArticle.addArticleInterest(appleInterest, "아이폰");
     newsArticleRepository.save(newsArticle);
-
     User user1 = User.create("email@naver.com", "닉닉", "@qwer!!");
     User user2 = User.create("user2@gmail.com", "ha", "orange@1234");
     userRepository.saveAll(List.of(user1, user2));
@@ -120,7 +129,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   @DisplayName("뉴스기사 목록 조회 통합 테스트에 성공합니다")
   void shouldReturnArticlePage_whenAPICalls() throws Exception {
     // when & then
-    mockMvc.perform(get(ARTICLES_BASE_URL)
+    mockMvc.perform(get("/api/articles")
             .header(REQUEST_USER_ID_HEADER, UUID.randomUUID())
             .param("keyword", "삼성 메모리")
             .param("sourceIn", NewsSourceType.NAVER.name())
@@ -131,6 +140,49 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
         .andExpect(jsonPath("$.size").value(0))
         .andExpect(jsonPath("$.totalElements").value(0))
         .andExpect(jsonPath("$.hasNext").value(false));
+  }
+
+  @Test
+  @DisplayName("뉴스기사 단건 조회 시 동일 사용자 재조회에서는 조회수가 증가하지 않는다")
+  void shouldNotIncreaseViewCount_whenSameUserViewsTwice() throws Exception {
+    // given
+    User user = userRepository.saveAndFlush(
+        User.create("view-test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+    UUID articleId = newsArticle.getId();
+
+    // when
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(REQUEST_USER_ID_HEADER, userId))
+        .andExpect(status().isOk());
+
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(REQUEST_USER_ID_HEADER, userId))
+        .andExpect(status().isOk());
+
+    // then
+    NewsArticle updated = newsArticleRepository.findById(articleId).orElseThrow();
+    assertThat(updated.getViewCount()).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("삭제된 기사 조회 시 400 오류가 발생한다")
+  void shouldReturn400_whenArticleIsDeleted() throws Exception {
+    // given
+    User user = userRepository.saveAndFlush(
+        User.create("deleted-article-test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+    UUID articleId = newsArticle.getId();
+
+    ReflectionTestUtils.setField(newsArticle, "deleteStatus", DeleteStatus.DELETED);
+    newsArticleRepository.saveAndFlush(newsArticle);
+
+    // when & then
+    mockMvc.perform(get("/api/articles/{articleId}", articleId)
+            .header(REQUEST_USER_ID_HEADER, userId))
+        .andExpect(status().isBadRequest());
   }
 
   @Test

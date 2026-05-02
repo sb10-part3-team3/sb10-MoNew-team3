@@ -24,5 +24,11 @@ public interface ArticleViewRepository extends JpaRepository<ArticleView, UUID> 
   @Query("DELETE FROM ArticleView av WHERE av.article.id = :articleId")
   void deleteAllByArticleId(@Param("articleId") UUID articleId);
 
-  List<ArticleView> findAllByArticleId(UUID articleId);
+  List<ArticleView> findAllByArticleId(@Param("articleId") UUID articleId);
+
+  void deleteAllByUserId(@Param("userId") UUID userId);
+
+  @Modifying
+  @Query("DELETE FROM ArticleView av WHERE av.user.id IN :userIds")
+  void deleteByUserIds(@Param("userIds") List<UUID> userIds);
 }
