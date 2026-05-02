@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -29,7 +30,7 @@ public class UserDeleteTasklet {
   private final UserActivityRepository userActivityRepository;
   private final ArticleViewRepository articleViewRepository;
 
-  public RepeatStatus execute(Instant targetDate, int batchSize) {
+  public RepeatStatus execute(Instant targetDate, int batchSize, StepContribution contribution) {
 
     List<UUID> userIds = userRepository.findDeletableUserIds(
         targetDate,
@@ -50,6 +51,14 @@ public class UserDeleteTasklet {
     userActivityRepository.removeEmbeddedCommentsByUserIds(userIds);
 
     int deleted = userRepository.deleteByIds(userIds);
+    long totalDeletedCount = contribution.getStepExecution()
+        .getJobExecution()
+        .getExecutionContext()
+        .getLong("userDelete.deletedCount", 0L);
+    contribution.getStepExecution()
+        .getJobExecution()
+        .getExecutionContext()
+        .putLong("userDelete.deletedCount", totalDeletedCount + deleted);
     log.debug("deleted count={}", deleted);
     return deleted > 0 ? RepeatStatus.CONTINUABLE : RepeatStatus.FINISHED;
   }

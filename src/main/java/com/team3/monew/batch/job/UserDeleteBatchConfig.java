@@ -60,7 +60,7 @@ public class UserDeleteBatchConfig {
 
     return new StepBuilder("deleteUserStep", jobRepository)
         .tasklet((contribution, chunkContext) ->
-            userDeleteTasklet.execute(targetDate, batchSize), transactionManager)
+            userDeleteTasklet.execute(targetDate, batchSize, contribution), transactionManager)
         .build();
   }
 }

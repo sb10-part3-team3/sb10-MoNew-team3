@@ -14,6 +14,7 @@ public class BatchMetrics {
 
   private static final String NEWS_COLLECT_PREFIX = "monew.news.collect";
   private static final String NOTIFICATION_DELETE_PREFIX = "monew.notification.delete";
+  private static final String USER_DELETE_PREFIX = "monew.user.delete";
 
   private final Counter newsCollectRunCounter;
   private final Counter newsCollectSuccessCounter;
@@ -25,6 +26,11 @@ public class BatchMetrics {
   private final Counter notificationDeleteFailureCounter;
   private final Timer notificationDeleteDurationTimer;
 
+  private final Counter userDeleteRunCounter;
+  private final Counter userDeleteSuccessCounter;
+  private final Counter userDeleteFailureCounter;
+  private final Timer userDeleteDurationTimer;
+
   private final AtomicLong newsCollectSavedCount = new AtomicLong();
   private final AtomicLong newsCollectLastRunEpoch = new AtomicLong();
   private final AtomicLong newsCollectLastSuccessEpoch = new AtomicLong();
@@ -33,7 +39,23 @@ public class BatchMetrics {
   private final AtomicLong notificationDeleteLastRunEpoch = new AtomicLong();
   private final AtomicLong notificationDeleteLastSuccessEpoch = new AtomicLong();
 
+  private final AtomicLong userDeleteDeletedCount = new AtomicLong();
+  private final AtomicLong userDeleteLastRunEpoch = new AtomicLong();
+  private final AtomicLong userDeleteLastSuccessEpoch = new AtomicLong();
+
   public BatchMetrics(MeterRegistry meterRegistry) {
+    userDeleteRunCounter = Counter.builder(USER_DELETE_PREFIX + ".run")
+        .description("사용자 삭제 배치 실행 횟수")
+        .register(meterRegistry);
+    userDeleteSuccessCounter = Counter.builder(USER_DELETE_PREFIX + ".success")
+        .description("사용자 삭제 배치 성공 횟수")
+        .register(meterRegistry);
+    userDeleteFailureCounter = Counter.builder(USER_DELETE_PREFIX + ".failure")
+        .description("사용자 삭제 배치 실패 횟수")
+        .register(meterRegistry);
+    userDeleteDurationTimer = Timer.builder(USER_DELETE_PREFIX + ".duration")
+        .description("사용자 삭제 배치 실행 시간")
+        .register(meterRegistry);
     newsCollectRunCounter = Counter.builder(NEWS_COLLECT_PREFIX + ".run")
         .description("뉴스 수집 작업 실행 횟수")
         .register(meterRegistry);
@@ -83,6 +105,16 @@ public class BatchMetrics {
             notificationDeleteLastSuccessEpoch, AtomicLong::get)
         .description("최근 알림 삭제 배치 성공 시각(epoch second)")
         .register(meterRegistry);
+    Gauge.builder(USER_DELETE_PREFIX + ".deleted-count", userDeleteDeletedCount, AtomicLong::get)
+        .description("최근 사용자 삭제 배치 삭제 건수")
+        .register(meterRegistry);
+    Gauge.builder(USER_DELETE_PREFIX + ".last-run-epoch", userDeleteLastRunEpoch, AtomicLong::get)
+        .description("최근 사용자 삭제 배치 실행 시각(epoch second)")
+        .register(meterRegistry);
+    Gauge.builder(USER_DELETE_PREFIX + ".last-success-epoch", userDeleteLastSuccessEpoch,
+            AtomicLong::get)
+        .description("최근 사용자 삭제 배치 성공 시각(epoch second)")
+        .register(meterRegistry);
   }
 
   public void recordNewsCollectSuccess(long durationMillis, long savedCount) {
@@ -119,5 +151,23 @@ public class BatchMetrics {
     notificationDeleteFailureCounter.increment();
     notificationDeleteDurationTimer.record(Duration.ofMillis(durationMillis));
     notificationDeleteLastRunEpoch.set(Instant.now().getEpochSecond());
+  }
+
+  public void recordUserDeleteSuccess(long durationMillis, long deletedCount) {
+    userDeleteRunCounter.increment();
+    userDeleteSuccessCounter.increment();
+    userDeleteDurationTimer.record(Duration.ofMillis(durationMillis));
+
+    long nowEpochSecond = Instant.now().getEpochSecond();
+    userDeleteDeletedCount.set(deletedCount);
+    userDeleteLastRunEpoch.set(nowEpochSecond);
+    userDeleteLastSuccessEpoch.set(nowEpochSecond);
+  }
+
+  public void recordUserDeleteFailure(long durationMillis) {
+    userDeleteRunCounter.increment();
+    userDeleteFailureCounter.increment();
+    userDeleteDurationTimer.record(Duration.ofMillis(durationMillis));
+    userDeleteLastRunEpoch.set(Instant.now().getEpochSecond());
   }
 }
