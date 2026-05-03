@@ -324,20 +324,26 @@ public class InterestService {
     String cursor = condition.cursor().cursor();
     Instant after = condition.cursor().after();
 
-    if (cursor == null || cursor.isBlank() || after != null) {
+    if (cursor == null || cursor.isBlank()) {
       return condition;
     }
 
-    String[] parts = cursor.split(CURSOR_DELIMITER, 2);
-    if (parts.length != 2) {
+    // after가 없이도 cursor 파싱 가능하게 수정
+    int delimiterIndex = cursor.lastIndexOf(CURSOR_DELIMITER);
+    if (delimiterIndex < 0) {
       return condition;
     }
+
+    String cursorValue = cursor.substring(0, delimiterIndex);
+    Instant parsedAfter = Instant.parse(
+        cursor.substring(delimiterIndex + CURSOR_DELIMITER.length())
+    );
 
     return new InterestSearchCondition(
         condition.keyword(),
         condition.orderBy(),
         condition.direction(),
-        new InterestCursor(parts[0], Instant.parse(parts[1])),
+        new InterestCursor(cursorValue, after != null ? after : parsedAfter),
         condition.limit()
     );
   }
