@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -32,14 +33,28 @@ public class S3Config {
   }
 
   private AwsCredentialsProvider getCredentialsProvider() {
-    String accessKey = awsProperties.getCredentials().getAccessKey();
-    String secretKey = awsProperties.getCredentials().getSecretKey();
+    String accessKey = firstNonBlank(
+        awsProperties.getCredentials().getAccessKey(),
+        System.getenv("AWS_ACCESS_KEY_ID")
+    );
+    String secretKey = firstNonBlank(
+        awsProperties.getCredentials().getSecretKey(),
+        System.getenv("AWS_SECRET_ACCESS_KEY")
+    );
+    String sessionToken = System.getenv("AWS_SESSION_TOKEN");
 
-    return accessKey != null && !accessKey.isBlank()
-        && secretKey != null && !secretKey.isBlank()
-        // 수동탐색 방식: (.env, yaml 설정파일 사용)
-        ? StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey))
-        // 자동탐색 방식: (Java 시스템 속성 -> 환경 변수 -> 자격 증명 파일(AWS CLI 설정값) -> 컨테이너/EC2(IAM ROLE))
-        : DefaultCredentialsProvider.create();
+    if (accessKey != null && !accessKey.isBlank()
+        && secretKey != null && !secretKey.isBlank()) {
+      return sessionToken != null && !sessionToken.isBlank()
+          ? StaticCredentialsProvider.create(
+          AwsSessionCredentials.create(accessKey, secretKey, sessionToken))
+          : StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+    }
+
+    return DefaultCredentialsProvider.create();
+  }
+
+  private String firstNonBlank(String first, String second) {
+    return first != null && !first.isBlank() ? first : second;
   }
 }
