@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
+import com.team3.monew.monitoring.BatchMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,9 @@ class UserDeleteSchedulerTest {
 
   @Mock
   private Job userDeleteJob;
+
+  @Mock
+  private BatchMetrics batchMetrics;
 
   @InjectMocks
   private UserDeleteScheduler scheduler;
