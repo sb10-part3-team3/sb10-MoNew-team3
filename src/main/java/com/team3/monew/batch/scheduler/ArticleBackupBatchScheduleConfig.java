@@ -39,7 +39,7 @@ public class ArticleBackupBatchScheduleConfig {
   private String zone = "Asia/Seoul";
   private final DateTimeFormatter s3PathFormatter = DateTimeFormatter.ofPattern("yyyy/MM");
 
-  @Scheduled(cron = "${batch.backup.cron:0 5 0 * * *}", zone = "${batch.backup.zone:Asia/Seoul}")
+  @Scheduled(cron = "${batch.backup.cron:0 5 4 * * *}", zone = "${batch.backup.zone:Asia/Seoul}")
   void runArticleBackup() {
     // 시간 설정
     ZoneId zoneId = ZoneId.of(zone);
