@@ -77,10 +77,6 @@ public class ArticleBackupBatchScheduleConfig {
             .filter(step -> step.getStepName().equals("exportArticlesToLocalStep"))
             .mapToLong(StepExecution::getWriteCount)
             .sum();
-        batchMetrics.recordArticleBackupSuccess(
-            System.currentTimeMillis() - startTime,
-            totalWriteCount
-        );
         log.info("뉴스기사 백업 배치 성공 - backupTargetDate={}, articleCount={}",
             yesterday, totalWriteCount);
         articleBackupJobLogService.recordSuccess(backupJobId, (int) totalWriteCount);
@@ -94,9 +90,12 @@ public class ArticleBackupBatchScheduleConfig {
           log.warn("백업 성공 후 로컬 파일 정리 실패 - tmpFileName={}, fileName={}",
               tmpFileName, fileName, e);
         }
+        batchMetrics.recordArticleBackupSuccess(
+            System.currentTimeMillis() - startTime,
+            totalWriteCount
+        );
 
       } else {
-        batchMetrics.recordArticleBackupFailure(System.currentTimeMillis() - startTime);
         List<Throwable> exceptions = execution.getAllFailureExceptions();
 
         String errorMessage = "에러 메세지가 없습니다";
@@ -109,6 +108,7 @@ public class ArticleBackupBatchScheduleConfig {
               execution.getStatus(), errorMessage, exceptions.get(0));
         }
         articleBackupJobLogService.recordFailed(backupJobId, errorMessage);
+        batchMetrics.recordArticleBackupFailure(System.currentTimeMillis() - startTime);
       }
     } catch (Exception e) {
       batchMetrics.recordArticleBackupFailure(System.currentTimeMillis() - startTime);

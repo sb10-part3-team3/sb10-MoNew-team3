@@ -33,8 +33,8 @@ public class S3Config {
   }
 
   private AwsCredentialsProvider getCredentialsProvider() {
-    String propertyAccessKey = awsProperties.getCredentials().getAccessKey();
-    String propertySecretKey = awsProperties.getCredentials().getSecretKey();
+    String propertyAccessKey = getPropertyAccessKey();
+    String propertySecretKey = getPropertySecretKey();
     String envAccessKey = System.getenv("AWS_ACCESS_KEY_ID");
     String envSecretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
     String sessionToken = System.getenv("AWS_SESSION_TOKEN");
@@ -53,6 +53,18 @@ public class S3Config {
     }
 
     return DefaultCredentialsProvider.create();
+  }
+
+  private String getPropertyAccessKey() {
+    return awsProperties.getCredentials() == null
+        ? null
+        : awsProperties.getCredentials().getAccessKey();
+  }
+
+  private String getPropertySecretKey() {
+    return awsProperties.getCredentials() == null
+        ? null
+        : awsProperties.getCredentials().getSecretKey();
   }
 
   private boolean hasText(String value) {
