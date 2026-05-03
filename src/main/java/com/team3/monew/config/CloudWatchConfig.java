@@ -25,6 +25,10 @@ public class CloudWatchConfig {
   private String step;
 
   @Bean
+  @ConditionalOnProperty(
+      name = "management.metrics.export.cloudwatch.enabled",
+      havingValue = "true"
+  )
   public CloudWatchAsyncClient cloudWatchAsyncClient() {
     if (awsProperties.getRegion() == null ||
         awsProperties.getRegion().getStaticRegion().isBlank()) {

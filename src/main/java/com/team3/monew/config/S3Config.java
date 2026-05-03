@@ -33,28 +33,29 @@ public class S3Config {
   }
 
   private AwsCredentialsProvider getCredentialsProvider() {
-    String accessKey = firstNonBlank(
-        awsProperties.getCredentials().getAccessKey(),
-        System.getenv("AWS_ACCESS_KEY_ID")
-    );
-    String secretKey = firstNonBlank(
-        awsProperties.getCredentials().getSecretKey(),
-        System.getenv("AWS_SECRET_ACCESS_KEY")
-    );
+    String propertyAccessKey = awsProperties.getCredentials().getAccessKey();
+    String propertySecretKey = awsProperties.getCredentials().getSecretKey();
+    String envAccessKey = System.getenv("AWS_ACCESS_KEY_ID");
+    String envSecretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
     String sessionToken = System.getenv("AWS_SESSION_TOKEN");
 
-    if (accessKey != null && !accessKey.isBlank()
-        && secretKey != null && !secretKey.isBlank()) {
+    if (hasText(propertyAccessKey) && hasText(propertySecretKey)) {
+      return StaticCredentialsProvider.create(
+          AwsBasicCredentials.create(propertyAccessKey, propertySecretKey));
+    }
+
+    if (hasText(envAccessKey) && hasText(envSecretKey)) {
       return sessionToken != null && !sessionToken.isBlank()
           ? StaticCredentialsProvider.create(
-          AwsSessionCredentials.create(accessKey, secretKey, sessionToken))
-          : StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
+          AwsSessionCredentials.create(envAccessKey, envSecretKey, sessionToken))
+          : StaticCredentialsProvider.create(
+              AwsBasicCredentials.create(envAccessKey, envSecretKey));
     }
 
     return DefaultCredentialsProvider.create();
   }
 
-  private String firstNonBlank(String first, String second) {
-    return first != null && !first.isBlank() ? first : second;
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }
