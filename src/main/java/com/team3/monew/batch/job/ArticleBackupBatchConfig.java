@@ -109,7 +109,7 @@ public class ArticleBackupBatchConfig {
               FileOutputStream fos = new FileOutputStream(outputFile);
               GZIPOutputStream gzos = new GZIPOutputStream(fos)) {
 
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[8192];
             int len;
             while ((len = fis.read(buffer)) > 0) {
               gzos.write(buffer, 0, len);

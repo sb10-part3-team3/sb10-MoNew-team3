@@ -35,7 +35,7 @@ batch:
       cron: "0 0 3 * * *"  # 매일 새벽 3시
       zone: "Asia/Seoul"
   backup:
-    uri: backup/
+    uri: backup/article/
     chunk-size: 1000
     page-size: 1000
     cron: "0 5 0 * * *"  # 매일 00:05분

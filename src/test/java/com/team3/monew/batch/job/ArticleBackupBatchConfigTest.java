@@ -12,7 +12,6 @@ import com.team3.monew.dto.article.ArticleBackup;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
-import com.team3.monew.mapper.ArticleMapper;
 import com.team3.monew.repository.NewsArticleRepository;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,7 +30,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -70,7 +68,6 @@ class ArticleBackupBatchConfigTest {
     zone = ZoneId.of("Asia/Seoul");
     today = LocalDate.now(zone);
     yesterday = today.minusDays(1);
-
     fileName = "backup_" + yesterday + ".jsonl.gz";
   }
 
@@ -133,8 +130,8 @@ class ArticleBackupBatchConfigTest {
   @Nested
   class ArticleProcessor {
 
-    @Mock
-    private ArticleMapper articleMapper;
+    @Autowired
+    private ItemProcessor<NewsArticle, ArticleBackup> processor;
 
     @Test
     @DisplayName("NewsArticle을 ArticleBackup으로 변환한다")
@@ -145,15 +142,12 @@ class ArticleBackupBatchConfigTest {
           .create(NewsSourceType.NAVER.name(), NewsSourceType.NAVER, "baseUrl");
       NewsArticle article = NewsArticle
           .create(naverSource, "link", "title", now, "summary");
-      ArticleBackup articleBackup =
-          new ArticleBackup(NewsSourceType.NAVER, "link", "title", now, "summary");
-      given(articleMapper.toBackupDto(any(NewsArticle.class))).willReturn(articleBackup);
 
       // when
-      ItemProcessor<NewsArticle, ArticleBackup> processor = item -> articleMapper.toBackupDto(item);
       ArticleBackup actual = processor.process(article);
 
       // then
+      assertThat(actual).isNotNull();
       assertEquals(article.getOriginalLink(), actual.originalLink());
       assertEquals(article.getTitle(), actual.title());
       assertEquals(article.getPublishedAt(), actual.publishedAt());

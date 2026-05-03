@@ -33,11 +33,11 @@ public class ArticleBackupBatchScheduleConfig {
   private final AwsProperties awsProperties;
   private final ArticleBackupJobLogService articleBackupJobLogService;
 
-  @Value("${batch.backup.uri:test/csj}")
+  @Value("${batch.backup.uri:test/backup/article}")
   private String backupUri;
   @Value("${batch.backup.zone:Asia/Seoul}")
   private String zone = "Asia/Seoul";
-  private final DateTimeFormatter S3_PATH_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM");
+  private final DateTimeFormatter s3PathFormatter = DateTimeFormatter.ofPattern("yyyy/MM");
 
   @Scheduled(cron = "${batch.backup.cron:0 5 0 * * *}", zone = "${batch.backup.zone:Asia/Seoul}")
   void runArticleBackup() {
@@ -109,6 +109,6 @@ public class ArticleBackupBatchScheduleConfig {
   }
 
   private String generateS3Key(LocalDate localDate, String fileName) {
-    return backupUri + "/" + localDate.format(S3_PATH_FORMATTER) + "/" + fileName;
+    return backupUri + "/" + localDate.format(s3PathFormatter) + "/" + fileName;
   }
 }
