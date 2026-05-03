@@ -48,5 +48,8 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
       WHERE article.publishedAt >= :startAt
         AND article.publishedAt  < :endAt
       """)
-  Page<NewsArticle> findAllByPeriod(Instant startAt, Instant endAt, Pageable pageable);
+  Page<NewsArticle> findAllByPeriod(
+      @Param("startAt") Instant startAt,
+      @Param("endAt") Instant endAt,
+      Pageable pageable);
 }

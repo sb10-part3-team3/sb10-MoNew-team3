@@ -18,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -33,6 +32,7 @@ import org.springframework.batch.item.data.builder.RepositoryItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,7 +44,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 
 @Slf4j
 @Configuration
-@RequiredArgsConstructor
 public class ArticleBackupBatchConfig {
 
   private final JobRepository jobRepository;
@@ -61,6 +60,20 @@ public class ArticleBackupBatchConfig {
   private int pageSize;
   @Value("${batch.backup.zone:Asia/Seoul}")
   private String zone;
+
+  public ArticleBackupBatchConfig(JobRepository jobRepository,
+      PlatformTransactionManager platformTransactionManager,
+      NewsArticleRepository newsArticleRepository, ArticleMapper articleMapper, S3Client s3Client,
+      AwsProperties awsProperties,
+      @Qualifier("backupObjectMapper") ObjectMapper backupObjectMapper) {
+    this.jobRepository = jobRepository;
+    this.platformTransactionManager = platformTransactionManager;
+    this.newsArticleRepository = newsArticleRepository;
+    this.articleMapper = articleMapper;
+    this.s3Client = s3Client;
+    this.awsProperties = awsProperties;
+    this.backupObjectMapper = backupObjectMapper;
+  }
 
   @Bean
   public Job articleBackupBatchJob() {

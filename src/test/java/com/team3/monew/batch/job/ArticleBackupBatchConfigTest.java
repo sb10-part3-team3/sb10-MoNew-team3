@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
-import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team3.monew.dto.article.ArticleBackup;
 import com.team3.monew.entity.NewsArticle;
@@ -44,6 +44,7 @@ import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.test.MetaDataInstanceFactory;
 import org.springframework.batch.test.context.SpringBatchTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -166,6 +167,7 @@ class ArticleBackupBatchConfigTest {
 
     private String tmpFileName;
 
+    @Qualifier("backupObjectMapper")
     @MockitoSpyBean
     private ObjectMapper backupObjectMapper;
     @Autowired
@@ -217,10 +219,11 @@ class ArticleBackupBatchConfigTest {
       // given
       ArticleBackup articleBackup =
           new ArticleBackup(NewsSourceType.NAVER, "link", "title", Instant.now(), "summary");
-      given(backupObjectMapper.writeValueAsString(any())).willThrow(
-          new JsonParseException("error"));
+      given(backupObjectMapper.writeValueAsString(any())).willAnswer(invocation -> {
+        throw new JsonMappingException(null, "error");
+      });
 
-      // when
+      // when & then
       writer.open(new ExecutionContext());
       assertThrows(RuntimeException.class,
           () -> writer.write(Chunk.of(articleBackup)));

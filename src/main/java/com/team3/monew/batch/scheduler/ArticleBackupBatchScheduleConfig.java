@@ -77,17 +77,29 @@ public class ArticleBackupBatchScheduleConfig {
             yesterday, totalWriteCount);
         articleBackupJobLogService.recordSuccess(backupJobId, (int) totalWriteCount);
 
-        Path tmpFile = Paths.get(tmpFileName);    // 압축 전 파일
-        Files.deleteIfExists(tmpFile);
-        Path file = Paths.get(fileName);          // 압축 후 파일
-        Files.deleteIfExists(file);
+        try {
+          Path tmpFile = Paths.get(tmpFileName);    // 압축 전 파일
+          Files.deleteIfExists(tmpFile);
+          Path file = Paths.get(fileName);          // 압축 후 파일
+          Files.deleteIfExists(file);
+        } catch (Exception e) {
+          log.warn("백업 성공 후 로컬 파일 정리 실패 - tmpFileName={}, fileName={}",
+              tmpFileName, fileName, e);
+        }
+
       } else {
         List<Throwable> exceptions = execution.getAllFailureExceptions();
-        if (!exceptions.isEmpty()) {
+
+        String errorMessage = "에러 메세지가 없습니다";
+        if (exceptions.isEmpty()) {
           log.error("뉴스기사 백업 배치 실패 - status={}, message={}",
-              execution.getStatus(), exceptions.get(0).getMessage(), exceptions.get(0));
-          articleBackupJobLogService.recordFailed(backupJobId, exceptions.get(0).getMessage());
+              execution.getStatus(), errorMessage);
+        } else {
+          errorMessage = exceptions.get(0).getMessage();
+          log.error("뉴스기사 백업 배치 실패 - status={}, message={}",
+              execution.getStatus(), errorMessage, exceptions.get(0));
         }
+        articleBackupJobLogService.recordFailed(backupJobId, errorMessage);
       }
     } catch (Exception e) {
       String errorMessage = "뉴스기사 백업 배치 스케줄러 오류 - exceptionName=" + e.getClass().getSimpleName();
