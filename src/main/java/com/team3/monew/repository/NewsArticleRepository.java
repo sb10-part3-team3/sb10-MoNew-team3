@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -46,5 +48,5 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
       WHERE article.publishedAt >= :startAt
         AND article.publishedAt  < :endAt
       """)
-  List<NewsArticle> findAllByPeriod(Instant startAt, Instant endAt);
+  Page<NewsArticle> findAllByPeriod(Instant startAt, Instant endAt, Pageable pageable);
 }
