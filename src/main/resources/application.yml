@@ -50,3 +50,9 @@ batch:
       retention-days: 7
       cron: "0 0 3 * * *"  # 매일 새벽 3시
       zone: "Asia/Seoul"
+  backup:
+    uri: backup/article/
+    chunk-size: 1000
+    page-size: 1000
+    cron: "0 5 4 * * *"  # 매일 00:05분
+    zone: "Asia/Seoul"
