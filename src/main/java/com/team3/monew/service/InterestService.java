@@ -25,6 +25,7 @@ import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -328,16 +329,32 @@ public class InterestService {
       return condition;
     }
 
-    // after가 없이도 cursor 파싱 가능하게 수정
     int delimiterIndex = cursor.lastIndexOf(CURSOR_DELIMITER);
     if (delimiterIndex < 0) {
       return condition;
     }
 
     String cursorValue = cursor.substring(0, delimiterIndex);
-    Instant parsedAfter = Instant.parse(
-        cursor.substring(delimiterIndex + CURSOR_DELIMITER.length())
-    );
+
+    Instant parsedAfter;
+    try {
+      parsedAfter = Instant.parse(
+          cursor.substring(delimiterIndex + CURSOR_DELIMITER.length())
+      );
+    } catch (DateTimeParseException e) {
+      // after가 있는 경우 → cursor는 name 그대로 사용
+      if (after != null) {
+        return new InterestSearchCondition(
+            condition.keyword(),
+            condition.orderBy(),
+            condition.direction(),
+            new InterestCursor(cursor, after),
+            condition.limit()
+        );
+      }
+      // after도 없으면 → 잘못된 요청 → 400
+      throw new InterestException(ErrorCode.INVALID_CURSOR_FORMAT);
+    }
 
     return new InterestSearchCondition(
         condition.keyword(),
