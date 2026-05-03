@@ -1,8 +1,8 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.article.ArticleDto;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
-import com.team3.monew.dto.article.ArticleViewDto;
 import com.team3.monew.dto.article.internal.ArticleCursor;
 import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
@@ -17,6 +17,7 @@ import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.List;
@@ -135,6 +136,10 @@ public class ArticleService {
 
     newsArticleRepository.delete(newsArticle);
     log.info("뉴스기사 물리삭제 성공 - articleId={}", articleId);
+  }
+
+  public List<ArticleRestoreResultDto> restoreArticle(LocalDateTime from, LocalDateTime to) {
+    return List.of(new ArticleRestoreResultDto(Instant.now(), List.of(), 0));
   }
 
   private ArticleCursor parseCursor(ArticleSearchRequest request) {

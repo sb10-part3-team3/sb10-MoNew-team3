@@ -2,10 +2,13 @@ package com.team3.monew.controller;
 
 import com.team3.monew.controller.api.ArticleApi;
 import com.team3.monew.dto.article.ArticleDto;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.service.ArticleService;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -52,5 +56,13 @@ public class ArticleController implements ArticleApi {
   public ResponseEntity<Void> hardDeleteArticle(@PathVariable UUID articleId) {
     articleService.hardDeleteArticle(articleId);
     return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+  }
+
+  @GetMapping("/restore")
+  public ResponseEntity<List<ArticleRestoreResultDto>> restoreArticle(
+      @RequestParam LocalDateTime from,
+      @RequestParam LocalDateTime to) {
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(articleService.restoreArticle(from, to));
   }
 }
