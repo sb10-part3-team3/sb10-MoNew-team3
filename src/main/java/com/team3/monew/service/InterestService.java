@@ -4,11 +4,13 @@ import com.team3.monew.dto.interest.InterestDto;
 import com.team3.monew.dto.interest.InterestRegisterRequest;
 import com.team3.monew.dto.interest.InterestUpdateRequest;
 import com.team3.monew.dto.interest.SubscriptionDto;
+import com.team3.monew.dto.interest.internal.InterestCursor;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.event.InterestDeletedEvent;
 import com.team3.monew.event.InterestKeywordUpdatedEvent;
 import com.team3.monew.event.SubscriptionCanceledEvent;
@@ -23,6 +25,7 @@ import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.SubscriptionRepository;
 import com.team3.monew.repository.UserRepository;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +51,25 @@ public class InterestService {
   private final UserRepository userRepository;
   private final ApplicationEventPublisher eventPublisher;
 
+  private static final char[] CHOSEONG_JAMO = {
+      'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',
+      'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+  };
+
+  private static final char[] JUNGSEONG_JAMO = {
+      'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ',
+      'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ',
+      'ㅡ', 'ㅢ', 'ㅣ'
+  };
+
+  private static final char[] JONGSEONG_JAMO = {
+      '\0', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ',
+      'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ',
+      'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+  };
+
+  private static final String CURSOR_DELIMITER = ", ";
+
   public InterestDto createInterest(InterestRegisterRequest dto) {
     log.debug("관심사 등록 요청 - name={}, keywordCount={}",
         dto.name(), dto.keywords().size());
@@ -59,10 +81,12 @@ public class InterestService {
 
     List<Interest> interests = interestRepository.findAll();
     for (Interest interest : interests) {
-      double similarity = calculateSimilarity(interest.getName(), dto.name());
-      if (similarity >= 0.8) {
+      SimilarityResult result = checkInterestNameSimilarity(interest.getName(), dto.name());
+
+      if (result.similar()) {
         log.warn("관심사 등록 실패 - 유사한 이름 존재, requestName={}, existingName={}, similarity={}",
-            dto.name(), interest.getName(), similarity);
+            dto.name(), interest.getName(), result.similarity());
+
         throw new InterestDuplicateNameException();
       }
     }
@@ -85,35 +109,40 @@ public class InterestService {
   }
 
   @Transactional(readOnly = true)
-  public CursorPageResponseDto<InterestDto> findAll(InterestSearchCondition condition,
-      UUID userId) {
+  public CursorPageResponseDto<InterestDto> findAll(
+      InterestSearchCondition condition,
+      UUID userId
+  ) {
+    InterestSearchCondition normalizedCondition = normalizeCursor(condition);
+
     log.debug(
         "관심사 목록 조회 요청 - userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
         userId,
-        condition.keyword(),
-        condition.orderBy(),
-        condition.direction(),
-        condition.cursor() == null ? null : condition.cursor().cursor(),
-        condition.cursor() == null ? null : condition.cursor().after(),
-        condition.limit());
+        normalizedCondition.keyword(),
+        normalizedCondition.orderBy(),
+        normalizedCondition.direction(),
+        normalizedCondition.cursor() == null ? null : normalizedCondition.cursor().cursor(),
+        normalizedCondition.cursor() == null ? null : normalizedCondition.cursor().after(),
+        normalizedCondition.limit()
+    );
 
-    List<Interest> result = interestRepository.searchByCondition(condition);
-    boolean hasNext = result.size() > condition.limit();
+    List<Interest> result = interestRepository.searchByCondition(normalizedCondition);
+    boolean hasNext = result.size() > normalizedCondition.limit();
     List<Interest> content = hasNext
-        ? result.subList(0, condition.limit())
+        ? result.subList(0, normalizedCondition.limit())
         : result;
 
-    long totalElements = interestRepository.countByCondition(condition);
+    long totalElements = interestRepository.countByCondition(normalizedCondition);
 
     if (content.isEmpty()) {
       log.debug("관심사 목록 조회 결과 없음 - userId={}, keyword={}, totalElements=0",
-          userId, condition.keyword());
+          userId, normalizedCondition.keyword());
 
-      return new CursorPageResponseDto<InterestDto>(
+      return new CursorPageResponseDto<>(
           List.of(),
           null,
           null,
-          condition.limit(),
+          normalizedCondition.limit(),
           totalElements,
           false
       );
@@ -125,13 +154,12 @@ public class InterestService {
     if (hasNext) {
       Interest last = content.get(content.size() - 1);
 
-      if ("subscriberCount".equals(condition.orderBy())) {
-        nextCursor = String.valueOf(last.getSubscriberCount());
-      } else {
-        nextCursor = last.getName();
-      }
+      String cursorValue = "subscriberCount".equals(normalizedCondition.orderBy())
+          ? String.valueOf(last.getSubscriberCount())
+          : last.getName();
 
       nextAfter = last.getCreatedAt();
+      nextCursor = cursorValue + CURSOR_DELIMITER + nextAfter;
     }
 
     List<UUID> interestIds = content.stream()
@@ -152,11 +180,11 @@ public class InterestService {
         "관심사 목록 조회 성공 - userId={}, contentSize={}, totalElements={}, hasNext={}, nextCursor={}, nextAfter={}",
         userId, dtoList.size(), totalElements, hasNext, nextCursor, nextAfter);
 
-    return new CursorPageResponseDto<InterestDto>(
+    return new CursorPageResponseDto<>(
         dtoList,
         nextCursor,
         nextAfter,
-        condition.limit(),
+        normalizedCondition.limit(),
         totalElements,
         hasNext
     );
@@ -281,8 +309,65 @@ public class InterestService {
   }
 
   private User findUserOrElseThrow(UUID userId) {
-    return userRepository.findById(userId)
+    return userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)
         .orElseThrow(() -> new UserNotFoundException(userId));
+  }
+
+  private record SimilarityResult(boolean similar, double similarity) {
+
+  }
+
+  private InterestSearchCondition normalizeCursor(InterestSearchCondition condition) {
+    if (condition.cursor() == null) {
+      return condition;
+    }
+
+    String cursor = condition.cursor().cursor();
+    Instant after = condition.cursor().after();
+
+    if (cursor == null || cursor.isBlank()) {
+      return condition;
+    }
+
+    int delimiterIndex = cursor.lastIndexOf(CURSOR_DELIMITER);
+    if (delimiterIndex < 0) {
+      return condition;
+    }
+
+    String cursorValue = cursor.substring(0, delimiterIndex);
+    if (cursorValue.isBlank()
+        || ("subscriberCount".equals(condition.orderBy())
+        && !cursorValue.matches("-?\\d+"))) {
+      throw new InterestException(ErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
+    Instant parsedAfter;
+    try {
+      parsedAfter = Instant.parse(
+          cursor.substring(delimiterIndex + CURSOR_DELIMITER.length())
+      );
+    } catch (DateTimeParseException e) {
+      // after가 있는 경우 → cursor는 name 그대로 사용
+      if (after != null) {
+        return new InterestSearchCondition(
+            condition.keyword(),
+            condition.orderBy(),
+            condition.direction(),
+            new InterestCursor(cursor, after),
+            condition.limit()
+        );
+      }
+      // after도 없으면 → 잘못된 요청 → 400
+      throw new InterestException(ErrorCode.INVALID_CURSOR_FORMAT);
+    }
+
+    return new InterestSearchCondition(
+        condition.keyword(),
+        condition.orderBy(),
+        condition.direction(),
+        new InterestCursor(cursorValue, after != null ? after : parsedAfter),
+        condition.limit()
+    );
   }
 
   // 유니크 제약 위반 검증
@@ -297,15 +382,43 @@ public class InterestService {
     return false;
   }
 
+  // 관심사 이름 유사도 판단
+  private SimilarityResult checkInterestNameSimilarity(String existingName, String requestName) {
+    String existing = normalize(existingName);
+    String request = normalize(requestName);
+
+    // 완전 동일 이름은 차단
+    if (existing.equals(request)) {
+      return new SimilarityResult(true, 1.0);
+    }
+
+    // 포함 관계는 허용
+    // 예: 삼성 != 삼성전자, 주식 != 해외주식
+    if (existing.contains(request) || request.contains(existing)) {
+      return new SimilarityResult(false, 0.0);
+    }
+
+    // 너무 짧은 이름은 유사도 검사하지 않음
+    // 예: 주식 vs 주석 같은 실제 단어 과차단 방지
+    if (existing.length() < 4 || request.length() < 4) {
+      return new SimilarityResult(false, 0.0);
+    }
+
+    // 길이가 충분한 경우에만 자모 분해 기반 유사도 검사
+    double similarity = calculateSimilarity(existing, request);
+
+    return new SimilarityResult(similarity >= 0.8, similarity);
+  }
+
   // 유사도 계산 메서드
   private double calculateSimilarity(String a, String b) {
-    String normalizedA = normalize(a);
-    String normalizedB = normalize(b);
+    String normalizedA = decomposeKorean(normalize(a));
+    String normalizedB = decomposeKorean(normalize(b));
+
     int distance = levenshtein(normalizedA, normalizedB);
     int maxLength = Math.max(normalizedA.length(), normalizedB.length());
 
     if (maxLength == 0) {
-      // 둘 다 빈 문자열이면 동일한 것으로 간주함
       return 1.0;
     }
 
@@ -315,6 +428,33 @@ public class InterestService {
   // 문자열 정규화
   private String normalize(String s) {
     return s.trim().toLowerCase();
+  }
+
+  // 한글 음절을 초성/중성/종성으로 분해
+  private String decomposeKorean(String s) {
+
+    StringBuilder result = new StringBuilder();
+
+    for (char ch : s.toCharArray()) {
+      if (ch >= '가' && ch <= '힣') {
+        int unicode = ch - '가';
+
+        int choIndex = unicode / (21 * 28);
+        int jungIndex = (unicode % (21 * 28)) / 28;
+        int jongIndex = unicode % 28;
+
+        result.append(CHOSEONG_JAMO[choIndex]);
+        result.append(JUNGSEONG_JAMO[jungIndex]);
+
+        if (jongIndex != 0) {
+          result.append(JONGSEONG_JAMO[jongIndex]);
+        }
+      } else {
+        result.append(ch);
+      }
+    }
+
+    return result.toString();
   }
 
   // 레벤슈타인 알고리즘

@@ -11,6 +11,7 @@ import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.Subscription;
 import com.team3.monew.entity.User;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.exception.interest.InterestDuplicateNameException;
 import com.team3.monew.exception.interest.InterestException;
 import com.team3.monew.exception.interest.InterestNotFoundException;
@@ -142,6 +143,163 @@ class InterestServiceTest {
         .isInstanceOf(InterestDuplicateNameException.class);
 
     then(interestRepository).should(never()).saveAndFlush(any());
+  }
+
+  @Test
+  @DisplayName("한글 관심사 이름이 4글자 이상이고 자모 분해 기준 유사도가 80% 이상이면 등록에 실패한다")
+  void shouldFailToRegisterInterest_whenKoreanNameSimilar80percentOver() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "삼셩전자",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("삼성전자");
+
+    given(interestRepository.existsByName("삼셩전자")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+
+    // when & then
+    assertThatThrownBy(() -> interestService.createInterest(request))
+        .isInstanceOf(InterestDuplicateNameException.class);
+
+    then(interestRepository).should(never()).saveAndFlush(any());
+  }
+
+  @Test
+  @DisplayName("한글 관심사 이름이 4글자 미만이면 유사해도 등록할 수 있다")
+  void shouldRegisterInterest_whenKoreanNameIsShortEvenIfSimilar() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "주석",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("주식");
+    Interest savedInterest = Interest.create("주석");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "주석",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("주석")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("주석");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
+  @DisplayName("기존 관심사 이름과 포함 관계이면 유사도 검사 대상에서 제외되어 등록할 수 있다")
+  void shouldRegisterInterest_whenNameContainsExistingName() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "삼성전자",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("삼성");
+    Interest savedInterest = Interest.create("삼성전자");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "삼성전자",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("삼성전자")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("삼성전자");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
+  @DisplayName("요청 관심사 이름이 기존 관심사 이름을 포함해도 등록할 수 있다")
+  void shouldRegisterInterest_whenRequestNameContainsExistingName() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "해외주식",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("주식");
+    Interest savedInterest = Interest.create("해외주식");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "해외주식",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("해외주식")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("해외주식");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
+  }
+
+  @Test
+  @DisplayName("기존 관심사 이름이 요청 관심사 이름을 포함해도 등록할 수 있다")
+  void shouldRegisterInterest_whenExistingNameContainsRequestName() {
+    // given
+    InterestRegisterRequest request = new InterestRegisterRequest(
+        "주식",
+        List.of("키워드")
+    );
+
+    Interest existingInterest = Interest.create("해외주식");
+    Interest savedInterest = Interest.create("주식");
+
+    InterestDto response = new InterestDto(
+        UUID.randomUUID(),
+        "주식",
+        List.of("키워드"),
+        0,
+        false
+    );
+
+    given(interestRepository.existsByName("주식")).willReturn(false);
+    given(interestRepository.findAll()).willReturn(List.of(existingInterest));
+    given(interestRepository.saveAndFlush(any(Interest.class))).willReturn(savedInterest);
+    given(interestMapper.toDto(savedInterest, false)).willReturn(response);
+
+    // when
+    InterestDto result = interestService.createInterest(request);
+
+    // then
+    assertThat(result.name()).isEqualTo("주식");
+
+    then(interestRepository).should().saveAndFlush(any(Interest.class));
   }
 
   @Test
@@ -360,8 +518,9 @@ class InterestServiceTest {
     // then
     assertThat(response.content()).hasSize(2);
     assertThat(response.hasNext()).isTrue();
-    assertThat(response.nextCursor()).isEqualTo("나무");
     assertThat(response.nextAfter()).isNotNull();
+    assertThat(response.nextCursor())
+        .isEqualTo("나무, " + response.nextAfter());
   }
 
   private Interest createInterest(String name) {
@@ -456,6 +615,132 @@ class InterestServiceTest {
   }
 
   @Test
+  @DisplayName("after 없이 cursor에 포함된 값으로 다음 페이지 조회 조건을 복원한다")
+  void shouldNormalizeCursor_whenAfterIsMissing() {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.now();
+
+    InterestCursor cursor = new InterestCursor("나무, " + after, null);
+
+    InterestSearchCondition requestCondition = new InterestSearchCondition(
+        null, "name", "ASC", cursor, 2
+    );
+
+    InterestSearchCondition normalizedCondition = new InterestSearchCondition(
+        null, "name", "ASC", new InterestCursor("나무", after), 2
+    );
+
+    given(interestRepository.searchByCondition(normalizedCondition))
+        .willReturn(List.of());
+
+    given(interestRepository.countByCondition(normalizedCondition))
+        .willReturn(0L);
+
+    // when
+    CursorPageResponseDto<InterestDto> response =
+        interestService.findAll(requestCondition, userId);
+
+    // then
+    assertThat(response.content()).isEmpty();
+    assertThat(response.hasNext()).isFalse();
+
+    then(interestRepository).should().searchByCondition(normalizedCondition);
+    then(interestRepository).should().countByCondition(normalizedCondition);
+  }
+
+  @Test
+  @DisplayName("cursor와 after가 모두 있으면 after 값을 우선 사용한다")
+  void shouldUseAfter_whenCursorAndAfterBothExist() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    Instant cursorAfter = Instant.parse("2026-04-22T10:00:00Z");
+    Instant requestAfter = Instant.parse("2026-04-23T10:00:00Z");
+
+    InterestCursor cursor = new InterestCursor("나무, " + cursorAfter, requestAfter);
+
+    InterestSearchCondition requestCondition = new InterestSearchCondition(
+        null, "name", "ASC", cursor, 2
+    );
+
+    InterestSearchCondition expectedCondition = new InterestSearchCondition(
+        null, "name", "ASC", new InterestCursor("나무", requestAfter), 2
+    );
+
+    given(interestRepository.searchByCondition(expectedCondition))
+        .willReturn(List.of());
+
+    given(interestRepository.countByCondition(expectedCondition))
+        .willReturn(0L);
+
+    // when
+    interestService.findAll(requestCondition, userId);
+
+    // then
+    then(interestRepository).should().searchByCondition(expectedCondition);
+  }
+
+  @Test
+  @DisplayName("after가 있고 cursor에 콤마가 포함되어도 timestamp가 아니면 원본 cursor와 after를 사용한다")
+  void shouldUseOriginalCursorAndAfter_whenCursorContainsCommaButSuffixIsNotTimestamp() {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.parse("2026-04-22T10:00:00Z");
+
+    InterestSearchCondition requestCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor("경제, 금융", after),
+        2
+    );
+
+    InterestSearchCondition expectedCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor("경제, 금융", after),
+        2
+    );
+
+    given(interestRepository.searchByCondition(expectedCondition)).willReturn(List.of());
+    given(interestRepository.countByCondition(expectedCondition)).willReturn(0L);
+
+    // when
+    CursorPageResponseDto<InterestDto> response =
+        interestService.findAll(requestCondition, userId);
+
+    // then
+    assertThat(response.content()).isEmpty();
+
+    then(interestRepository).should().searchByCondition(expectedCondition);
+    then(interestRepository).should().countByCondition(expectedCondition);
+  }
+
+  @Test
+  @DisplayName("after 없이 잘못된 combined cursor 형식이면 예외가 발생한다")
+  void shouldThrowException_whenCombinedCursorFormatIsInvalidAndAfterIsMissing() {
+    // given
+    UUID userId = UUID.randomUUID();
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor("경제, 금융", null),
+        2
+    );
+
+    // when & then
+    assertThatThrownBy(() -> interestService.findAll(condition, userId))
+        .isInstanceOf(InterestException.class);
+
+    then(interestRepository).should(never()).searchByCondition(any());
+    then(interestRepository).should(never()).countByCondition(any());
+  }
+
+  @Test
   @DisplayName("관심사를 구독할 수 있다")
   void shouldSubscribeInterest_whenSubscribeRequest() {
     // given
@@ -478,7 +763,8 @@ class InterestServiceTest {
         savedSubscription.getCreatedAt()
     );
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(interestRepository.findByIdWithKeywords(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
@@ -493,7 +779,7 @@ class InterestServiceTest {
     assertThat(result.interestName()).isEqualTo("주식");
     assertThat(result.interestSubscriberCount()).isEqualTo(1);
 
-    then(userRepository).should().findById(userId);
+    then(userRepository).should().findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE);
     then(interestRepository).should(times(1)).findById(interestId);
     then(interestRepository).should(times(1)).findByIdWithKeywords(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
@@ -508,7 +794,8 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
-    given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> interestService.subscribe(userId, interestId))
@@ -529,7 +816,8 @@ class InterestServiceTest {
 
     User user = User.create("test@example.com", "password", "tester");
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.empty());
 
     // when & then
@@ -551,7 +839,8 @@ class InterestServiceTest {
     User user = User.create("test@example.com", "password", "tester");
     Interest interest = Interest.create("주식");
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(true);
 
@@ -574,7 +863,8 @@ class InterestServiceTest {
     User user = User.create("test@example.com", "password", "tester");
     Interest interest = Interest.create("주식");
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.existsByUserIdAndInterestId(userId, interestId)).willReturn(false);
 
@@ -595,7 +885,7 @@ class InterestServiceTest {
           assertThat(e.getMessage()).isEqualTo(ErrorCode.INTEREST_ALREADY_SUBSCRIBING.getMessage());
         });
 
-    then(userRepository).should().findById(userId);
+    then(userRepository).should().findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE);
     then(interestRepository).should().findById(interestId);
     then(subscriptionRepository).should().existsByUserIdAndInterestId(userId, interestId);
     then(subscriptionRepository).should().save(any(Subscription.class));
@@ -614,7 +904,8 @@ class InterestServiceTest {
     Interest interest = mock(Interest.class);
     Subscription subscription = mock(Subscription.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.findByUserIdAndInterestId(userId, interestId))
         .willReturn(Optional.of(subscription));
@@ -634,7 +925,8 @@ class InterestServiceTest {
     UUID userId = UUID.randomUUID();
     UUID interestId = UUID.randomUUID();
 
-    given(userRepository.findById(userId)).willReturn(Optional.empty());
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.empty());
 
     // when & then
     assertThatThrownBy(() -> interestService.cancelSubscribe(userId, interestId))
@@ -655,7 +947,8 @@ class InterestServiceTest {
 
     User user = mock(User.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.empty());
 
     // when & then
@@ -677,7 +970,8 @@ class InterestServiceTest {
     User user = mock(User.class);
     Interest interest = mock(Interest.class);
 
-    given(userRepository.findById(userId)).willReturn(Optional.of(user));
+    given(userRepository.findByIdAndDeleteStatus(userId, DeleteStatus.ACTIVE)).willReturn(
+        Optional.of(user));
     given(interestRepository.findById(interestId)).willReturn(Optional.of(interest));
     given(subscriptionRepository.findByUserIdAndInterestId(userId, interestId))
         .willReturn(Optional.empty());

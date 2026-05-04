@@ -1,10 +1,13 @@
 package com.team3.monew.repository;
 
 import com.team3.monew.entity.NewsArticle;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -39,4 +42,14 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
 
   @Query("SELECT article FROM NewsArticle article JOIN FETCH article.source")
   List<NewsArticle> findAllWithNewsSource();
+
+  @Query("""
+      SELECT article FROM NewsArticle article
+      WHERE article.publishedAt >= :startAt
+        AND article.publishedAt  < :endAt
+      """)
+  Page<NewsArticle> findAllByPeriod(
+      @Param("startAt") Instant startAt,
+      @Param("endAt") Instant endAt,
+      Pageable pageable);
 }

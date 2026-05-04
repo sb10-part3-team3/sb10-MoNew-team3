@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import java.util.UUID;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @Tag(name = "뉴스 기사 관리", description = "뉴스 기사 관련 API")
@@ -34,4 +35,38 @@ public interface ArticleApi {
       @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId
   );
 
+  @Operation(summary = "뉴스 기사 단건 조회", description = "조건에 맞는 뉴스 기사를 단건 조회합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "조회 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청 (헤더 누락, articleId 형식 오류, 삭제된 기사 조회 등)",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "404", description = "해당 ID에 맞는 뉴스기사가 존재하지 않음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<ArticleDto> getArticle(
+      @RequestHeader(REQUEST_USER_ID_HEADER) UUID requestUserId,
+      @PathVariable UUID articleId
+  );
+
+  @Operation(summary = "뉴스 기사 논리 삭제", description = "뉴스 기사를 논리적으로 삭제합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "논리 삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description ="서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<Void> deleteArticle(@PathVariable UUID articleId);
+
+  @Operation(summary = "뉴스 기사 물리 삭제", description = "뉴스 기사를 물리적으로 삭제합니다.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "204", description = "삭제 성공"),
+      @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description ="서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<Void> hardDeleteArticle(@PathVariable UUID articleId);
 }

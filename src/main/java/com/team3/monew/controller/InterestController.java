@@ -61,16 +61,11 @@ public class InterestController implements InterestApi {
       Instant after,
       int limit
   ) {
-    InterestCursor interestCursor =
-        (cursor == null || after == null)
-            ? new InterestCursor(null, null)
-            : new InterestCursor(cursor, after);
-
     InterestSearchCondition condition = new InterestSearchCondition(
         keyword,
         orderBy,
         direction,
-        interestCursor,
+        new InterestCursor(cursor, after),
         limit
     );
 

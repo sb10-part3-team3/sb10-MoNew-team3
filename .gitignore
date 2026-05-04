@@ -57,3 +57,6 @@ Icon
 # 로그 파일이 로컬에 생성될 경우를 대비
 logs/
 *.log
+
+# Temporary local analysis artifacts
+tmp-springmeta/

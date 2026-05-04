@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -32,14 +33,41 @@ public class S3Config {
   }
 
   private AwsCredentialsProvider getCredentialsProvider() {
-    String accessKey = awsProperties.getCredentials().getAccessKey();
-    String secretKey = awsProperties.getCredentials().getSecretKey();
+    String propertyAccessKey = getPropertyAccessKey();
+    String propertySecretKey = getPropertySecretKey();
+    String envAccessKey = System.getenv("AWS_ACCESS_KEY_ID");
+    String envSecretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
+    String sessionToken = System.getenv("AWS_SESSION_TOKEN");
 
-    return accessKey != null && !accessKey.isBlank()
-        && secretKey != null && !secretKey.isBlank()
-        // 수동탐색 방식: (.env, yaml 설정파일 사용)
-        ? StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey))
-        // 자동탐색 방식: (Java 시스템 속성 -> 환경 변수 -> 자격 증명 파일(AWS CLI 설정값) -> 컨테이너/EC2(IAM ROLE))
-        : DefaultCredentialsProvider.create();
+    if (hasText(propertyAccessKey) && hasText(propertySecretKey)) {
+      return StaticCredentialsProvider.create(
+          AwsBasicCredentials.create(propertyAccessKey, propertySecretKey));
+    }
+
+    if (hasText(envAccessKey) && hasText(envSecretKey)) {
+      return sessionToken != null && !sessionToken.isBlank()
+          ? StaticCredentialsProvider.create(
+          AwsSessionCredentials.create(envAccessKey, envSecretKey, sessionToken))
+          : StaticCredentialsProvider.create(
+              AwsBasicCredentials.create(envAccessKey, envSecretKey));
+    }
+
+    return DefaultCredentialsProvider.create();
+  }
+
+  private String getPropertyAccessKey() {
+    return awsProperties.getCredentials() == null
+        ? null
+        : awsProperties.getCredentials().getAccessKey();
+  }
+
+  private String getPropertySecretKey() {
+    return awsProperties.getCredentials() == null
+        ? null
+        : awsProperties.getCredentials().getSecretKey();
+  }
+
+  private boolean hasText(String value) {
+    return value != null && !value.isBlank();
   }
 }

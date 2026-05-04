@@ -2,14 +2,19 @@ package com.team3.monew.service;
 
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
+import com.team3.monew.dto.article.ArticleViewDto;
 import com.team3.monew.dto.article.internal.ArticleCursor;
 import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.NewsArticle;
+import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.enums.ErrorCode;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
+import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -32,8 +37,11 @@ public class ArticleService {
   private final ArticleMapper articleMapper;
   private final NewsArticleRepository newsArticleRepository;
   private final ArticleViewRepository articleViewRepository;
+  private final ArticleViewService articleViewService;
 
   private static final String CURSOR_DELIMITER = ", ";
+  private final ArticleInterestRepository articleInterestRepository;
+  private final CommentRepository commentRepository;
 
   public CursorPageResponseDto<ArticleDto> getArticleList(
       ArticleSearchRequest request, UUID requestUserId) {
@@ -85,6 +93,50 @@ public class ArticleService {
         nextAfter, articleDtoList.size(), totalElements, hasNext);
   }
 
+  // 조회수 등록 때문에 readOnly=true 불가능으로 어노테이션 추가함
+  @Transactional
+  public ArticleDto getArticle(UUID userId, UUID articleId) {
+    log.debug("뉴스 단건 조회 요청 - articleId={}", articleId);
+    NewsArticle article = findActiveArticleOrElseThrow(articleId);
+    // 단건 조회에도 조회수 등록을 위함
+    articleViewService.registerArticleView(article.getId(), userId);
+
+    // registerArticleView()에서 벌크 업데이트 수행으로 기존 엔티티의 viewCount가 갱신되지 않아 재조회
+    NewsArticle updatedArticle = findActiveArticleOrElseThrow(articleId);
+
+    log.debug("뉴스 단건 조회 성공 - articleId={}", updatedArticle.getId());
+    return articleMapper.toDto(updatedArticle, true);
+  }
+
+  @Transactional
+  public void deleteArticle(UUID articleId) {
+    log.debug("뉴스기사 논리삭제 요청 - articleId={}", articleId);
+    NewsArticle article = getArticleOrThrow(articleId);
+    if (article.isDeleted()) {
+      throw new ArticleNotFoundException(articleId);
+    }
+
+    article.markDeleted();
+    newsArticleRepository.save(article);
+    log.info("뉴스기사 논리삭제 성공 - articleId={}", articleId);
+  }
+
+  @Transactional
+  public void hardDeleteArticle(UUID articleId) {
+    log.debug("뉴스기사 물리삭제 요청 - articleId={}", articleId);
+    NewsArticle newsArticle = getArticleOrThrow(articleId);
+
+    // 1. ArticleInterest 삭제
+    articleInterestRepository.deleteAllByArticleId(articleId);
+    // 2. ArticleViews 삭제
+    articleViewRepository.deleteAllByArticleId(articleId);
+    // 3. Comments 삭제
+    commentRepository.deleteAllByArticleId(articleId);
+
+    newsArticleRepository.delete(newsArticle);
+    log.info("뉴스기사 물리삭제 성공 - articleId={}", articleId);
+  }
+
   private ArticleCursor parseCursor(ArticleSearchRequest request) {
     String cursor = request.cursor();
     if (cursor == null || cursor.isEmpty()) {
@@ -108,5 +160,22 @@ public class ArticleService {
     } catch (DateTimeParseException | NumberFormatException e) {
       throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, Map.of("cursor", e.getMessage()));
     }
+  }
+
+  private NewsArticle findActiveArticleOrElseThrow(UUID articleId) {
+    NewsArticle article = newsArticleRepository.findById(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
+
+    // 논리삭제 여부 판단
+    if (article.isDeleted()) {
+      throw new DeletedArticleException(articleId);
+    }
+
+    return article;
+  }
+
+  private NewsArticle getArticleOrThrow(UUID articleId) {
+    return newsArticleRepository.findById(articleId)
+        .orElseThrow(() -> new ArticleNotFoundException(articleId));
   }
 }
