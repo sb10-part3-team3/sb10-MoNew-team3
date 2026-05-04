@@ -9,10 +9,11 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("!data-gen")
+@Order(1)
 @RequiredArgsConstructor
 public class NewsSourceInitializer implements CommandLineRunner {
 

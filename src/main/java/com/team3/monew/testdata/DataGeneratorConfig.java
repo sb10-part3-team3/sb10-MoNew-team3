@@ -1,6 +1,7 @@
-package com.team3.monew.date;
+package com.team3.monew.testdata;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -13,10 +14,12 @@ public class DataGeneratorConfig {
   @Bean(name = "dataGeneratorExecutor")
   public Executor dataGeneratorExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-    executor.setCorePoolSize(8);
-    executor.setMaxPoolSize(16);
-    executor.setQueueCapacity(200);
+    executor.setCorePoolSize(5);
+    executor.setMaxPoolSize(10);
+    executor.setQueueCapacity(100);
     executor.setThreadNamePrefix("data-gen-task-");
+    executor.setWaitForTasksToCompleteOnShutdown(true);
+    executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     executor.initialize();
     return executor;
   }

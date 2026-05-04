@@ -12,6 +12,9 @@ try:
     with open('data/users.csv', 'r') as f:
         reader = csv.reader(f)
         user_id_pool = [row[0] for row in reader]
+    if not user_id_pool:
+            print("⚠️ data/users.csv 파일이 비어 있습니다. 기본 ID를 사용합니다.")
+            user_id_pool = ["00000000-0000-0000-0000-000000000000"]
 except FileNotFoundError:
     print("❌ data/users.csv 파일을 찾을 수 없습니다.")
     user_id_pool = ["00000000-0000-0000-0000-000000000000"]

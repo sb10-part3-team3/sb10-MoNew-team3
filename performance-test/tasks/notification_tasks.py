@@ -10,3 +10,7 @@ class NotificationTasks(TaskSet):
         self.client.get("/api/notifications",
                         headers=self.parent.get_headers(),
                         params=params)
+
+    @task(1)
+        def stop(self):
+            self.interrupt()
