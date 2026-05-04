@@ -1208,4 +1208,81 @@ class UserActivityServiceTest {
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
     then(userActivityRepository).should().incrementSubscriberCount(interestId, -1);
   }
+
+  @Test
+  @DisplayName("댓글 좋아요 추가 시 댓글 작성자 문서의 likeCount와 다른 유저 문서의 commentLikeCount가 증가합니다.")
+  void shouldIncrementCommentLikeCount_whenCommentLikeAdded() {
+    // given
+    UUID commentId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentLikeSummary summary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        UUID.randomUUID(),
+        "commentWriter",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateCommentLikeSummary(userId, summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementCommentLikeCount(commentId, 1);
+    then(userActivityRepository).should().incrementCommentLikeCountInLikes(commentId, 1);
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요 취소 시 댓글 작성자 문서의 likeCount와 다른 유저 문서의 commentLikeCount가 감소합니다.")
+  void shouldDecrementCommentLikeCount_whenCommentLikeRemoved() {
+    // given
+    UUID commentLikeId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentLikeSummary summary = new CommentLikeSummary(
+        commentLikeId,
+        createdAt,
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "commentWriter",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    userActivityDocument.addCommentLikeSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementCommentLikeCount(commentId, -1);
+    then(userActivityRepository).should().incrementCommentLikeCountInLikes(commentId, -1);
+  }
 }

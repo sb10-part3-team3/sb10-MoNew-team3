@@ -99,6 +99,8 @@ public class UserActivityService {
 
     userActivityDocument.addCommentLikeSummary(commentLikeSummary);
     userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
+    userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
     log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
@@ -221,8 +223,20 @@ public class UserActivityService {
       log.debug("사용자 활동 내역 문서가 이미 없어 좋아요 삭제를 건너뜁니다: userId={} commentLikeId={}", userId, commentLikeId);
       return;
     }
-    userActivityDocument.removeCommentLikeSummary(commentLikeId);
-    userActivityRepository.save(userActivityDocument);
+    userActivityDocument.getCommentLikes().stream()
+        .filter(cl -> Objects.equals(cl.id(), commentLikeId))
+        .findFirst()
+        .ifPresent(commentLikeSummary -> {
+          UUID commentId = commentLikeSummary.commentId();
+
+          userActivityDocument.removeCommentLikeSummary(commentLikeId);
+          userActivityRepository.save(userActivityDocument);
+
+          // 댓글 작성자 문서의 likeCount 감소
+          userActivityRepository.incrementCommentLikeCount(commentId, -1);
+          // 다른 유저 문서의 commentLikeCount 감소
+          userActivityRepository.incrementCommentLikeCountInLikes(commentId, -1);
+        });
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
   }
 
