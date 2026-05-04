@@ -85,6 +85,7 @@ public class UserActivityService {
 
     userActivityDocument.addCommentSummary(commentSummary);
     userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementArticleCommentCount(commentSummary.articleId(), 1);
     log.debug("사용자 활동 내역 댓글 업데이트 성공: userId={} commentId={}", commentSummary.userId(), commentSummary.id());
   }
 
@@ -115,6 +116,7 @@ public class UserActivityService {
 
     userActivityDocument.addArticleViewSummary(articleViewSummary);
     userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementArticleViewCount(articleViewSummary.articleId(), 1);
     log.debug("사용자 활동 내역 기사 뷰 업데이트 성공: userId={} articleViewId={}", userId, articleViewSummary.id());
   }
 
@@ -178,6 +180,7 @@ public class UserActivityService {
       log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
       return;
     }
+    userActivityRepository.incrementArticleCommentCount(commentId, -1);
     userActivityDocument.removeCommentSummary(commentId);
     userActivityRepository.save(userActivityDocument);
 
@@ -245,6 +248,7 @@ public class UserActivityService {
     List<UserActivityDocument> userActivityDocuments =
         userActivityRepository.findAllByArticleViewsArticleId(articleId);
 
+    userActivityRepository.incrementArticleViewCount(articleId, -1);
     userActivityDocuments.forEach(userActivityDocument -> {
       userActivityDocument.removeArticleViewSummary(articleId);
       userActivityRepository.save(userActivityDocument);
