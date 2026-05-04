@@ -512,7 +512,7 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
         .extracting(InterestDto::name)
         .containsExactly("가구", "나무");
     assertThat(response.hasNext()).isTrue();
-    assertThat(response.nextCursor()).isEqualTo("나무");
+    assertThat(response.nextCursor()).isEqualTo("나무, " + response.nextAfter());
     assertThat(response.nextAfter()).isNotNull();
     assertThat(response.totalElements()).isEqualTo(5);
 
@@ -572,7 +572,7 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
         .extracting(InterestDto::name)
         .containsExactly("C", "D");
     assertThat(secondPage.hasNext()).isTrue();
-    assertThat(secondPage.nextCursor()).isEqualTo("D");
+    assertThat(secondPage.nextCursor()).isEqualTo("D, " + secondPage.nextAfter());
     assertThat(secondPage.nextAfter()).isNotNull();
     assertThat(secondPage.totalElements()).isEqualTo(5);
   }
@@ -636,6 +636,60 @@ public class InterestServiceIntegrationTest extends IntegrationTestSupport {
     assertThat(thirdPage.nextCursor()).isNull();
     assertThat(thirdPage.nextAfter()).isNull();
     assertThat(thirdPage.totalElements()).isEqualTo(5);
+  }
+
+  @Test
+  @DisplayName("after 없이 nextCursor 값만으로 다음 페이지를 조회할 수 있다")
+  void shouldReturnNextPage_whenOnlyCombinedCursorIsGiven() {
+    // given
+    User user = userRepository.save(
+        User.create("cursor-test@example.com", "tester", "test1234!")
+    );
+    UUID userId = user.getId();
+
+    interestRepository.save(Interest.create("A"));
+    interestRepository.save(Interest.create("B"));
+    interestRepository.save(Interest.create("C"));
+    interestRepository.save(Interest.create("D"));
+    interestRepository.save(Interest.create("E"));
+
+    entityManager.flush();
+    entityManager.clear();
+
+    InterestSearchCondition firstCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(null, null),
+        2
+    );
+
+    CursorPageResponseDto<InterestDto> firstPage =
+        interestService.findAll(firstCondition, userId);
+
+    InterestSearchCondition secondCondition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(firstPage.nextCursor(), null),
+        2
+    );
+
+    // when
+    CursorPageResponseDto<InterestDto> secondPage =
+        interestService.findAll(secondCondition, userId);
+
+    // then
+    assertThat(firstPage.nextCursor()).isEqualTo("B, " + firstPage.nextAfter());
+
+    assertThat(secondPage.content())
+        .extracting(InterestDto::name)
+        .containsExactly("C", "D");
+
+    assertThat(secondPage.hasNext()).isTrue();
+    assertThat(secondPage.nextCursor()).isEqualTo("D, " + secondPage.nextAfter());
+    assertThat(secondPage.nextAfter()).isNotNull();
+    assertThat(secondPage.totalElements()).isEqualTo(5);
   }
 
   @Test
