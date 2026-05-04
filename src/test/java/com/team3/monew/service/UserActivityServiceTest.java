@@ -526,6 +526,7 @@ class UserActivityServiceTest {
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
     given(userActivityRepository.findAllByCommentsUserId(userId)).willReturn(List.of());
+    given(userActivityRepository.findAllByCommentLikesCommentUserId(userId)).willReturn(List.of());
 
     // when
     userActivityService.updateUserNickname(userId, newNickname);
@@ -543,6 +544,61 @@ class UserActivityServiceTest {
     assertEquals(newNickname, savedDocument.getNickname());
     assertEquals(1, savedDocument.getComments().size());
     assertEquals(newNickname, savedDocument.getComments().get(0).userNickname());
+  }
+
+  @Test
+  @DisplayName("사용자 닉네임 수정 시 다른 유저의 댓글 좋아요 목록의 닉네임도 함께 업데이트됩니다.")
+  void shouldUpdateNicknameInCommentLikeSummaries() {
+    // given
+    String newNickname = "newTester";
+    UUID otherUserId = UUID.randomUUID();
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    UserActivityDocument otherDocument = UserActivityDocument.create(
+        otherUserId,
+        "other@test.com",
+        "otherTester",
+        createdAt
+    );
+
+    CommentLikeSummary commentLikeSummary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,          // 댓글 작성자 = 닉네임 변경하는 유저
+        "tester",        // 기존 닉네임
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    otherDocument.addCommentLikeSummary(commentLikeSummary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+    given(userActivityRepository.findAllByCommentsUserId(userId)).willReturn(List.of());
+    given(userActivityRepository.findAllByCommentLikesCommentUserId(userId))
+        .willReturn(List.of(otherDocument));
+
+    // when
+    userActivityService.updateUserNickname(userId, newNickname);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+
+    List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
+
+    assertEquals(newNickname, savedDocuments.get(1).getCommentLikes().get(0).commentUserNickname());
   }
 
   @Test
