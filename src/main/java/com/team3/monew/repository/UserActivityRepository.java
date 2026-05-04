@@ -37,4 +37,12 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
   @Query("{ 'commentLikes.commentId': ?0 }")
   @Update("{ '$inc': { 'commentLikes.$.commentLikeCount': ?1 } }")
   void incrementCommentLikeCountInLikes(UUID commentId, int delta);
+
+  @Query("{ 'articleViews.articleId': ?0 }")
+  @Update("{ '$inc': { 'articleViews.$.articleCommentCount': ?1 } }")
+  void incrementArticleCommentCount(UUID articleId, int delta);
+
+  @Query("{ 'articleViews.articleId': ?0 }")
+  @Update("{ '$inc': { 'articleViews.$.articleViewCount': ?1 } }")
+  void incrementArticleViewCount(UUID articleId, int delta);
 }

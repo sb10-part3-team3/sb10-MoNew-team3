@@ -1285,4 +1285,154 @@ class UserActivityServiceTest {
     then(userActivityRepository).should().incrementCommentLikeCount(commentId, -1);
     then(userActivityRepository).should().incrementCommentLikeCountInLikes(commentId, -1);
   }
+
+  @Test
+  @DisplayName("댓글 추가 시 기사 댓글 수가 증가합니다.")
+  void shouldIncrementArticleCommentCount_whenCommentAdded() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary summary = new CommentSummary(
+        UUID.randomUUID(),
+        articleId,
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateCommentSummary(summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleCommentCount(articleId, 1);
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 시 기사 댓글 수가 감소합니다.")
+  void shouldDecrementArticleCommentCount_whenCommentRemoved() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary summary = new CommentSummary(
+        commentId,
+        articleId,
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    userActivityDocument.addCommentSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+    given(userActivityRepository.findAllByCommentLikesCommentId(commentId))
+        .willReturn(List.of());
+
+    // when
+    userActivityService.removeCommentSummary(userId, commentId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleCommentCount(commentId, -1);
+  }
+
+  @Test
+  @DisplayName("기사 조회 시 기사 뷰 조회수가 증가합니다.")
+  void shouldIncrementArticleViewCount_whenArticleViewed() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    ArticleViewSummary summary = new ArticleViewSummary(
+        UUID.randomUUID(),
+        userId,
+        createdAt,
+        articleId,
+        "NAVER",
+        "https://example.com",
+        "기사 제목",
+        createdAt,
+        "기사 요약",
+        3,
+        100
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateArticleViewSummary(userId, summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleViewCount(articleId, 1);
+  }
+
+  @Test
+  @DisplayName("기사 삭제 시 기사 뷰 조회수가 감소합니다.")
+  void shouldDecrementArticleViewCount_whenArticleDeleted() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    ArticleViewSummary summary = new ArticleViewSummary(
+        UUID.randomUUID(),
+        userId,
+        createdAt,
+        articleId,
+        "NAVER",
+        "https://example.com",
+        "기사 제목",
+        createdAt,
+        "기사 요약",
+        3,
+        100
+    );
+
+    userActivityDocument.addArticleViewSummary(summary);
+
+    given(userActivityRepository.findAllByArticleViewsArticleId(articleId))
+        .willReturn(List.of(userActivityDocument));
+
+    // when
+    userActivityService.removeArticleViewSummary(articleId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleViewCount(articleId, -1);
+  }
 }

@@ -15,6 +15,7 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.UserRepository;
 import jakarta.persistence.EntityManager;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -41,15 +42,23 @@ public class ArticleViewService {
     NewsArticle article = findActiveArticle(articleId);
     User user = findActiveUser(requestUserId);
 
+    // 재조회 시 이벤트 미발행 하기 위한 boolean
+    AtomicBoolean isFirstView = new AtomicBoolean(false);
+
     // 같은 사용자의 재조회는 기존 이력을 갱신하고, 첫 조회만 기사 조회 수를 증가시킨다.
     ArticleView articleView = articleViewRepository.findByArticleIdAndUserId(articleId, requestUserId)
         .map(existingArticleView -> {
           existingArticleView.touch();
           return existingArticleView;
         })
-        .orElseGet(() -> createFirstViewSafely(article, user));
+        .orElseGet(() -> {
+          isFirstView.set(true);
+          return createFirstViewSafely(article, user);
+        });
 
-    eventPublisher.publishEvent(ArticleViewEvent.from(articleView));
+    if (isFirstView.get()){
+      eventPublisher.publishEvent(ArticleViewEvent.from(articleView));
+    }
     log.debug("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
         articleId, requestUserId, articleView.getId());
 
