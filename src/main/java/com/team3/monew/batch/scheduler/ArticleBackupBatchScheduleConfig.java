@@ -1,6 +1,7 @@
 package com.team3.monew.batch.scheduler;
 
 import com.team3.monew.config.AwsProperties;
+import com.team3.monew.monitoring.BatchMetrics;
 import com.team3.monew.service.ArticleBackupJobLogService;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ public class ArticleBackupBatchScheduleConfig {
   private final Job articleBackupBatchJob;
   private final AwsProperties awsProperties;
   private final ArticleBackupJobLogService articleBackupJobLogService;
+  private final BatchMetrics batchMetrics;
 
   @Value("${batch.backup.uri:test/backup/article}")
   private String backupUri;
@@ -41,6 +43,8 @@ public class ArticleBackupBatchScheduleConfig {
 
   @Scheduled(cron = "${batch.backup.cron:0 5 4 * * *}", zone = "${batch.backup.zone:Asia/Seoul}")
   void runArticleBackup() {
+    long startTime = System.currentTimeMillis();
+
     // 시간 설정
     ZoneId zoneId = ZoneId.of(zone);
     LocalDate today = LocalDate.now(zoneId);
@@ -86,6 +90,10 @@ public class ArticleBackupBatchScheduleConfig {
           log.warn("백업 성공 후 로컬 파일 정리 실패 - tmpFileName={}, fileName={}",
               tmpFileName, fileName, e);
         }
+        batchMetrics.recordArticleBackupSuccess(
+            System.currentTimeMillis() - startTime,
+            totalWriteCount
+        );
 
       } else {
         List<Throwable> exceptions = execution.getAllFailureExceptions();
@@ -100,8 +108,10 @@ public class ArticleBackupBatchScheduleConfig {
               execution.getStatus(), errorMessage, exceptions.get(0));
         }
         articleBackupJobLogService.recordFailed(backupJobId, errorMessage);
+        batchMetrics.recordArticleBackupFailure(System.currentTimeMillis() - startTime);
       }
     } catch (Exception e) {
+      batchMetrics.recordArticleBackupFailure(System.currentTimeMillis() - startTime);
       String errorMessage = "뉴스기사 백업 배치 스케줄러 오류 - exceptionName=" + e.getClass().getSimpleName();
       log.error(errorMessage, e);
       articleBackupJobLogService.recordFailed(backupJobId, errorMessage);

@@ -34,3 +34,11 @@ cloud:
 
 server:
   port: 80
+
+management:
+  metrics:
+    export:
+      cloudwatch:
+        enabled: true
+        namespace: ${CLOUDWATCH_NAMESPACE:monew}
+        step: 1m

@@ -21,7 +21,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.batch.test.MetaDataInstanceFactory;
 import org.springframework.data.domain.PageRequest;
 
 class UserDeleteTaskletTest {
@@ -65,7 +67,7 @@ class UserDeleteTaskletTest {
         .willReturn(2);
 
     // when
-    RepeatStatus status = tasklet.execute(targetDate, batchSize);
+    RepeatStatus status = tasklet.execute(targetDate, batchSize, createContribution());
 
     // then
     then(notificationRepository).should().deleteByUserIds(userIds);
@@ -90,7 +92,7 @@ class UserDeleteTaskletTest {
         .willReturn(List.of());
 
     // when
-    RepeatStatus status = tasklet.execute(targetDate, batchSize);
+    RepeatStatus status = tasklet.execute(targetDate, batchSize, createContribution());
 
     // then
     then(notificationRepository).shouldHaveNoInteractions();
@@ -116,9 +118,13 @@ class UserDeleteTaskletTest {
         .willReturn(0);
 
     // when
-    RepeatStatus status = tasklet.execute(targetDate, batchSize);
+    RepeatStatus status = tasklet.execute(targetDate, batchSize, createContribution());
 
     // then
     assertThat(status).isEqualTo(RepeatStatus.FINISHED);
+  }
+
+  private StepContribution createContribution() {
+    return new StepContribution(MetaDataInstanceFactory.createStepExecution());
   }
 }

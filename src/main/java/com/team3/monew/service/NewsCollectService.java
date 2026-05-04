@@ -5,6 +5,7 @@ import com.team3.monew.component.news.filter.KeywordMatch;
 import com.team3.monew.component.news.record.ParsedNewsArticle;
 import com.team3.monew.entity.InterestKeyword;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.monitoring.BatchMetrics;
 import com.team3.monew.repository.InterestKeywordRepository;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +30,7 @@ public class NewsCollectService {
   private final KeywordMatch keywordMatch;
   private final Map<String, NewsClient> newsClients;
   private final NewsSaveService newsSaveService;
+  private final BatchMetrics batchMetrics;
 
   @Scheduled(cron = "${app.cron.news-collections}")
   public void scheduleNewsJob() {
@@ -65,6 +67,13 @@ public class NewsCollectService {
                 .map(this::deduplicateByLinkWithNaverPriorityAndOrderByPublishAtDesc)
                 .publishOn(Schedulers.boundedElastic())   // 동기저장을 위한 전용 스레드 플로 넘기기
                 .map(newsSaveService::saveAndNotify)
+                .doOnSuccess(savedArticles -> batchMetrics.recordNewsCollectSuccess(
+                    System.currentTimeMillis() - startTime,
+                    savedArticles.size()
+                ))
+                .doOnError(error -> batchMetrics.recordNewsCollectFailure(
+                    System.currentTimeMillis() - startTime
+                ))
                 .publishOn(Schedulers.parallel())         // 다시 원래 스레드로 복구
                 .doOnSuccess(unused ->
                     log.info("뉴스 기사 수집 종료: {}ms", System.currentTimeMillis() - startTime))

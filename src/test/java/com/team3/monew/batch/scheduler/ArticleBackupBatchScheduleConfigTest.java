@@ -9,6 +9,7 @@ import static org.mockito.BDDMockito.willDoNothing;
 
 import com.team3.monew.config.AwsProperties;
 import com.team3.monew.config.AwsProperties.S3;
+import com.team3.monew.monitoring.BatchMetrics;
 import com.team3.monew.service.ArticleBackupJobLogService;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,8 @@ class ArticleBackupBatchScheduleConfigTest {
   private AwsProperties awsProperties;
   @Mock
   private ArticleBackupJobLogService articleBackupJobLogService;
+  @Mock
+  private BatchMetrics batchMetrics;
 
   @InjectMocks
   private ArticleBackupBatchScheduleConfig articleBackupBatchScheduleConfig;
