@@ -1,5 +1,6 @@
 package com.team3.monew.mapper;
 
+import com.team3.monew.dto.article.ArticleBackup;
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
 import com.team3.monew.dto.article.internal.ArticleCursor;
@@ -24,6 +25,9 @@ public interface ArticleMapper {
   @Mapping(target = "sourceUrl", source = "article.originalLink")
   @Mapping(target = "publishDate", source = "article.publishedAt")
   ArticleDto toDto(NewsArticle article, boolean viewedByMe);
+
+  @Mapping(target = "sourceType", source = "source.sourceType")
+  ArticleBackup toBackupDto(NewsArticle article);
 
   default Instant toInstant(LocalDateTime localDateTime) {
     if (localDateTime == null) {

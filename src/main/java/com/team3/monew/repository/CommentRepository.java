@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -85,4 +86,16 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
       where c.id = :id
       """)
   Optional<Comment> findByIdWithArticleAndUser(@Param("id") UUID id);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query("DELETE FROM Comment c WHERE c.article.id = :articleId")
+  void deleteAllByArticleId(@Param("articleId") UUID articleId);
+
+  List<Comment> findAllByArticleId(@Param("articleId") UUID articleId);
+
+  void deleteAllByUserId(@Param("userId") UUID userId);
+
+  @Modifying
+  @Query("DELETE FROM Comment c WHERE c.user.id IN :userIds")
+  void deleteByUserIds(@Param("userIds") List<UUID> userIds);
 }

@@ -122,6 +122,27 @@ class InterestControllerTest {
   }
 
   @Test
+  @DisplayName("유사한 관심사 이름이면 400 응답을 반환한다")
+  void shouldReturnConflict_whenInterestNameIsSimilar() throws Exception {
+    // given
+    given(interestService.createInterest(any()))
+        .willThrow(new InterestDuplicateNameException());
+
+    String requestJson = """
+        {
+          "name": "삼셩전자",
+          "keywords": ["키워드"]
+        }
+        """;
+
+    // when & then
+    mockMvc.perform(post("/api/interests")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestJson))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
   @DisplayName("관심사 키워드를 수정할 수 있다")
   void shouldUpdateInterestKeywords_whenValidRequest() throws Exception {
     // given
@@ -231,7 +252,7 @@ class InterestControllerTest {
 
     CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(first, second),
-        "나무",
+        "나무, " + after,
         after,
         2,
         5L,
@@ -261,10 +282,52 @@ class InterestControllerTest {
         .andExpect(jsonPath("$.content[0].subscribedByMe").value(true))
         .andExpect(jsonPath("$.content[1].name").value("나무"))
         .andExpect(jsonPath("$.content[1].subscribedByMe").value(false))
-        .andExpect(jsonPath("$.nextCursor").value("나무"))
+        .andExpect(jsonPath("$.nextCursor").value("나무, " + after))
         .andExpect(jsonPath("$.nextAfter").value(after.toString()))
         .andExpect(jsonPath("$.size").value(2))
         .andExpect(jsonPath("$.totalElements").value(5))
+        .andExpect(jsonPath("$.hasNext").value(true));
+
+    then(interestService).should().findAll(condition, userId);
+  }
+
+  @Test
+  @DisplayName("after 없이 cursor 값만으로 관심사 다음 페이지 조회 요청을 보낼 수 있다")
+  void shouldFindNextPage_whenOnlyCursorIsGiven() throws Exception {
+    // given
+    UUID userId = UUID.randomUUID();
+    Instant after = Instant.parse("2026-04-22T10:00:00Z");
+    String combinedCursor = "나무, " + after;
+
+    CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<>(
+        List.of(),
+        "다리, " + after,
+        after,
+        2,
+        5L,
+        true
+    );
+
+    InterestSearchCondition condition = new InterestSearchCondition(
+        null,
+        "name",
+        "ASC",
+        new InterestCursor(combinedCursor, null),
+        2
+    );
+
+    given(interestService.findAll(condition, userId)).willReturn(response);
+
+    // when & then
+    mockMvc.perform(get("/api/interests")
+            .header(REQUEST_USER_HEADER, userId.toString())
+            .param("orderBy", "name")
+            .param("direction", "ASC")
+            .param("cursor", combinedCursor)
+            .param("limit", "2"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.nextCursor").value("다리, " + after))
+        .andExpect(jsonPath("$.nextAfter").value(after.toString()))
         .andExpect(jsonPath("$.hasNext").value(true));
 
     then(interestService).should().findAll(condition, userId);
@@ -321,7 +384,7 @@ class InterestControllerTest {
 
     CursorPageResponseDto<InterestDto> response = new CursorPageResponseDto<InterestDto>(
         List.of(),
-        "다리",
+        "다리, " + after,
         after,
         2,
         5L,
@@ -347,7 +410,7 @@ class InterestControllerTest {
             .param("after", after.toString())
             .param("limit", "2"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.nextCursor").value("다리"))
+        .andExpect(jsonPath("$.nextCursor").value("다리, " + after))
         .andExpect(jsonPath("$.hasNext").value(true));
 
     then(interestService).should().findAll(condition, userId);

@@ -2,6 +2,8 @@ package com.team3.monew.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.service.ArticleService;
 import java.time.Instant;
 import java.util.List;
@@ -110,6 +113,156 @@ class ArticleControllerTest {
               .param("direction", "DesC")
               .param("limit", "1"))
           .andExpect(status().isOk());
+    }
+  }
+
+  @Nested
+  class GetArticle {
+
+    @Test
+    @DisplayName("유효한 기사ID와 요청자ID를 받으면 뉴스기사 단건을 반환한다")
+    void shouldGetArticle_whenArticleIdAndRequestUserIdAreValid() throws Exception {
+      // given
+      UUID articleId = articleDto.id();
+      UUID requestUserId = UUID.randomUUID();
+
+      given(articleService.getArticle(requestUserId, articleId)).willReturn(articleDto);
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/{articleId}", articleId)
+              .header(REQUEST_USER_ID_HEADER, requestUserId))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.id").value(articleId.toString()))
+          .andExpect(jsonPath("$.source").value(NewsSourceType.NAVER.name()))
+          .andExpect(jsonPath("$.sourceUrl").value(articleDto.sourceUrl()))
+          .andExpect(jsonPath("$.title").value(articleDto.title()))
+          .andExpect(jsonPath("$.summary").value(articleDto.summary()))
+          .andExpect(jsonPath("$.commentCount").value(articleDto.commentCount()))
+          .andExpect(jsonPath("$.viewCount").value(articleDto.viewCount()))
+          .andExpect(jsonPath("$.viewedByMe").value(articleDto.viewedByMe()));
+    }
+
+    @Test
+    @DisplayName("뉴스기사 단건 조회 시 헤더에 요청자ID가 없으면 오류를 반환한다")
+    void shouldReturnError_whenRequestUserIdHeaderIsMissingInGetArticle() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/{articleId}", articleId))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.details.header").value("Monew-Request-User-ID"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 기사 ID로 조회하면 404를 반환한다")
+    void shouldThrowException_whenArticleDoesNotExists() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      UUID userId = UUID.randomUUID();
+      given(articleService.getArticle(userId, articleId))
+          .willThrow(new ArticleNotFoundException(articleId));
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/{articleId}", articleId)
+              .header(REQUEST_USER_ID_HEADER, userId))
+          .andExpect(status().isNotFound());
+    }
+  }
+
+
+  @Nested
+  @DisplayName("뉴스기사 논리삭제")
+  class DeleteArticle {
+
+    @Test
+    @DisplayName("논리 삭제에 성공하면 204 NoContent를 반환한다")
+    void shouldReturnNoContent_whenLogicalDeleteSucceeds() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}", articleId))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("삭제할 기사가 존재하지 않으면 404 NotFound를 반환한다")
+    void shouldReturnNotFound_whenArticleDoesNotExist() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      willThrow(new ArticleNotFoundException(articleId)).
+          given(articleService).deleteArticle(any(UUID.class));
+
+      // when & then
+      mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}", articleId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("ARTICLE_NOT_FOUND"))
+          .andExpect(jsonPath("$.status").value("404"))
+          .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
+    }
+
+    @Test
+    @DisplayName("서버내부에서 오류가 발생하면 500 ServerError를 반환한다")
+    void shouldReturnInternalServerError_whenExceptionOccurs() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      willThrow(new RuntimeException())
+          .given(articleService).deleteArticle(any(UUID.class));
+
+      // when & then
+      mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}", articleId))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+          .andExpect(jsonPath("$.status").value("500"));
+    }
+  }
+
+
+  @Nested
+  @DisplayName("뉴스기사 물리삭제")
+  class HardDeleteArticle {
+
+    @Test
+    @DisplayName("물리 삭제에 성공하면 204 NoContent를 반환한다")
+    void shouldReturnNoContent_whenHardDeleteSucceeds() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+
+      // when & then
+      mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}/hard", articleId))
+          .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("삭제할 기사가 존재하지 않으면 404 NotFound를 반환한다")
+    void shouldReturnNotFound_whenArticleDoesNotExist() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      willThrow(new ArticleNotFoundException(articleId)).
+          given(articleService).hardDeleteArticle(any(UUID.class));
+
+      // when & then
+      mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}/hard", articleId))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("ARTICLE_NOT_FOUND"))
+          .andExpect(jsonPath("$.status").value("404"))
+          .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
+    }
+
+    @Test
+    @DisplayName("서버내부에서 오류가 발생하면 500 ServerError를 반환한다")
+    void shouldReturnInternalServerError_whenExceptionOccurs() throws Exception {
+      // given
+      UUID articleId = UUID.randomUUID();
+      willThrow(new RuntimeException())
+          .given(articleService).hardDeleteArticle(any(UUID.class));
+
+      // when & then
+      mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}/hard", articleId))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+          .andExpect(jsonPath("$.status").value("500"));
     }
   }
 }

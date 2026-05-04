@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 import com.team3.monew.dto.article.ArticleDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
@@ -16,16 +17,22 @@ import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
+import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.exception.article.ArticleNotFoundException;
+import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
+import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +42,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -51,6 +59,12 @@ class ArticleServiceTest {
   private NewsArticleRepository newsArticleRepository;
   @Mock
   private ArticleViewRepository articleViewRepository;
+  @Mock
+  private ArticleInterestRepository articleInterestRepository;
+  @Mock
+  private CommentRepository commentRepository;
+  @Mock
+  private ArticleViewService articleViewService;
 
   @InjectMocks
   private ArticleService articleService;
@@ -311,6 +325,163 @@ class ArticleServiceTest {
       // when & then
       assertThrows(BusinessException.class,
           () -> articleService.getArticleList(request2, UUID.randomUUID()));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 단건 조회를 한다")
+  class GetArticle {
+
+    @Test
+    @DisplayName("정상적으로 단건 조회 시 조회 이력이 등록되고 기사 정보를 반환한다")
+    void shouldReturnArticle_whenValidRequest() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      NewsArticle article = NewsArticle.create(naverSource, "link", "제목",
+          Instant.now(), "요약");
+      ReflectionTestUtils.setField(article, "id", articleId);
+
+      given(newsArticleRepository.findById(articleId)).willReturn(java.util.Optional.of(article));
+      given(articleViewService.registerArticleView(articleId, userId))
+          .willReturn(null); // void로 바꾸면 이 줄 제거 가능
+
+      ArticleDto expected = articleMapper.toDto(article, true);
+
+      // when
+      ArticleDto actual = articleService.getArticle(userId, articleId);
+
+      // then
+      assertThat(actual)
+          .usingRecursiveComparison()
+          .isEqualTo(expected);
+      then(articleViewService).should().registerArticleView(articleId, userId);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 기사 조회 시 예외가 발생한다")
+    void shouldThrowException_whenArticleNotFound() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      given(newsArticleRepository.findById(articleId))
+          .willReturn(java.util.Optional.empty());
+
+      // when & then
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.getArticle(userId, articleId));
+    }
+
+    @Test
+    @DisplayName("삭제된 기사 조회 시 예외가 발생한다")
+    void shouldThrowException_whenArticleIsDeleted() {
+      // given
+      UUID userId = UUID.randomUUID();
+      UUID articleId = UUID.randomUUID();
+
+      NewsArticle article = NewsArticle.create(naverSource, "link", "제목",
+          Instant.now(), "요약");
+      ReflectionTestUtils.setField(article, "id", articleId);
+
+      // SoftDeleteEntity의 삭제 상태를 테스트용으로 직접 세팅
+      ReflectionTestUtils.setField(article, "deleteStatus", DeleteStatus.DELETED);
+
+      given(newsArticleRepository.findById(articleId))
+          .willReturn(Optional.of(article));
+
+      // when & then
+      assertThrows(DeletedArticleException.class,
+          () -> articleService.getArticle(userId, articleId));
+
+      then(articleViewService).shouldHaveNoInteractions();
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 삭제를 진행한다")
+  class deleteArticle {
+
+    @Test
+    @DisplayName("뉴스기사를 찾을 수 없으면 에러를 반환한다")
+    void shouldThrowArticleNotFoundException_whenArticleDoesNotExist() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.empty());
+
+      // when & then
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.deleteArticle(articleId));
+    }
+
+    @Test
+    @DisplayName("뉴스기사 상태가 deleted로 되어있는 상태라면 에러를 반환한다")
+    void shouldThrowArticleNotFoundException_whenArticleIsDeleted() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      NewsArticle newsArticle = NewsArticle
+          .create(naverSource, "link", "title", Instant.now(), "summary");
+      ReflectionTestUtils.setField(newsArticle, "deleteStatus", DeleteStatus.DELETED);
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.of(newsArticle));
+
+      // when & then
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.deleteArticle(articleId));
+    }
+
+    @Test
+    @DisplayName("뉴스기사 상태를 softDeleted로 만들고 저장한다")
+    void shouldSaveArticleAsDeleted_whenLogicalDeleteIsRequested() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      NewsArticle newsArticle = NewsArticle
+          .create(naverSource, "link", "title", Instant.now(), "summary");
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.of(newsArticle));
+
+      // when
+      articleService.deleteArticle(articleId);
+
+      // then
+      ArgumentCaptor<NewsArticle> captor = ArgumentCaptor.forClass(NewsArticle.class);
+      then(newsArticleRepository).should().save(captor.capture());
+      assertThat(captor.getValue().getDeleteStatus()).isEqualTo(DeleteStatus.DELETED);
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 물리삭제를 진행한다")
+  class hardDeleteArticle {
+
+    @Test
+    @DisplayName("뉴스기사를 찾을 수 없으면 에러를 반환한다")
+    void shouldThrowArticleNotFoundException_whenArticleDoesNotExist() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.empty());
+
+      // when & then
+      assertThrows(ArticleNotFoundException.class,
+          () -> articleService.hardDeleteArticle(articleId));
+    }
+
+    @Test
+    @DisplayName("뉴스기사 삭제 시 연관된 모든 객체를 삭제하는 함수를 호출한다")
+    void shouldCallRelatedDataDeleteMethods_whenHardDeleting() {
+      // given
+      UUID articleId = UUID.randomUUID();
+      NewsArticle newsArticle = NewsArticle
+          .create(naverSource, "link", "title", Instant.now(), "summary");
+      given(newsArticleRepository.findById(any(UUID.class))).willReturn(Optional.of(newsArticle));
+
+      // when
+      articleService.hardDeleteArticle(articleId);
+
+      // then
+      then(articleInterestRepository).should().deleteAllByArticleId(articleId);
+      then(articleViewRepository).should().deleteAllByArticleId(articleId);
+      then(commentRepository).should().deleteAllByArticleId(articleId);
+      then(newsArticleRepository).should().delete(newsArticle);
     }
   }
 }
