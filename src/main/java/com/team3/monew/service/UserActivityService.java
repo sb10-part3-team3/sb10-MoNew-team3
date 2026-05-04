@@ -140,6 +140,13 @@ public class UserActivityService {
       userActivityRepository.save(document);
     });
 
+    List<UserActivityDocument> commentLikeDocuments = userActivityRepository.findAllByCommentLikesCommentUserId(userId);
+
+    commentLikeDocuments.forEach(document -> {
+      document.updateCommentLikeNickname(userId, newNickname);
+      userActivityRepository.save(document);
+    });
+
     log.debug("사용자 활동 내역 닉네임 업데이트 성공: userId={}", userId);
   }
 

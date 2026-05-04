@@ -176,6 +176,24 @@ public class UserActivityDocument {
         ).collect(Collectors.toCollection(ArrayList::new));
   }
 
+  public void updateCommentLikeNickname(UUID commentUserId, String newNickname) {
+    commentLikes = commentLikes.stream()
+        .map(commentLike -> Objects.equals(commentLike.commentUserId(), commentUserId)
+            ? new CommentLikeSummary(
+            commentLike.id(),
+            commentLike.createdAt(),
+            commentLike.commentId(),
+            commentLike.articleId(),
+            commentLike.articleTitle(),
+            commentLike.commentUserId(),
+            newNickname,
+            commentLike.commentContent(),
+            commentLike.commentLikeCount(),
+            commentLike.commentCreatedAt()
+            ) : commentLike
+        ).collect(Collectors.toCollection(ArrayList::new));
+  }
+
   private <T, ID> void addToRecentList(List<T> items, T newItem, Function<T, ID> idExtractor) {
     // 중복 제거
     items.removeIf(item -> Objects.equals(idExtractor.apply(item), idExtractor.apply(newItem)));

@@ -45,4 +45,7 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
   @Query("{ 'articleViews.articleId': ?0 }")
   @Update("{ '$inc': { 'articleViews.$.articleViewCount': ?1 } }")
   void incrementArticleViewCount(UUID articleId, int delta);
+
+  @Query("{ 'commentLikes.commentUserId': ?0 }")
+  List<UserActivityDocument> findAllByCommentLikesCommentUserId(UUID commentUserId);
 }
