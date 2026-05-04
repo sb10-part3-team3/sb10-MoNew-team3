@@ -15,6 +15,7 @@ import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.repository.UserActivityRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +70,7 @@ public class UserActivityService {
 
     userActivityDocument.addSubscriptionSummary(subscriptionSummary);
     userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementSubscriberCount(subscriptionSummary.interestId(), 1);
     log.debug("사용자 활동 내역 구독 업데이트 성공: userId={} interestId={}", userId, subscriptionSummary.interestId());
   }
 
@@ -244,8 +246,16 @@ public class UserActivityService {
       log.debug("사용자 활동 내역 문서가 이미 없어 구독 삭제를 건너뜁니다: userId={} subscriptionId={}", userId, subscriptionId);
       return;
     }
-    userActivityDocument.removeSubscriptionSummary(subscriptionId);
-    userActivityRepository.save(userActivityDocument);
+    userActivityDocument.getSubscriptions().stream()
+        .filter(s -> Objects.equals(s.id(), subscriptionId))
+        .map(SubscriptionSummary::interestId)
+        .findFirst()
+        .ifPresent(interestId -> {
+          userActivityDocument.removeSubscriptionSummary(subscriptionId);
+          userActivityRepository.save(userActivityDocument);
+          // 다른 유저 문서의 구독자 수 감소
+          userActivityRepository.incrementSubscriberCount(interestId, -1);
+        });
     log.debug("사용자 활동 내역 구독 삭제 성공: userId={} subscriptionId={}", userId, subscriptionId);
   }
 

@@ -1141,4 +1141,71 @@ class UserActivityServiceTest {
     UserActivityDocument savedDocument = documentCaptor.getValue();
     assertEquals(0, savedDocument.getCommentLikes().size());
   }
+
+  @Test
+  @DisplayName("구독 추가 시 다른 유저 문서의 구독자 수가 증가합니다.")
+  void shouldIncrementSubscriberCount_whenSubscriptionAdded() {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    SubscriptionSummary summary = new SubscriptionSummary(
+        UUID.randomUUID(),
+        interestId,
+        "경제",
+        List.of("금리", "주식"),
+        10,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateSubscriptionSummary(userId, summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementSubscriberCount(interestId, 1);
+  }
+
+  @Test
+  @DisplayName("구독 취소 시 다른 유저 문서의 구독자 수가 감소합니다.")
+  void shouldDecrementSubscriberCount_whenSubscriptionRemoved() {
+    // given
+    UUID subscriptionId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    SubscriptionSummary summary = new SubscriptionSummary(
+        subscriptionId,
+        interestId,
+        "경제",
+        List.of("금리", "주식"),
+        10,
+        createdAt
+    );
+
+    userActivityDocument.addSubscriptionSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.removeSubscriptionSummary(userId, subscriptionId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementSubscriberCount(interestId, -1);
+  }
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.Update;
 
 public interface UserActivityRepository extends MongoRepository<UserActivityDocument, UUID>, UserActivityRepositoryCustom {
 
@@ -24,4 +25,8 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
   List<UserActivityDocument> findAllByCommentLikesCommentIdIn(List<UUID> commentIds);
 
   void deleteByIdIn(List<UUID> ids);
+
+  @Query("{ 'subscriptions.interestId': ?0 }")
+  @Update("{ '$inc': { 'subscriptions.$.interestSubscriberCount': ?1 } }")
+  void incrementSubscriberCount(UUID interestId, int delta);
 }
