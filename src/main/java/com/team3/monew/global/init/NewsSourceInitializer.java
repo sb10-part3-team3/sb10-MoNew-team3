@@ -8,9 +8,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Component
+@Profile("!data-gen")
 @RequiredArgsConstructor
 public class NewsSourceInitializer implements CommandLineRunner {
 
