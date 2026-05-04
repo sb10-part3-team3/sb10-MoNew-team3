@@ -335,6 +335,11 @@ public class InterestService {
     }
 
     String cursorValue = cursor.substring(0, delimiterIndex);
+    if (cursorValue.isBlank()
+        || ("subscriberCount".equals(condition.orderBy())
+        && !cursorValue.matches("-?\\d+"))) {
+      throw new InterestException(ErrorCode.INVALID_CURSOR_FORMAT);
+    }
 
     Instant parsedAfter;
     try {
