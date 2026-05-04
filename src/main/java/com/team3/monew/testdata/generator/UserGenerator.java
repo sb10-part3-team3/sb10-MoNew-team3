@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.instancio.Instancio;
 import org.instancio.Model;
@@ -54,13 +55,18 @@ public class UserGenerator extends AbstractGenerator<User> {
 
   @Override
   protected void setValues(PreparedStatement ps, User user) throws SQLException {
-    Timestamp now = Timestamp.from(Instant.now());
+    Timestamp createdAt = getUniformTimestamp(30);
+    // 수정시간은 생성시간보다 이후, 랜덤
+    long diffMillis = Instant.now().toEpochMilli() - createdAt.getTime();
+    long randomOffset = ThreadLocalRandom.current().nextLong(0, diffMillis + 1);
+    Timestamp updatedAt = new Timestamp(createdAt.getTime() + randomOffset);
+
     ps.setObject(1, user.getId());
     ps.setString(2, user.getEmail());
     ps.setString(3, user.getNickname());
     ps.setString(4, user.getPassword());
     ps.setString(5, "ACTIVE");
-    ps.setTimestamp(6, now);
-    ps.setTimestamp(7, now);
+    ps.setTimestamp(6, createdAt);
+    ps.setTimestamp(7, updatedAt);
   }
 }

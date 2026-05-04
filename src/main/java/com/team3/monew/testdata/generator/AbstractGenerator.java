@@ -3,9 +3,12 @@ package com.team3.monew.testdata.generator;
 import com.team3.monew.entity.base.BaseEntity;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,27 @@ public abstract class AbstractGenerator<T extends BaseEntity> {
 
   protected Faker faker() {
     return THREAD_LOCAL_FAKER.get();
+  }
+
+  // 날짜 유형
+  // 1. 균등 분포 날짜: 모든 날짜가 골고루(ex.가입일)
+  // 원하는 일수(ex.30일) 기준 균등
+  protected Timestamp getUniformTimestamp(int daysBack) {
+    long maxSeconds = (long) daysBack * 24 * 60 * 60;
+    long randomSeconds = ThreadLocalRandom.current().nextLong(maxSeconds);
+    return Timestamp.from(Instant.now().minusSeconds(randomSeconds));
+  }
+
+  // 2. 정규 분포 날짜: 최근 날짜에 데이터가 밀집될 때 (ex.최근 활동)
+  protected Timestamp getNormalTimestamp(int daysBack) {
+    long maxSeconds = (long) daysBack * 24 * 60 * 60;
+    // 평균을 0(현재)에 가깝게 두고 표준편차를 적용하여 최근에 가중치 부여
+    double gaussian = ThreadLocalRandom.current().nextGaussian();
+    long offset = (long) (gaussian * (maxSeconds / 4)); // 최근에 쏠리도록 범위 조절
+
+    // 너무 과거로 가지 않게 Clamp 처리
+    long finalSeconds = Math.max(0, Math.min(maxSeconds, (maxSeconds / 2) + offset));
+    return Timestamp.from(Instant.now().minusSeconds(finalSeconds));
   }
 
   // 구현 메서드

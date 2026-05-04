@@ -12,5 +12,5 @@ class NotificationTasks(TaskSet):
                         params=params)
 
     @task(1)
-        def stop(self):
-            self.interrupt()
+    def stop(self):
+        self.interrupt()

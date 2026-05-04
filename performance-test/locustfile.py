@@ -1,5 +1,6 @@
 import csv
 import random
+from pathlib import Path
 from locust import HttpUser, between
 from tasks.notification_tasks import NotificationTasks
 #from tasks.파일명 import 임포트명 형식으로 작성
@@ -9,9 +10,10 @@ user_id_pool = []
 
 # 테스트 시작전 유저 목록 불러오기
 try:
-    with open('data/users.csv', 'r') as f:
+    user_csv_path = Path(__file__).resolve().parent / "data" / "users.csv"
+    with user_csv_path.open(newline="", encoding="utf-8") as f:
         reader = csv.reader(f)
-        user_id_pool = [row[0] for row in reader]
+        user_id_pool = [row[0].strip() for row in reader if row and row[0].strip()]
     if not user_id_pool:
             print("⚠️ data/users.csv 파일이 비어 있습니다. 기본 ID를 사용합니다.")
             user_id_pool = ["00000000-0000-0000-0000-000000000000"]
