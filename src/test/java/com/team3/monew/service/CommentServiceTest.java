@@ -11,6 +11,7 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NotificationResourceType;
+import com.team3.monew.event.CommentLikedActivityEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.exception.article.ArticleNotFoundException;
@@ -54,6 +55,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -686,7 +688,8 @@ class CommentServiceTest {
             then(commentLikeRepository).should().save(argThat(commentLike ->
                     commentLike.getComment() == comment && commentLike.getUser() == liker
             ));
-            then(eventPublisher).should().publishEvent(CommentLikedEvent.from(savedLike));
+            then(eventPublisher).should().publishEvent(CommentLikedEvent.of(requestUserId, commentId));
+            then(eventPublisher).should().publishEvent(CommentLikedActivityEvent.from(savedLike));
         }
 
         @Test
@@ -711,7 +714,8 @@ class CommentServiceTest {
             assertThat(actual).isEqualTo(expected);
             assertThat(comment.getLikeCount()).isEqualTo(1);
             then(commentLikeRepository).should().save(any(CommentLike.class));
-            then(eventPublisher).shouldHaveNoInteractions();
+            then(eventPublisher).should(never()).publishEvent(any(CommentLikedEvent.class));
+            then(eventPublisher).should().publishEvent(CommentLikedActivityEvent.from(savedLike));
         }
 
         @Test

@@ -879,6 +879,7 @@ class UserActivityServiceTest {
   void shouldRemoveCommentLikeSummary() {
     // given
     UUID commentLikeId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
 
     UserActivityDocument document = UserActivityDocument.create(
         userId,
@@ -905,7 +906,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
 
     // when
-    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId, commentId);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -925,11 +926,12 @@ class UserActivityServiceTest {
   void shouldDoNothingWhenUserActivityNotFoundOnRemoveCommentLikeSummary() {
     // given
     UUID commentLikeId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
     // when
-    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId, commentId);
 
     // then
     then(userActivityRepository).should(never()).save(any());
@@ -1334,7 +1336,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
 
     // when
-    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId, commentId);
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));

@@ -11,6 +11,7 @@ import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.NotificationResourceType;
 import com.team3.monew.event.CommentDeletedEvent;
+import com.team3.monew.event.CommentLikedActivityEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
@@ -214,10 +215,11 @@ public class CommentService {
     comment.increaseLikeCount();
 
     if (!comment.getUser().getId().equals(requestUserId)) {
-      eventPublisher.publishEvent(CommentLikedEvent.from(savedCommentLike));
+      eventPublisher.publishEvent(CommentLikedEvent.of(requestUserId, commentId));
       log.debug("댓글 좋아요 이벤트 발행 완료 - commentId={}, requestUserId={}",
           commentId, requestUserId);
     }
+    eventPublisher.publishEvent(CommentLikedActivityEvent.from(savedCommentLike));
 
     log.info("댓글 좋아요 성공 - commentId={}, requestUserId={}", commentId, requestUserId);
     return toCommentLikeDto(savedCommentLike);
@@ -241,7 +243,8 @@ public class CommentService {
     eventPublisher.publishEvent(
         new CommentUnlikedEvent(
           requestUserId,
-          commentLike.getId()
+          commentLike.getId(),
+          commentId
         )
     );
   }
