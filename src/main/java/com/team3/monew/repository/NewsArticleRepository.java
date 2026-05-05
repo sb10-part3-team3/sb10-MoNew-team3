@@ -55,7 +55,7 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
       Pageable pageable);
 
   @Query(value = """
-      SELECT CAST(article.published_at AT TIME ZONE 'Asia/Seoul' AS DATE) as localdate,
+      SELECT CAST(article.published_at AT TIME ZONE 'Asia/Seoul' AS DATE) as localDate,
              COUNT(*) as count
       FROM news_articles article
       WHERE article.published_at >= :startAt
@@ -98,9 +98,10 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
       SELECT a
       FROM NewsArticle a
       JOIN FETCH a.source
-      WHERE a.publishedAt between :startAt and :endAt
+      WHERE a.publishedAt >= :startAt
+        AND a.publishedAt  < :endAt
       """)
-  List<NewsArticle> findAllByPublishedAtBetween(
+  List<NewsArticle> indAllByPublishedAtGreaterThanEqualAndPublishedAtLessThan(
       @Param("startAt") Instant startAt,
       @Param("endAt") Instant endAt);
 

@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -83,6 +84,6 @@ public interface ArticleApi {
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   ResponseEntity<List<ArticleRestoreResultDto>> restoreArticle(
-      @RequestParam LocalDateTime from,
-      @RequestParam LocalDateTime to);
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to);
 }

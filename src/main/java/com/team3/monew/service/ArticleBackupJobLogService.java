@@ -8,10 +8,10 @@ import com.team3.monew.repository.ArticleBackupJobRepository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,7 +61,7 @@ public class ArticleBackupJobLogService {
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public Map<LocalDate, UUID> createRestoreJobAll(Collection<LocalDate> localDates) {
+  public Map<LocalDate, UUID> createRestoreJobAll(Set<LocalDate> localDates) {
     Map<LocalDate, UUID> retoreJobs = new HashMap<>();
     List<ArticleBackupJob> jobs = new ArrayList<>();
 

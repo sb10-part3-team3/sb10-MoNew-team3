@@ -12,7 +12,7 @@ public enum ErrorCode {
 
   ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "기사를 찾을 수 없습니다."),
   ARTICLE_DELETED(HttpStatus.BAD_REQUEST, "삭제된 기사입니다."),
-  ARTICLE_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "시작 시간은 종료 시간보다 빠를 수 없습니다."),
+  ARTICLE_INVALID_PERIOD(HttpStatus.BAD_REQUEST, "시작 시간은 종료 시간보다 이전이어야 합니다."),
 
   COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 댓글입니다."),
   COMMENT_DELETED(HttpStatus.NOT_FOUND, "삭제된 댓글입니다."),

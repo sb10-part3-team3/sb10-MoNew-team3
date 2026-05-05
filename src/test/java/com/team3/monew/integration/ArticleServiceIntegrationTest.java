@@ -25,6 +25,7 @@ import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.repository.ArticleBackupJobRepository;
 import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
@@ -35,7 +36,6 @@ import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.ArticleBackupJobLogService;
 import com.team3.monew.support.IntegrationTestSupport;
-import jakarta.persistence.EntityManager;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
@@ -102,7 +102,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   @Autowired
   private ObjectMapper backupObjectMapper;
   @Autowired
-  private EntityManager em;
+  private ArticleBackupJobRepository articleBackupJobRepository;
 
   @Autowired
   private MockMvc mockMvc;
@@ -189,6 +189,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     newsArticleRepository.deleteAll();
     userRepository.deleteAll();
     interestRepository.deleteAll();
+    articleBackupJobRepository.deleteAll();
   }
 
   @Test
@@ -330,8 +331,9 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   @DisplayName("정해진 기간이 주어질 때 데이터를 확인하고 유실된 데이터가 없으면 빈 배열을 반환한다")
   void shouldReturnEmptyList_whenNoMissingDataInPeriod() throws Exception {
     // given
-    LocalDateTime start = LocalDate.now().minusDays(3).atStartOfDay();
-    LocalDateTime end = LocalDate.now().minusDays(1).atStartOfDay();
+    ZoneId zone = ZoneId.of("Asia/Seoul");
+    LocalDateTime start = LocalDate.now(zone).minusDays(3).atStartOfDay();
+    LocalDateTime end = LocalDate.now(zone).minusDays(1).atStartOfDay();
 
     // when & then
     mockMvc.perform(get(ARTICLES_BASE_URL + "/restore")
@@ -397,9 +399,9 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
       LocalDateTime end) {
     ZoneId zone = ZoneId.of("Asia/Seoul");
     Instant startAt = start.atZone(zone).toInstant();
-    Instant endAt = end.atZone(zone).toInstant().minus(1, ChronoUnit.MICROS);
+    Instant endAt = end.atZone(zone).toInstant();
     Map<LocalDate, List<NewsArticle>> articlesByDate = newsArticleRepository
-        .findAllByPublishedAtBetween(startAt, endAt)
+        .indAllByPublishedAtGreaterThanEqualAndPublishedAtLessThan(startAt, endAt)
         .stream()
         .collect(Collectors.groupingBy(
             article -> article.getPublishedAt().atZone(zone).toLocalDate(),
@@ -409,8 +411,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     String bucket = awsProperties.getS3().getBucket();
     articlesByDate.forEach((date, articles) -> {
       String key =
-          "test/backup-integration/test-backup-" + date.toString() +
-              System.currentTimeMillis() + ".jsonl.gz";
+          "test/backup-integration/test-backup-" + date.toString() + ".jsonl.gz";
       UUID jobId = articleBackupJobLogService.createBackupJob(date, bucket, key);
       articleBackupJobLogService.recordSuccess(jobId, articles.size());
 

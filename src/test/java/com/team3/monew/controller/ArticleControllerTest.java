@@ -282,7 +282,7 @@ class ArticleControllerTest {
       Instant restoredDate = Instant.now();
       UUID restoredArticleId = UUID.randomUUID();
       ArticleRestoreResultDto dto = new ArticleRestoreResultDto(restoredDate,
-          List.of(restoredArticleId), 1);
+          List.of(restoredArticleId), 1L);
       given(articleService.restoreArticle(start, end)).willReturn(List.of(dto));
 
       // when & then
@@ -297,7 +297,7 @@ class ArticleControllerTest {
 
     @Test
     @DisplayName("파라미터로 잘못된 타입이 온다면 400 ClientError를 반환한다")
-    void shouldReturnInternalServerError_whenInvalidParamIsGiven() throws Exception {
+    void shouldReturnBadRequest_whenInvalidParamIsGiven() throws Exception {
       // given
       String start = "invalid type data";
       LocalDateTime end = LocalDateTime.now();

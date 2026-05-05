@@ -292,6 +292,10 @@ public class ArticleService {
     for (var entry : articlesToRestoreByDate.entrySet()) {
       LocalDate date = entry.getKey();
       List<ArticleBackup> backups = entry.getValue();
+      if (backups.isEmpty()) {
+        continue;
+      }
+
       UUID restoreJobId = restoreJobIdsByDate.get(date);
 
       try {

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 public record ArticleRestoreResultDto(
-    @Schema(description = "날짜")
+    @Schema(description = "복구된 시간")
     Instant restoreDate,
 
     @Schema(description = "복구된 기사 ID 목록")

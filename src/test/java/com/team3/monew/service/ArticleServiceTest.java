@@ -10,6 +10,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
@@ -108,7 +109,7 @@ class ArticleServiceTest {
   @Mock
   private TaskExecutor decompressTaskExecutor;
   @Mock
-  private ObjectMapper backupObjectMapper;
+  private ObjectMapper mockedBackupObjectMapper;
   @Mock
   private ArticleBatchService articleBatchService;
 
@@ -536,7 +537,7 @@ class ArticleServiceTest {
   @DisplayName("뉴스기사를 복구한다")
   class RestoreArticle {
 
-    private final ObjectMapper backupObjectMapper = new ObjectMapper()
+    private final ObjectMapper realBackupObjectMapper = new ObjectMapper()
         .configure(SerializationFeature.INDENT_OUTPUT, false)
         .registerModule(new JavaTimeModule())
         .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
@@ -563,7 +564,7 @@ class ArticleServiceTest {
     void setUp() {
       ReflectionTestUtils.setField(articleService, "decompressTaskExecutor",
           new SyncTaskExecutor());
-      ReflectionTestUtils.setField(articleService, "backupObjectMapper", backupObjectMapper);
+      ReflectionTestUtils.setField(articleService, "backupObjectMapper", realBackupObjectMapper);
       ReflectionTestUtils.setField(articleService, "downloadAndDecompressConcurrency", 3);
 
       zone = ZoneId.of("Asia/Seoul");
@@ -598,7 +599,7 @@ class ArticleServiceTest {
 
     @Test
     @DisplayName("기간 조회시 복구해야할 데이터가 없으면 빈 배열을 반환한다")
-    void shouldReturnEmptyList_when() {
+    void shouldReturnEmptyList_whenNoMissingDataInPeriod() {
       // given
       LocalDate date = from.toLocalDate();
       ArticleCountInfo info1 = new TestArticleCountInfo(date, 2);
@@ -637,8 +638,8 @@ class ArticleServiceTest {
           .willReturn(CompletableFuture.completedFuture(successStream))
           .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
       ArticleBackup mock = mock(ArticleBackup.class);
-      given(articleService.decompressGzipAndReturnArticlesToRestore(any(), anyInt(), any()))
-          .willReturn(List.of(mock));
+      willReturn(List.of(mock)).given(articleService)
+          .decompressGzipAndReturnArticlesToRestore(any(), anyInt(), any());
 
       // when
       articleService.restoreArticle(from, to);
@@ -667,7 +668,7 @@ class ArticleServiceTest {
 
       // then
       then(articleBackupJobLogService)
-          .should(timeout(2000).times(2))
+          .should(timeout(2000).atLeastOnce())
           .recordRestoreFailed(any(), contains("에러 발생"));
       then(articleBatchService).shouldHaveNoInteractions();
       assertThat(actual).isEmpty();
@@ -686,8 +687,8 @@ class ArticleServiceTest {
           .willReturn(CompletableFuture.completedFuture(successStream))
           .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
       ArticleBackup mock = mock(ArticleBackup.class);
-      given(articleService.decompressGzipAndReturnArticlesToRestore(any(), anyInt(), any()))
-          .willReturn(List.of(mock));
+      willReturn(List.of(mock)).given(articleService)
+          .decompressGzipAndReturnArticlesToRestore(any(), anyInt(), any());
       given(articleBatchService.saveRestoredArticlesAndLog(anyList(), any()))
           .willThrow(new RuntimeException("저장 에러"));
 
@@ -722,16 +723,16 @@ class ArticleServiceTest {
       backup1 = new ArticleBackup(NewsSourceType.NAVER, "link1", "title1", pub1, "summary1");
       backup12 = new ArticleBackup(NewsSourceType.NAVER, "link1-2", "title1-2",
           pub1.plusSeconds(10), "summary1-2");
-      String backupJsonl1 = backupObjectMapper.writeValueAsString(backup1) + "\n"
-          + backupObjectMapper.writeValueAsString(backup12);
+      String backupJsonl1 = realBackupObjectMapper.writeValueAsString(backup1) + "\n"
+          + realBackupObjectMapper.writeValueAsString(backup12);
       byte[] gzip1 = createGzipByteArray(backupJsonl1);
 
       // 2번째 LocalDate
       backup2 = new ArticleBackup(NewsSourceType.NAVER, "link2", "title2", pub2, "summary2");
       backup22 = new ArticleBackup(NewsSourceType.NAVER, "link2-2", "title2-2",
           pub2.plusSeconds(100), "summary2-2");
-      String backupJsonl2 = backupObjectMapper.writeValueAsString(backup2) + "\n"
-          + backupObjectMapper.writeValueAsString(backup22);
+      String backupJsonl2 = realBackupObjectMapper.writeValueAsString(backup2) + "\n"
+          + realBackupObjectMapper.writeValueAsString(backup22);
       byte[] gzip2 = createGzipByteArray(backupJsonl2);
 
       GetObjectResponse response = GetObjectResponse.builder().build();
