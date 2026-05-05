@@ -187,16 +187,23 @@ public class UserActivityService {
       log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
       return;
     }
-    userActivityRepository.incrementArticleCommentCount(commentId, -1);
-    userActivityDocument.removeCommentSummary(commentId);
-    userActivityRepository.save(userActivityDocument);
+    userActivityDocument.getComments().stream()
+        .filter(c -> Objects.equals(c.id(), commentId))
+        .findFirst()
+        .ifPresent(commentSummary -> {
+          UUID articleId = commentSummary.articleId();
 
-    // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
-    List<UserActivityDocument> documents = userActivityRepository.findAllByCommentLikesCommentId(commentId);
-    documents.forEach(document -> {
-      document.removeCommentLikeSummaryByCommentId(commentId);
-      userActivityRepository.save(document);
-    });
+          userActivityDocument.removeCommentSummary(commentId);
+          userActivityRepository.save(userActivityDocument);
+          userActivityRepository.incrementArticleCommentCount(articleId, -1);
+
+          // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
+          List<UserActivityDocument> documents = userActivityRepository.findAllByCommentLikesCommentId(commentId);
+          documents.forEach(document -> {
+            document.removeCommentLikeSummaryByCommentId(commentId);
+            userActivityRepository.save(document);
+          });
+        });
     log.debug("사용자 활동 내역 댓글 삭제 성공: userId={} commentId={}", userId, commentId);
   }
 
