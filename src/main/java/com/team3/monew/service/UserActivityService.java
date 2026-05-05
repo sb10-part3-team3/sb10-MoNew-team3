@@ -15,6 +15,7 @@ import com.team3.monew.mapper.UserActivityMapper;
 import com.team3.monew.repository.UserActivityRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +70,7 @@ public class UserActivityService {
 
     userActivityDocument.addSubscriptionSummary(subscriptionSummary);
     userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementSubscriberCount(subscriptionSummary.interestId(), 1);
     log.debug("사용자 활동 내역 구독 업데이트 성공: userId={} interestId={}", userId, subscriptionSummary.interestId());
   }
 
@@ -83,6 +85,7 @@ public class UserActivityService {
 
     userActivityDocument.addCommentSummary(commentSummary);
     userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementArticleCommentCount(commentSummary.articleId(), 1);
     log.debug("사용자 활동 내역 댓글 업데이트 성공: userId={} commentId={}", commentSummary.userId(), commentSummary.id());
   }
 
@@ -95,8 +98,12 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 좋아요 업데이트 시작: userId={} commentLikeId={}", userId, commentLikeSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
-    userActivityDocument.addCommentLikeSummary(commentLikeSummary);
-    userActivityRepository.save(userActivityDocument);
+    userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
+    userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
+    if (!Objects.equals(commentLikeSummary.commentUserId(), userId)) {
+      userActivityDocument.addCommentLikeSummary(commentLikeSummary);
+      userActivityRepository.save(userActivityDocument);
+    }
     log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
@@ -105,12 +112,15 @@ public class UserActivityService {
       maxAttempts = 3,                                    // 최초 1회 + 재시도 2회
       backoff = @Backoff(delay = 100)                     // 재시도 전 100ms 대기
   )
-  public void updateArticleViewSummary(UUID userId, ArticleViewSummary articleViewSummary) {
+  public void updateArticleViewSummary(UUID userId, ArticleViewSummary articleViewSummary, Boolean isFirstView) {
     log.debug("사용자 활동 내역 기사 뷰 업데이트 시작: userId={} articleViewId={}", userId, articleViewSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
     userActivityDocument.addArticleViewSummary(articleViewSummary);
     userActivityRepository.save(userActivityDocument);
+    if (isFirstView) {
+      userActivityRepository.incrementArticleViewCount(articleViewSummary.articleId(), 1);
+    }
     log.debug("사용자 활동 내역 기사 뷰 업데이트 성공: userId={} articleViewId={}", userId, articleViewSummary.id());
   }
 
@@ -131,6 +141,13 @@ public class UserActivityService {
     List<UserActivityDocument> documents = userActivityRepository.findAllByCommentsUserId(userId);
     documents.forEach(document -> {
       document.updateCommentNickname(newNickname);
+      userActivityRepository.save(document);
+    });
+
+    List<UserActivityDocument> commentLikeDocuments = userActivityRepository.findAllByCommentLikesCommentUserId(userId);
+
+    commentLikeDocuments.forEach(document -> {
+      document.updateCommentLikeNickname(userId, newNickname);
       userActivityRepository.save(document);
     });
 
@@ -174,15 +191,23 @@ public class UserActivityService {
       log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
       return;
     }
-    userActivityDocument.removeCommentSummary(commentId);
-    userActivityRepository.save(userActivityDocument);
+    userActivityDocument.getComments().stream()
+        .filter(c -> Objects.equals(c.id(), commentId))
+        .findFirst()
+        .ifPresent(commentSummary -> {
+          UUID articleId = commentSummary.articleId();
 
-    // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
-    List<UserActivityDocument> documents = userActivityRepository.findAllByCommentLikesCommentId(commentId);
-    documents.forEach(document -> {
-      document.removeCommentLikeSummaryByCommentId(commentId);
-      userActivityRepository.save(document);
-    });
+          userActivityDocument.removeCommentSummary(commentId);
+          userActivityRepository.save(userActivityDocument);
+          userActivityRepository.incrementArticleCommentCount(articleId, -1);
+
+          // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
+          List<UserActivityDocument> documents = userActivityRepository.findAllByCommentLikesCommentId(commentId);
+          documents.forEach(document -> {
+            document.removeCommentLikeSummaryByCommentId(commentId);
+            userActivityRepository.save(document);
+          });
+        });
     log.debug("사용자 활동 내역 댓글 삭제 성공: userId={} commentId={}", userId, commentId);
   }
 
@@ -211,16 +236,22 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 댓글 수정 성공: userId={} commentId={}", userId, commentId);
   }
 
-  public void removeCommentLikeSummary(UUID userId, UUID commentLikeId) {
+  public void removeCommentLikeSummary(UUID userId, UUID commentLikeId, UUID commentId) {
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 시작: userId={} commentLikeId={}", userId, commentLikeId);
+
+    userActivityRepository.incrementCommentLikeCount(commentId, -1);
+    userActivityRepository.incrementCommentLikeCountInLikes(commentId, -1);
+
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
         .orElse(null);
     if (userActivityDocument == null) {
       log.debug("사용자 활동 내역 문서가 이미 없어 좋아요 삭제를 건너뜁니다: userId={} commentLikeId={}", userId, commentLikeId);
       return;
     }
+
     userActivityDocument.removeCommentLikeSummary(commentLikeId);
     userActivityRepository.save(userActivityDocument);
+
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
   }
 
@@ -229,6 +260,7 @@ public class UserActivityService {
     List<UserActivityDocument> userActivityDocuments =
         userActivityRepository.findAllByArticleViewsArticleId(articleId);
 
+    userActivityRepository.incrementArticleViewCount(articleId, -1);
     userActivityDocuments.forEach(userActivityDocument -> {
       userActivityDocument.removeArticleViewSummary(articleId);
       userActivityRepository.save(userActivityDocument);
@@ -244,8 +276,16 @@ public class UserActivityService {
       log.debug("사용자 활동 내역 문서가 이미 없어 구독 삭제를 건너뜁니다: userId={} subscriptionId={}", userId, subscriptionId);
       return;
     }
-    userActivityDocument.removeSubscriptionSummary(subscriptionId);
-    userActivityRepository.save(userActivityDocument);
+    userActivityDocument.getSubscriptions().stream()
+        .filter(s -> Objects.equals(s.id(), subscriptionId))
+        .map(SubscriptionSummary::interestId)
+        .findFirst()
+        .ifPresent(interestId -> {
+          userActivityDocument.removeSubscriptionSummary(subscriptionId);
+          userActivityRepository.save(userActivityDocument);
+          // 다른 유저 문서의 구독자 수 감소
+          userActivityRepository.incrementSubscriberCount(interestId, -1);
+        });
     log.debug("사용자 활동 내역 구독 삭제 성공: userId={} subscriptionId={}", userId, subscriptionId);
   }
 

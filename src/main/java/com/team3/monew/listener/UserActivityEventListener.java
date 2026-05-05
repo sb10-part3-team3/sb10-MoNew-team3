@@ -3,6 +3,7 @@ package com.team3.monew.listener;
 import com.team3.monew.event.ArticleDeletedEvent;
 import com.team3.monew.event.ArticleViewEvent;
 import com.team3.monew.event.CommentDeletedEvent;
+import com.team3.monew.event.CommentLikedActivityEvent;
 import com.team3.monew.event.CommentLikedEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
@@ -88,7 +89,7 @@ public class UserActivityEventListener {
       maxAttempts = 3,
       backoff = @Backoff(delay = 1000)
   )
-  public void handleCommentLikedEvent(CommentLikedEvent event) {
+  public void handleCommentLikedEvent(CommentLikedActivityEvent event) {
     userActivityService.updateCommentLikeSummary(event.actorUserId(), userActivityMapper.toCommentLikeSummary(event));
   }
 
@@ -103,7 +104,10 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleArticleViewEvent(ArticleViewEvent event) {
-    userActivityService.updateArticleViewSummary(event.userId(), userActivityMapper.toArticleViewSummary(event));
+    userActivityService.updateArticleViewSummary(
+        event.userId(),
+        userActivityMapper.toArticleViewSummary(event),
+        event.isFirstView());
   }
 
   @Async("userActivityTaskExecutor")
@@ -164,7 +168,7 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleCommentUnlikedEvent(CommentUnlikedEvent event) {
-    userActivityService.removeCommentLikeSummary(event.actorUserId(), event.commentLikeId());
+    userActivityService.removeCommentLikeSummary(event.actorUserId(), event.commentLikeId(), event.commentId());
   }
 
   @Async("userActivityTaskExecutor")

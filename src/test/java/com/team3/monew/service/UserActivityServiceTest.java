@@ -415,7 +415,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
 
     // when
-    userActivityService.updateArticleViewSummary(userId, summary);
+    userActivityService.updateArticleViewSummary(userId, summary, true);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -450,7 +450,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
     // when
-    userActivityService.updateArticleViewSummary(userId, summary);
+    userActivityService.updateArticleViewSummary(userId, summary, true);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -526,6 +526,7 @@ class UserActivityServiceTest {
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
     given(userActivityRepository.findAllByCommentsUserId(userId)).willReturn(List.of());
+    given(userActivityRepository.findAllByCommentLikesCommentUserId(userId)).willReturn(List.of());
 
     // when
     userActivityService.updateUserNickname(userId, newNickname);
@@ -543,6 +544,61 @@ class UserActivityServiceTest {
     assertEquals(newNickname, savedDocument.getNickname());
     assertEquals(1, savedDocument.getComments().size());
     assertEquals(newNickname, savedDocument.getComments().get(0).userNickname());
+  }
+
+  @Test
+  @DisplayName("사용자 닉네임 수정 시 다른 유저의 댓글 좋아요 목록의 닉네임도 함께 업데이트됩니다.")
+  void shouldUpdateNicknameInCommentLikeSummaries() {
+    // given
+    String newNickname = "newTester";
+    UUID otherUserId = UUID.randomUUID();
+
+    UserActivityDocument document = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    UserActivityDocument otherDocument = UserActivityDocument.create(
+        otherUserId,
+        "other@test.com",
+        "otherTester",
+        createdAt
+    );
+
+    CommentLikeSummary commentLikeSummary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,          // 댓글 작성자 = 닉네임 변경하는 유저
+        "tester",        // 기존 닉네임
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    otherDocument.addCommentLikeSummary(commentLikeSummary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
+    given(userActivityRepository.findAllByCommentsUserId(userId)).willReturn(List.of());
+    given(userActivityRepository.findAllByCommentLikesCommentUserId(userId))
+        .willReturn(List.of(otherDocument));
+
+    // when
+    userActivityService.updateUserNickname(userId, newNickname);
+
+    // then
+    ArgumentCaptor<UserActivityDocument> documentCaptor =
+        ArgumentCaptor.forClass(UserActivityDocument.class);
+
+    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+
+    List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
+
+    assertEquals(newNickname, savedDocuments.get(1).getCommentLikes().get(0).commentUserNickname());
   }
 
   @Test
@@ -823,6 +879,7 @@ class UserActivityServiceTest {
   void shouldRemoveCommentLikeSummary() {
     // given
     UUID commentLikeId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
 
     UserActivityDocument document = UserActivityDocument.create(
         userId,
@@ -849,7 +906,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
 
     // when
-    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId, commentId);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -869,11 +926,12 @@ class UserActivityServiceTest {
   void shouldDoNothingWhenUserActivityNotFoundOnRemoveCommentLikeSummary() {
     // given
     UUID commentLikeId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
     // when
-    userActivityService.removeCommentLikeSummary(userId, commentLikeId);
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId, commentId);
 
     // then
     then(userActivityRepository).should(never()).save(any());
@@ -1140,5 +1198,299 @@ class UserActivityServiceTest {
 
     UserActivityDocument savedDocument = documentCaptor.getValue();
     assertEquals(0, savedDocument.getCommentLikes().size());
+  }
+
+  @Test
+  @DisplayName("구독 추가 시 다른 유저 문서의 구독자 수가 증가합니다.")
+  void shouldIncrementSubscriberCount_whenSubscriptionAdded() {
+    // given
+    UUID interestId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    SubscriptionSummary summary = new SubscriptionSummary(
+        UUID.randomUUID(),
+        interestId,
+        "경제",
+        List.of("금리", "주식"),
+        10,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateSubscriptionSummary(userId, summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementSubscriberCount(interestId, 1);
+  }
+
+  @Test
+  @DisplayName("구독 취소 시 다른 유저 문서의 구독자 수가 감소합니다.")
+  void shouldDecrementSubscriberCount_whenSubscriptionRemoved() {
+    // given
+    UUID subscriptionId = UUID.randomUUID();
+    UUID interestId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    SubscriptionSummary summary = new SubscriptionSummary(
+        subscriptionId,
+        interestId,
+        "경제",
+        List.of("금리", "주식"),
+        10,
+        createdAt
+    );
+
+    userActivityDocument.addSubscriptionSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.removeSubscriptionSummary(userId, subscriptionId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementSubscriberCount(interestId, -1);
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요 추가 시 댓글 작성자 문서의 likeCount와 다른 유저 문서의 commentLikeCount가 증가합니다.")
+  void shouldIncrementCommentLikeCount_whenCommentLikeAdded() {
+    // given
+    UUID commentId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentLikeSummary summary = new CommentLikeSummary(
+        UUID.randomUUID(),
+        createdAt,
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        UUID.randomUUID(),
+        "commentWriter",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateCommentLikeSummary(userId, summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementCommentLikeCount(commentId, 1);
+    then(userActivityRepository).should().incrementCommentLikeCountInLikes(commentId, 1);
+  }
+
+  @Test
+  @DisplayName("댓글 좋아요 취소 시 댓글 작성자 문서의 likeCount와 다른 유저 문서의 commentLikeCount가 감소합니다.")
+  void shouldDecrementCommentLikeCount_whenCommentLikeRemoved() {
+    // given
+    UUID commentLikeId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentLikeSummary summary = new CommentLikeSummary(
+        commentLikeId,
+        createdAt,
+        commentId,
+        UUID.randomUUID(),
+        "기사 제목",
+        userId,
+        "commentWriter",
+        "댓글 내용",
+        1,
+        createdAt
+    );
+
+    userActivityDocument.addCommentLikeSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.removeCommentLikeSummary(userId, commentLikeId, commentId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementCommentLikeCount(commentId, -1);
+    then(userActivityRepository).should().incrementCommentLikeCountInLikes(commentId, -1);
+  }
+
+  @Test
+  @DisplayName("댓글 추가 시 기사 댓글 수가 증가합니다.")
+  void shouldIncrementArticleCommentCount_whenCommentAdded() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary summary = new CommentSummary(
+        UUID.randomUUID(),
+        articleId,
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateCommentSummary(summary);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleCommentCount(articleId, 1);
+  }
+
+  @Test
+  @DisplayName("댓글 삭제 시 기사 댓글 수가 감소합니다.")
+  void shouldDecrementArticleCommentCount_whenCommentRemoved() {
+    // given
+    UUID commentId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    CommentSummary summary = new CommentSummary(
+        commentId,
+        articleId,
+        "기사 제목",
+        userId,
+        "tester",
+        "댓글 내용",
+        0,
+        createdAt
+    );
+
+    userActivityDocument.addCommentSummary(summary);
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+    given(userActivityRepository.findAllByCommentLikesCommentId(commentId))
+        .willReturn(List.of());
+
+    // when
+    userActivityService.removeCommentSummary(userId, commentId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleCommentCount(articleId, -1);
+  }
+
+  @Test
+  @DisplayName("기사 조회 시 기사 뷰 조회수가 증가합니다.")
+  void shouldIncrementArticleViewCount_whenArticleViewed() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    ArticleViewSummary summary = new ArticleViewSummary(
+        UUID.randomUUID(),
+        userId,
+        createdAt,
+        articleId,
+        "NAVER",
+        "https://example.com",
+        "기사 제목",
+        createdAt,
+        "기사 요약",
+        3,
+        100
+    );
+
+    given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
+
+    // when
+    userActivityService.updateArticleViewSummary(userId, summary, true);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleViewCount(articleId, 1);
+  }
+
+  @Test
+  @DisplayName("기사 삭제 시 기사 뷰 조회수가 감소합니다.")
+  void shouldDecrementArticleViewCount_whenArticleDeleted() {
+    // given
+    UUID articleId = UUID.randomUUID();
+
+    UserActivityDocument userActivityDocument = UserActivityDocument.create(
+        userId,
+        "test@test.com",
+        "tester",
+        createdAt
+    );
+
+    ArticleViewSummary summary = new ArticleViewSummary(
+        UUID.randomUUID(),
+        userId,
+        createdAt,
+        articleId,
+        "NAVER",
+        "https://example.com",
+        "기사 제목",
+        createdAt,
+        "기사 요약",
+        3,
+        100
+    );
+
+    userActivityDocument.addArticleViewSummary(summary);
+
+    given(userActivityRepository.findAllByArticleViewsArticleId(articleId))
+        .willReturn(List.of(userActivityDocument));
+
+    // when
+    userActivityService.removeArticleViewSummary(articleId);
+
+    // then
+    then(userActivityRepository).should().save(any(UserActivityDocument.class));
+    then(userActivityRepository).should().incrementArticleViewCount(articleId, -1);
   }
 }
