@@ -35,7 +35,7 @@ public class DataGenerationRunner implements CommandLineRunner {
     log.info("✅ 사용자 데이터 생성 완료");
 
     notificationGenerator.setUsers(generatedUsers);
-    notificationGenerator.generate(10000, 10000);
+    notificationGenerator.generate(10000, 1000);
     log.info("✅ 알림 데이터 생성 완료");
 
     // 생성 후 종료

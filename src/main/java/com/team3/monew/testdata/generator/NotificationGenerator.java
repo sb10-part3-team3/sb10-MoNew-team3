@@ -34,6 +34,9 @@ public class NotificationGenerator extends AbstractGenerator<Notification> {
   }
 
   public void setUsers(List<User> users) {
+    if (users == null || users.isEmpty()) {
+      throw new IllegalStateException("userPool이 비어 있습니다. setUsers()에 유효한 사용자 목록을 전달해야 합니다.");
+    }
     this.userPool = users;
   }
 

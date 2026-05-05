@@ -103,7 +103,13 @@ public abstract class AbstractGenerator<T extends BaseEntity> {
         .toList();
 
     CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-    log.info("데이터 생성 작업 완료: 총 {}건 삽입 (요청: {}건)", insertedCount.get(), totalSize);
+    int inserted = insertedCount.get();
+    if (inserted < totalSize) {
+      log.warn("데이터 생성 부분 실패: {}건 삽입 성공, {}건 실패 (요청: {}건)",
+          inserted, totalSize - inserted, totalSize);
+    } else {
+      log.info("데이터 생성 작업 완료: 총 {}건 삽입 (요청: {}건)", inserted, totalSize);
+    }
     return new ArrayList<>(allGeneratedEntities);
   }
 
