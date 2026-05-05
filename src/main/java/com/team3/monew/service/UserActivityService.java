@@ -98,10 +98,10 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 좋아요 업데이트 시작: userId={} commentLikeId={}", userId, commentLikeSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
-    userActivityDocument.addCommentLikeSummary(commentLikeSummary);
-    userActivityRepository.save(userActivityDocument);
     userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
     userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
+    userActivityDocument.addCommentLikeSummary(commentLikeSummary);
+    userActivityRepository.save(userActivityDocument);
     log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
