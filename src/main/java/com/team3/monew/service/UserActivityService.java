@@ -98,12 +98,12 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 좋아요 업데이트 시작: userId={} commentLikeId={}", userId, commentLikeSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
-    userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
-    userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
     if (!Objects.equals(commentLikeSummary.commentUserId(), userId)) {
       userActivityDocument.addCommentLikeSummary(commentLikeSummary);
       userActivityRepository.save(userActivityDocument);
     }
+    userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
+    userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
     log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
@@ -239,8 +239,6 @@ public class UserActivityService {
   public void removeCommentLikeSummary(UUID userId, UUID commentLikeId, UUID commentId) {
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 시작: userId={} commentLikeId={}", userId, commentLikeId);
 
-    userActivityRepository.incrementCommentLikeCount(commentId, -1);
-    userActivityRepository.incrementCommentLikeCountInLikes(commentId, -1);
 
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
         .orElse(null);
@@ -252,6 +250,8 @@ public class UserActivityService {
     userActivityDocument.removeCommentLikeSummary(commentLikeId);
     userActivityRepository.save(userActivityDocument);
 
+    userActivityRepository.incrementCommentLikeCount(commentId, -1);
+    userActivityRepository.incrementCommentLikeCountInLikes(commentId, -1);
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
   }
 
