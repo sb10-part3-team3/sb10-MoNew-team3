@@ -5,8 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +34,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * - @Qualifier("dataGeneratorExecutor")를 생성자에 주입받아야 합니다.
  * <p>
  * - 성능을 위해 JDBC batchUpdate를 사용합니다.
+ * <p>
+ * - 날짜를 사용하는 경우, 데이터 특성을 고려하여 정규 분포랑 균등 분포 중 선택하여 사용해주세요.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -76,10 +80,11 @@ public abstract class AbstractGenerator<T extends BaseEntity> {
   protected abstract void setValues(PreparedStatement ps, T entity) throws SQLException;
 
   // 병렬로 데이터 생성 -> 배치로 저장
-  public void generate(int totalSize, int chunkSize) {
+  public List<T> generate(int totalSize, int chunkSize) {
     int numTasks = (int) Math.ceil((double) totalSize / chunkSize);
     AtomicInteger insertedCount = new AtomicInteger(0); // 삽입 성공 건수 추적
 
+    ConcurrentLinkedQueue<T> allGeneratedEntities = new ConcurrentLinkedQueue<>();
     List<CompletableFuture<Void>> futures = IntStream.range(0, numTasks)
         .mapToObj(i -> {
           int currentChunkSize = Math.min(chunkSize, totalSize - (i * chunkSize));
@@ -87,6 +92,7 @@ public abstract class AbstractGenerator<T extends BaseEntity> {
                 // 청크 사이즈만큼 생성
                 List<T> chunk = Instancio.ofList(getModel()).size(currentChunkSize).create();
                 executeBatch(chunk);
+                allGeneratedEntities.addAll(chunk);
                 insertedCount.addAndGet(chunk.size());
               }, dataGeneratorExecutor)
               .exceptionally(ex -> {
@@ -98,6 +104,7 @@ public abstract class AbstractGenerator<T extends BaseEntity> {
 
     CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     log.info("데이터 생성 작업 완료: 총 {}건 삽입 (요청: {}건)", insertedCount.get(), totalSize);
+    return new ArrayList<>(allGeneratedEntities);
   }
 
   private void executeBatch(List<T> entities) {
