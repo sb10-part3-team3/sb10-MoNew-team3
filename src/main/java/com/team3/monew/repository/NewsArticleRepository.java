@@ -2,6 +2,7 @@ package com.team3.monew.repository;
 
 import com.team3.monew.entity.NewsArticle;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -52,4 +53,55 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
       @Param("startAt") Instant startAt,
       @Param("endAt") Instant endAt,
       Pageable pageable);
+
+  @Query(value = """
+      SELECT CAST(article.published_at AT TIME ZONE 'Asia/Seoul' AS DATE) as localdate,
+             COUNT(*) as count
+      FROM news_articles article
+      WHERE article.published_at >= :startAt
+        AND article.published_at  < :endAt
+      GROUP BY CAST(article.published_at AT TIME ZONE 'Asia/Seoul' AS DATE)
+      """, nativeQuery = true)
+  List<ArticleCountInfo> countNewsArticlesByPublishDate(
+      @Param("startAt") Instant startAt,
+      @Param("endAt") Instant endAt
+  );
+
+  interface ArticleCountInfo {
+
+    LocalDate getLocalDate();
+
+    Integer getCount();
+  }
+
+  @Query(value = """
+      SELECT article.original_link as link, article.published_at as publishedAt
+      FROM news_articles article
+      WHERE article.published_at >= :startAt
+        AND article.published_at  < :endAt
+        AND CAST(article.published_at AT TIME ZONE 'Asia/Seoul' AS DATE) IN :targetDates
+      """, nativeQuery = true)
+  Set<ArticleLinkAndPublishedAt> findLinksByPublishDate(
+      @Param("startAt") Instant startAt,
+      @Param("endAt") Instant endAt,
+      @Param("targetDates") Collection<LocalDate> dates
+  );
+
+  interface ArticleLinkAndPublishedAt {
+
+    String getLink();
+
+    Instant getPublishedAt();
+  }
+
+  @Query("""
+      SELECT a
+      FROM NewsArticle a
+      JOIN FETCH a.source
+      WHERE a.publishedAt between :startAt and :endAt
+      """)
+  List<NewsArticle> findAllByPublishedAtBetween(
+      @Param("startAt") Instant startAt,
+      @Param("endAt") Instant endAt);
+
 }

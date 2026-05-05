@@ -7,6 +7,11 @@ import com.team3.monew.exception.article.ArticleBackupJobNotFoundException;
 import com.team3.monew.repository.ArticleBackupJobRepository;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +58,44 @@ public class ArticleBackupJobLogService {
         .setErrorMessage(message);
     articleBackupJobRepository.save(backupJob);
     log.debug("BackupJob 실패 - localDate={}", backupJob.getBackupDate());
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public Map<LocalDate, UUID> createRestoreJobAll(Collection<LocalDate> localDates) {
+    Map<LocalDate, UUID> retoreJobs = new HashMap<>();
+    List<ArticleBackupJob> jobs = new ArrayList<>();
+
+    localDates.forEach(localDate -> {
+      ArticleBackupJob backupJob = ArticleBackupJob
+          .create(localDate, BackupJobType.ARTICLE_RESTORE)
+          .setStartedAt(Instant.now());
+      jobs.add(backupJob);
+    });
+    articleBackupJobRepository.saveAll(jobs);
+    jobs.forEach(job -> retoreJobs.put(job.getBackupDate(), job.getId()));
+
+    log.debug("RestoreJob {}개 생성", jobs.size());
+    return retoreJobs;
+  }
+
+  @Transactional
+  public void recordRestoreSuccess(UUID restoreJobId, int articleCount) {
+    ArticleBackupJob restoreJob = getArticleBackupJobOrThrow(restoreJobId)
+        .setStatus(BackupJobStatus.SUCCESS)
+        .setFinishedAt(Instant.now())
+        .setArticleCount(articleCount);
+    articleBackupJobRepository.save(restoreJob);
+    log.debug("RestoreJob 성공 - localDate={}", restoreJob.getBackupDate());
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public void recordRestoreFailed(UUID restoreJobId, String message) {
+    ArticleBackupJob restoreJob = getArticleBackupJobOrThrow(restoreJobId)
+        .setStatus(BackupJobStatus.FAILED)
+        .setFinishedAt(Instant.now())
+        .setErrorMessage(message);
+    articleBackupJobRepository.save(restoreJob);
+    log.debug("RestoreJob 실패 - localDate={}", restoreJob.getBackupDate());
   }
 
   private ArticleBackupJob getArticleBackupJobOrThrow(UUID backupJobId) {

@@ -67,6 +67,20 @@ public class AsyncConfig implements AsyncConfigurer {
     return executor;
   }
 
+  @Bean(name = "decompressTaskExecutor")
+  public TaskExecutor decompressTaskExecutor() {
+    ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+    int processors = Runtime.getRuntime().availableProcessors();    // 이용 가능한 프로세서 수
+
+    executor.setCorePoolSize(Math.max(3, processors / 2));    // 기본 3개 미만
+    executor.setMaxPoolSize(processors);                      // 최대 프로세서 수만큼
+    executor.setQueueCapacity(30);                            // 큐 대기 30
+    executor.setThreadNamePrefix("s3-decompress-");           // 스레드 이름
+    executor.setWaitForTasksToCompleteOnShutdown(true);       // 진행중인 작업은 끝낼 수 있게 마무리
+    executor.initialize();
+    return executor;
+  }
+
   @Override
   public AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
     return (ex, method, params) -> {

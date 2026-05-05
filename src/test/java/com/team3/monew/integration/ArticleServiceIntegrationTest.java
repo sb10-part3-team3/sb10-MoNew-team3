@@ -1,16 +1,19 @@
 package com.team3.monew.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.BDDAssertions.tuple;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.jsonpath.JsonPath;
+import com.team3.monew.config.AwsProperties;
+import com.team3.monew.dto.article.ArticleBackup;
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
-import com.team3.monew.entity.NewsArticle;
-import com.team3.monew.entity.NewsSource;
-import com.team3.monew.entity.User;
 import com.team3.monew.entity.ArticleInterest;
 import com.team3.monew.entity.ArticleView;
 import com.team3.monew.entity.Comment;
@@ -21,11 +24,7 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.User;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
-import com.team3.monew.repository.ArticleViewRepository;
-import com.team3.monew.repository.NewsArticleRepository;
-import com.team3.monew.repository.NewsSourceRepository;
-import com.team3.monew.repository.UserRepository;
-import com.team3.monew.service.ArticleService;
+import com.team3.monew.mapper.ArticleMapper;
 import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentLikeRepository;
@@ -34,13 +33,26 @@ import com.team3.monew.repository.InterestRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.UserRepository;
+import com.team3.monew.service.ArticleBackupJobLogService;
 import com.team3.monew.support.IntegrationTestSupport;
-import java.time.Instant;
 import jakarta.persistence.EntityManager;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -49,15 +61,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Transactional
 @ActiveProfiles("test")
 @Tag("integration")
+@TestPropertySource(locations = "file:.env")
 public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
@@ -77,6 +94,14 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   @Autowired
   private ArticleInterestRepository articleInterestRepository;
   @Autowired
+  private ArticleMapper articleMapper;
+  @Autowired
+  private AwsProperties awsProperties;
+  @Autowired
+  private S3Client s3Client;
+  @Autowired
+  private ObjectMapper backupObjectMapper;
+  @Autowired
   private EntityManager em;
 
   @Autowired
@@ -88,6 +113,15 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   private NewsArticle newsArticle;
   private UUID commentLikeId;
 
+  private NewsArticle newsArticle1;
+  private NewsArticle newsArticle2;
+  private NewsArticle newsArticle3;
+  private NewsArticle newsArticle4;
+  private NewsArticle newsArticle5;
+  private NewsArticle newsArticle6;
+  @Autowired
+  private ArticleBackupJobLogService articleBackupJobLogService;
+
 
   @BeforeEach
   void setUp() {
@@ -95,9 +129,9 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     Interest appleInterest = Interest.create("애플");
     interestRepository.saveAll(List.of(samsungInterest, appleInterest));
 
-    NewsSource naverSource = NewsSource
-        .create(NewsSourceType.NAVER.name() + 1, NewsSourceType.NAVER, "baseUrl");
-    newsSourceRepository.save(naverSource);
+    NewsSource naverSource = newsSourceRepository.findByName(NewsSourceType.NAVER.name())
+        .orElseGet(() -> NewsSource.create
+            (NewsSourceType.NAVER.name(), NewsSourceType.NAVER, "baseUrl"));
 
     newsArticle = NewsArticle
         .create(naverSource, "link", "title", Instant.now(), "summary");
@@ -121,8 +155,40 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     commentLikeRepository.save(u2CommentLike);
     commentLikeId = u2CommentLike.getId();
 
-    em.flush();
-    em.clear();
+    // restore Data Set
+    ZoneId zone = ZoneId.of("Asia/Seoul");
+    LocalDate nowDateMinusSeven = LocalDate.now(zone).minusDays(7);
+    Instant startAt = nowDateMinusSeven.atStartOfDay(zone).toInstant();
+    Instant startPlusOneAt = startAt.plus(1, ChronoUnit.DAYS);
+
+    newsArticle1 = NewsArticle.create(
+        naverSource, "originalLink1", "title1", startAt.minus(2, ChronoUnit.HOURS),
+        "summary1");
+    newsArticle2 = NewsArticle.create(
+        naverSource, "originalLink2", "title2", startAt, "summary2");
+    newsArticle3 = NewsArticle.create(
+        naverSource, "originalLink3", "title3", startAt.plus(7, ChronoUnit.HOURS),
+        "summary3");
+    newsArticle4 = NewsArticle.create(
+        naverSource, "originalLink4", "title4", startPlusOneAt.minusMillis(1), "summary4");
+    newsArticle5 = NewsArticle.create(
+        naverSource, "originalLink5", "title5", startPlusOneAt, "summary5");
+    newsArticle6 = NewsArticle.create(
+        naverSource, "originalLink6", "title6", startPlusOneAt.plusMillis(1), "summary6");
+    List<NewsArticle> articles = List.of(newsArticle1, newsArticle2, newsArticle3, newsArticle4,
+        newsArticle5, newsArticle6);
+    newsArticleRepository.saveAll(articles);
+  }
+
+  @AfterEach
+  void tearDown() {
+    articleInterestRepository.deleteAll();
+    commentLikeRepository.deleteAll();
+    commentRepository.deleteAll();
+    articleViewRepository.deleteAll();
+    newsArticleRepository.deleteAll();
+    userRepository.deleteAll();
+    interestRepository.deleteAll();
   }
 
   @Test
@@ -258,5 +324,120 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
         .andExpect(jsonPath("$.code").value("ARTICLE_NOT_FOUND"))
         .andExpect(jsonPath("$.status").value("404"))
         .andExpect(jsonPath("$.details.articleId").value(articleId.toString()));
+  }
+
+  @Test
+  @DisplayName("정해진 기간이 주어질 때 데이터를 확인하고 유실된 데이터가 없으면 빈 배열을 반환한다")
+  void shouldReturnEmptyList_whenNoMissingDataInPeriod() throws Exception {
+    // given
+    LocalDateTime start = LocalDate.now().minusDays(3).atStartOfDay();
+    LocalDateTime end = LocalDate.now().minusDays(1).atStartOfDay();
+
+    // when & then
+    mockMvc.perform(get(ARTICLES_BASE_URL + "/restore")
+            .param("from", start.toString())
+            .param("to", end.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$", hasSize(0)));
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  @DisplayName("정해진 기간이 주어질 때 그 안의 데이터를 확인하고 유실된 데이터를 복구해서 결과를 반환한다")
+  void shouldReturnRestoredArticles_whenPeriodIsGiven() throws Exception {
+    // given
+    ZoneId zone = ZoneId.of("Asia/Seoul");
+    LocalDate nowDateMinusTen = LocalDate.now(zone).minusDays(10);
+    LocalDateTime start = nowDateMinusTen.atStartOfDay();
+    LocalDateTime end = nowDateMinusTen.plusDays(7).atStartOfDay();
+    Map<LocalDate, List<NewsArticle>> articlesByDate = compressAndS3Upload(start, end);
+    List<NewsArticle> deletedArticles = deleteArticles(articlesByDate);
+
+    // when
+    MvcResult result = mockMvc.perform(get(ARTICLES_BASE_URL + "/restore")
+            .param("from", start.toString())
+            .param("to", end.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.[0].restoredArticleCount").value(3))
+        .andReturn();
+
+    // then
+    String content = result.getResponse().getContentAsString();
+    List<String> extractIds = JsonPath.read(content, "$.[0].restoredArticleIds");
+    List<UUID> ids = extractIds.stream().map(UUID::fromString).toList();
+    List<NewsArticle> restoredArticles = newsArticleRepository.findAllById(ids);
+
+    assertThat(restoredArticles)
+        .extracting("originalLink", "title", "publishedAt", "summary")
+        .containsExactlyInAnyOrderElementsOf(
+            deletedArticles.stream()
+                .map(
+                    a -> tuple(a.getOriginalLink(),
+                        a.getTitle(), a.getPublishedAt(), a.getSummary()))
+                .toList()
+        );
+  }
+
+  private List<NewsArticle> deleteArticles(Map<LocalDate, List<NewsArticle>> articlesByDate) {
+    List<NewsArticle> deletedArticles = new ArrayList<>();
+    List<NewsArticle> toDeleteTotal = new ArrayList<>();
+    articlesByDate.forEach((date, articles) -> {
+      if (articles != null && !articles.isEmpty()) {
+        NewsArticle deleteTarget = articles.remove(0);
+        toDeleteTotal.add(deleteTarget);
+        deletedArticles.add(deleteTarget);
+      }
+    });
+    newsArticleRepository.deleteAll(toDeleteTotal);
+
+    return deletedArticles;
+  }
+
+  private Map<LocalDate, List<NewsArticle>> compressAndS3Upload(LocalDateTime start,
+      LocalDateTime end) {
+    ZoneId zone = ZoneId.of("Asia/Seoul");
+    Instant startAt = start.atZone(zone).toInstant();
+    Instant endAt = end.atZone(zone).toInstant().minus(1, ChronoUnit.MICROS);
+    Map<LocalDate, List<NewsArticle>> articlesByDate = newsArticleRepository
+        .findAllByPublishedAtBetween(startAt, endAt)
+        .stream()
+        .collect(Collectors.groupingBy(
+            article -> article.getPublishedAt().atZone(zone).toLocalDate(),
+            Collectors.mapping(article -> article, Collectors.toList())
+        ));
+
+    String bucket = awsProperties.getS3().getBucket();
+    articlesByDate.forEach((date, articles) -> {
+      String key =
+          "test/backup-integration/test-backup-" + date.toString() +
+              System.currentTimeMillis() + ".jsonl.gz";
+      UUID jobId = articleBackupJobLogService.createBackupJob(date, bucket, key);
+      articleBackupJobLogService.recordSuccess(jobId, articles.size());
+
+      List<ArticleBackup> backups = articles.stream().map(articleMapper::toBackupDto).toList();
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      try (GZIPOutputStream gzos = new GZIPOutputStream(baos);
+          BufferedWriter writer = new BufferedWriter(
+              new OutputStreamWriter(gzos, StandardCharsets.UTF_8))) {
+
+        for (ArticleBackup backup : backups) {
+          String jsonLine = backupObjectMapper.writeValueAsString(backup);
+          writer.write(jsonLine);
+          writer.newLine(); // JSONL의 핵심: 줄바꿈
+        }
+        writer.flush();
+      } catch (Exception e) {
+        throw new RuntimeException("메모리 압축 중 에러", e);
+      }
+
+      byte[] compressedData = baos.toByteArray();
+
+      s3Client.putObject(req -> req.bucket(bucket).key(key)
+              .contentEncoding("gzip").contentType("application/x-jsonlines"),
+          RequestBody.fromBytes(compressedData));
+    });
+
+    return articlesByDate;
   }
 }
