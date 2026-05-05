@@ -415,7 +415,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
 
     // when
-    userActivityService.updateArticleViewSummary(userId, summary);
+    userActivityService.updateArticleViewSummary(userId, summary, true);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -450,7 +450,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
     // when
-    userActivityService.updateArticleViewSummary(userId, summary);
+    userActivityService.updateArticleViewSummary(userId, summary, true);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -1412,7 +1412,7 @@ class UserActivityServiceTest {
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
-    then(userActivityRepository).should().incrementArticleCommentCount(commentId, -1);
+    then(userActivityRepository).should().incrementArticleCommentCount(articleId, -1);
   }
 
   @Test
@@ -1445,7 +1445,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
 
     // when
-    userActivityService.updateArticleViewSummary(userId, summary);
+    userActivityService.updateArticleViewSummary(userId, summary, true);
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));

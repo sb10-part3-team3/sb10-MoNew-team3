@@ -56,9 +56,8 @@ public class ArticleViewService {
           return createFirstViewSafely(article, user);
         });
 
-    if (isFirstView.get()){
-      eventPublisher.publishEvent(ArticleViewEvent.from(articleView));
-    }
+
+    eventPublisher.publishEvent(ArticleViewEvent.from(articleView, isFirstView.get()));
     log.debug("기사 뷰 등록 성공 - articleId={}, requestUserId={}, articleViewId={}",
         articleId, requestUserId, articleView.getId());
 

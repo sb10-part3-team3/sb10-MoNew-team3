@@ -229,7 +229,8 @@ class UserActivityEventListenerTest {
         publishedAt,
         "기사 요약",
         3,
-        100
+        100,
+        true
     );
 
     ArticleViewSummary summary = new ArticleViewSummary(
@@ -254,7 +255,7 @@ class UserActivityEventListenerTest {
     // then
     then(userActivityMapper).should(times(1)).toArticleViewSummary(event);
     then(userActivityService).should(times(1))
-        .updateArticleViewSummary(userId, summary);
+        .updateArticleViewSummary(userId, summary, true);
   }
 
   @Test

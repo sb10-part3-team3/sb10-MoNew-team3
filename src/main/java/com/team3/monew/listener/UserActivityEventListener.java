@@ -103,7 +103,10 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleArticleViewEvent(ArticleViewEvent event) {
-    userActivityService.updateArticleViewSummary(event.userId(), userActivityMapper.toArticleViewSummary(event));
+    userActivityService.updateArticleViewSummary(
+        event.userId(),
+        userActivityMapper.toArticleViewSummary(event),
+        event.isFirstView());
   }
 
   @Async("userActivityTaskExecutor")
