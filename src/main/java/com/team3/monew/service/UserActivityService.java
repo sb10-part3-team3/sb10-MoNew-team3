@@ -100,8 +100,10 @@ public class UserActivityService {
 
     userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
     userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
-    userActivityDocument.addCommentLikeSummary(commentLikeSummary);
-    userActivityRepository.save(userActivityDocument);
+    if (!Objects.equals(commentLikeSummary.commentUserId(), userId)) {
+      userActivityDocument.addCommentLikeSummary(commentLikeSummary);
+      userActivityRepository.save(userActivityDocument);
+    }
     log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
@@ -234,28 +236,22 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 댓글 수정 성공: userId={} commentId={}", userId, commentId);
   }
 
-  public void removeCommentLikeSummary(UUID userId, UUID commentLikeId) {
+  public void removeCommentLikeSummary(UUID userId, UUID commentLikeId, UUID commentId) {
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 시작: userId={} commentLikeId={}", userId, commentLikeId);
+
+    userActivityRepository.incrementCommentLikeCount(commentId, -1);
+    userActivityRepository.incrementCommentLikeCountInLikes(commentId, -1);
+
     UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
         .orElse(null);
     if (userActivityDocument == null) {
       log.debug("사용자 활동 내역 문서가 이미 없어 좋아요 삭제를 건너뜁니다: userId={} commentLikeId={}", userId, commentLikeId);
       return;
     }
-    userActivityDocument.getCommentLikes().stream()
-        .filter(cl -> Objects.equals(cl.id(), commentLikeId))
-        .findFirst()
-        .ifPresent(commentLikeSummary -> {
-          UUID commentId = commentLikeSummary.commentId();
 
-          userActivityDocument.removeCommentLikeSummary(commentLikeId);
-          userActivityRepository.save(userActivityDocument);
+    userActivityDocument.removeCommentLikeSummary(commentLikeId);
+    userActivityRepository.save(userActivityDocument);
 
-          // 댓글 작성자 문서의 likeCount 감소
-          userActivityRepository.incrementCommentLikeCount(commentId, -1);
-          // 다른 유저 문서의 commentLikeCount 감소
-          userActivityRepository.incrementCommentLikeCountInLikes(commentId, -1);
-        });
     log.debug("사용자 활동 내역 댓글 좋아요 삭제 성공: userId={} commentLikeId={}", userId, commentLikeId);
   }
 

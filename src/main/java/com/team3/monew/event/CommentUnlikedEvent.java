@@ -4,7 +4,8 @@ import java.util.UUID;
 
 public record CommentUnlikedEvent(
     UUID actorUserId,
-    UUID commentLikeId
+    UUID commentLikeId,
+    UUID commentId
 ) {
 
 }
