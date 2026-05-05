@@ -15,9 +15,10 @@ public record ArticleViewEvent(
     Instant articlePublishedDate,
     String articleSummary,
     Integer articleCommentCount,
-    Integer articleViewCount
+    Integer articleViewCount,
+    Boolean isFirstView
 ) {
-  public static ArticleViewEvent from(ArticleView articleView) {
+  public static ArticleViewEvent from(ArticleView articleView, Boolean isFirstView) {
     return new ArticleViewEvent(
         articleView.getId(),
         articleView.getUser().getId(),
@@ -29,7 +30,8 @@ public record ArticleViewEvent(
         articleView.getArticle().getPublishedAt(),
         articleView.getArticle().getSummary(),
         articleView.getArticle().getCommentCount(),
-        articleView.getArticle().getViewCount()
+        articleView.getArticle().getViewCount(),
+        isFirstView
     );
   }
 }

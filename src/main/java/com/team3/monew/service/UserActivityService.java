@@ -110,13 +110,15 @@ public class UserActivityService {
       maxAttempts = 3,                                    // 최초 1회 + 재시도 2회
       backoff = @Backoff(delay = 100)                     // 재시도 전 100ms 대기
   )
-  public void updateArticleViewSummary(UUID userId, ArticleViewSummary articleViewSummary) {
+  public void updateArticleViewSummary(UUID userId, ArticleViewSummary articleViewSummary, Boolean isFirstView) {
     log.debug("사용자 활동 내역 기사 뷰 업데이트 시작: userId={} articleViewId={}", userId, articleViewSummary.id());
     UserActivityDocument userActivityDocument = getOrCreate(userId);
 
     userActivityDocument.addArticleViewSummary(articleViewSummary);
     userActivityRepository.save(userActivityDocument);
-    userActivityRepository.incrementArticleViewCount(articleViewSummary.articleId(), 1);
+    if (isFirstView) {
+      userActivityRepository.incrementArticleViewCount(articleViewSummary.articleId(), 1);
+    }
     log.debug("사용자 활동 내역 기사 뷰 업데이트 성공: userId={} articleViewId={}", userId, articleViewSummary.id());
   }
 
