@@ -1,12 +1,14 @@
 package com.team3.monew.service;
 
 import com.team3.monew.dto.article.ArticleBackup;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.base.BaseEntity;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -27,7 +29,7 @@ public class ArticleBatchService {
   private final ArticleBackupJobLogService articleBackupJobLogService;
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public List<UUID> saveRestoredArticlesAndLog(List<ArticleBackup> backups,
+  public ArticleRestoreResultDto saveRestoredArticlesAndLog(List<ArticleBackup> backups,
       UUID restoreJobId) {
     Map<NewsSourceType, NewsSource> sourceMap = newsSourceRepository.findAll().stream()
         .collect(Collectors.toMap(NewsSource::getSourceType, source -> source));
@@ -41,7 +43,9 @@ public class ArticleBatchService {
             backup.summary()
         )).toList();
     newsArticleRepository.saveAll(articles);
-    articleBackupJobLogService.recordRestoreSuccess(restoreJobId, articles.size());
-    return articles.stream().map(BaseEntity::getId).toList();
+    Instant finishedAt = articleBackupJobLogService
+        .recordRestoreSuccess(restoreJobId, articles.size());
+    return new ArticleRestoreResultDto(finishedAt,
+        articles.stream().map(BaseEntity::getId).toList(), articles.size());
   }
 }

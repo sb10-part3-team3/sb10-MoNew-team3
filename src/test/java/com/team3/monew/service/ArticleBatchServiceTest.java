@@ -1,12 +1,13 @@
 package com.team3.monew.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
 import com.team3.monew.dto.article.ArticleBackup;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
@@ -69,12 +70,13 @@ class ArticleBatchServiceTest {
     });
 
     // when
-    List<UUID> resultIds = articleBatchService.saveRestoredArticlesAndLog(backups, jobId);
+    ArticleRestoreResultDto result = articleBatchService.saveRestoredArticlesAndLog(backups, jobId);
 
     // then
-    then(articleBackupJobLogService).should().recordRestoreSuccess(jobId, resultIds.size());
-    assertEquals(backups.size(), resultIds.size());
-    assertThat(resultIds)
+    then(articleBackupJobLogService).should()
+        .recordRestoreSuccess(jobId, (int) result.restoredArticleCount());
+    assertEquals(backups.size(), result.restoredArticleCount());
+    assertThat(result.restoredArticleIds())
         .hasSize(2)
         .containsExactly(articleId1, articleId2);
   }

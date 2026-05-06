@@ -360,13 +360,13 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
             .param("from", start.toString())
             .param("to", end.toString()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.[0].restoredArticleCount").value(3))
+        .andExpect(jsonPath("$.length()").value(3))
         .andReturn();
 
     // then
     String content = result.getResponse().getContentAsString();
-    List<String> extractIds = JsonPath.read(content, "$.[0].restoredArticleIds");
-    List<UUID> ids = extractIds.stream().map(UUID::fromString).toList();
+    List<String> allExtractIds = JsonPath.read(content, "$.[*].restoredArticleIds[*]");
+    List<UUID> ids = allExtractIds.stream().map(UUID::fromString).toList();
     List<NewsArticle> restoredArticles = newsArticleRepository.findAllById(ids);
 
     assertThat(restoredArticles)

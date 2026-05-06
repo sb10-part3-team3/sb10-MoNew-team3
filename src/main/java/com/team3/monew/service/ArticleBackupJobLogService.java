@@ -79,13 +79,14 @@ public class ArticleBackupJobLogService {
   }
 
   @Transactional
-  public void recordRestoreSuccess(UUID restoreJobId, int articleCount) {
+  public Instant recordRestoreSuccess(UUID restoreJobId, int articleCount) {
     ArticleBackupJob restoreJob = getArticleBackupJobOrThrow(restoreJobId)
         .setStatus(BackupJobStatus.SUCCESS)
         .setFinishedAt(Instant.now())
         .setArticleCount(articleCount);
     articleBackupJobRepository.save(restoreJob);
     log.debug("RestoreJob 성공 - localDate={}", restoreJob.getBackupDate());
+    return restoreJob.getFinishedAt();
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)

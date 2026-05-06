@@ -640,6 +640,8 @@ class ArticleServiceTest {
       ArticleBackup mock = mock(ArticleBackup.class);
       willReturn(List.of(mock)).given(articleService)
           .decompressGzipAndReturnArticlesToRestore(any(), anyLong(), any());
+      given(articleBatchService.saveRestoredArticlesAndLog(any(), any()))
+          .willReturn(new ArticleRestoreResultDto(Instant.now(), List.of(UUID.randomUUID()), 1));
 
       // when
       articleService.restoreArticle(from, to);
@@ -746,8 +748,8 @@ class ArticleServiceTest {
           .willReturn(CompletableFuture.completedFuture(successStream2));
 
       given(articleBatchService.saveRestoredArticlesAndLog(any(), any()))
-          .willReturn(List.of(UUID.randomUUID()))
-          .willReturn(List.of(UUID.randomUUID()));
+          .willReturn(new ArticleRestoreResultDto(Instant.now(), List.of(UUID.randomUUID()), 1))
+          .willReturn(new ArticleRestoreResultDto(Instant.now(), List.of(UUID.randomUUID()), 1));
 
       // when
       List<ArticleRestoreResultDto> actual = articleService.restoreArticle(from, to);

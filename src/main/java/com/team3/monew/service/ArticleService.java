@@ -297,8 +297,8 @@ public class ArticleService {
       return List.of();
     }
 
-    // 모두 복구된 Id들
-    List<UUID> allRestoredIds = new ArrayList<>();
+    // 모두 복구된 결과물
+    List<ArticleRestoreResultDto> results = new ArrayList<>();
     for (var entry : articlesToRestoreByDate.entrySet()) {
       LocalDate date = entry.getKey();
       List<ArticleBackup> backups = entry.getValue();
@@ -310,9 +310,9 @@ public class ArticleService {
 
       try {
         // 백업된 데이터 -> NewsArticle 변환 및 저장
-        List<UUID> articleIds = articleBatchService
+        ArticleRestoreResultDto resultDto = articleBatchService
             .saveRestoredArticlesAndLog(backups, restoreJobId);
-        allRestoredIds.addAll(articleIds);
+        results.add(resultDto);
       } catch (Exception e) {
         log.error("{} 날짜 저장 실패", date, e);
         articleBackupJobLogService.recordRestoreFailed(restoreJobId,
@@ -321,9 +321,10 @@ public class ArticleService {
     }
 
     log.info("뉴스기사 복구 성공 - restoredArticleCount={}, from={}, to={}",
-        allRestoredIds.size(), from.toLocalDate(), to.toLocalDate());
-    return List.of(
-        new ArticleRestoreResultDto(Instant.now(), allRestoredIds, allRestoredIds.size()));
+        results.isEmpty() ? 0 : results.stream()
+            .mapToLong(ArticleRestoreResultDto::restoredArticleCount).sum()
+        , from.toLocalDate(), to.toLocalDate());
+    return results;
   }
 
   private ArticleCursor parseCursor(ArticleSearchRequest request) {
