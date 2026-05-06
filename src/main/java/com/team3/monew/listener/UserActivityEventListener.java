@@ -3,7 +3,7 @@ package com.team3.monew.listener;
 import com.team3.monew.event.ArticleDeletedEvent;
 import com.team3.monew.event.ArticleViewEvent;
 import com.team3.monew.event.CommentDeletedEvent;
-import com.team3.monew.event.CommentLikedEvent;
+import com.team3.monew.event.CommentLikedActivityEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.event.CommentUpdatedEvent;
@@ -88,7 +88,7 @@ public class UserActivityEventListener {
       maxAttempts = 3,
       backoff = @Backoff(delay = 1000)
   )
-  public void handleCommentLikedEvent(CommentLikedEvent event) {
+  public void handleCommentLikedEvent(CommentLikedActivityEvent event) {
     userActivityService.updateCommentLikeSummary(event.actorUserId(), userActivityMapper.toCommentLikeSummary(event));
   }
 
@@ -103,7 +103,10 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleArticleViewEvent(ArticleViewEvent event) {
-    userActivityService.updateArticleViewSummary(event.userId(), userActivityMapper.toArticleViewSummary(event));
+    userActivityService.updateArticleViewSummary(
+        event.userId(),
+        userActivityMapper.toArticleViewSummary(event),
+        event.isFirstView());
   }
 
   @Async("userActivityTaskExecutor")
@@ -142,7 +145,13 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleCommentDeletedEvent(CommentDeletedEvent event) {
-    userActivityService.removeCommentSummary(event.userId(), event.commentId());
+    userActivityService.removeCommentSummary(
+        event.userId(),
+        event.commentId(),
+        event.articleId(),
+        event.isHardDelete(),
+        event.isFirstDelete()
+    );
   }
 
   @Async("userActivityTaskExecutor")
@@ -164,7 +173,7 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleCommentUnlikedEvent(CommentUnlikedEvent event) {
-    userActivityService.removeCommentLikeSummary(event.actorUserId(), event.commentLikeId());
+    userActivityService.removeCommentLikeSummary(event.actorUserId(), event.commentLikeId(), event.commentId());
   }
 
   @Async("userActivityTaskExecutor")
@@ -227,8 +236,8 @@ public class UserActivityEventListener {
   }
 
   @Recover
-  public void recover(Exception e, CommentLikedEvent event) {
-    log.error("사용자 활동 내역 CommentLiked Event 처리 실패: userId={} commentId={}", event.actorUserId(), event.commentId(), e);
+  public void recover(Exception e, CommentLikedActivityEvent event) {
+    log.error("사용자 활동 내역 CommentLikedActivity Event 처리 실패: userId={} commentId={}", event.actorUserId(), event.commentId(), e);
   }
 
   @Recover
