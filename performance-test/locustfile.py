@@ -28,7 +28,7 @@ except FileNotFoundError:
 class MonewUser(HttpUser):
   abstract = True
   wait_time = between(1, 2)
-  host = "http://localhost:80"
+  host = "http://localhost:8080"
 
   def on_start(self):
     # 유저마다 고유 ID 할당 (csv 랜덤 추출)
@@ -41,7 +41,7 @@ class MonewUser(HttpUser):
 # 실행할 태스크 조합
 class WebsiteUser(MonewUser):
   tasks = {
-    # NotificationTasks: 1,
+    NotificationTasks: 1,
     # 아래에 다른 도메인 태스크 추가
     # CommentTasks: 2
     InterestTasks: 1,
