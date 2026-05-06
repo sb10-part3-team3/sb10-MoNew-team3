@@ -5,7 +5,9 @@ import java.util.UUID;
 public record CommentDeletedEvent(
     UUID commentId,
     UUID userId,
-    UUID articleId
+    UUID articleId,
+    boolean isHardDelete,
+    boolean isFirstDelete
 ) {
 
 }

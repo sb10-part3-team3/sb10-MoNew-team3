@@ -145,7 +145,13 @@ public class UserActivityEventListener {
       backoff = @Backoff(delay = 1000)
   )
   public void handleCommentDeletedEvent(CommentDeletedEvent event) {
-    userActivityService.removeCommentSummary(event.userId(), event.commentId(), event.articleId());
+    userActivityService.removeCommentSummary(
+        event.userId(),
+        event.commentId(),
+        event.articleId(),
+        event.isHardDelete(),
+        event.isFirstDelete()
+    );
   }
 
   @Async("userActivityTaskExecutor")

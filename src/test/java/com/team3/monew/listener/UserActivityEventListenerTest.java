@@ -297,14 +297,14 @@ class UserActivityEventListenerTest {
     UUID userId = UUID.randomUUID();
     UUID articleId = UUID.randomUUID();
 
-    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId, articleId);
+    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId, articleId, true, true);
 
     // when
     userActivityEventListener.handleCommentDeletedEvent(event);
 
     // then
     then(userActivityService).should(times(1))
-        .removeCommentSummary(userId, commentId, articleId);
+        .removeCommentSummary(userId, commentId, articleId, true, true);
   }
 
   @Test

@@ -137,7 +137,9 @@ public class CommentService {
     eventPublisher.publishEvent(new CommentDeletedEvent(
         comment.getId(),
         comment.getUser().getId(),
-        comment.getArticle().getId())
+        comment.getArticle().getId(),
+        false,
+        comment.isDeleted())
     );
   }
 
@@ -161,7 +163,9 @@ public class CommentService {
     eventPublisher.publishEvent(new CommentDeletedEvent(
         comment.getId(),
         comment.getUser().getId(),
-        comment.getArticle().getId())
+        comment.getArticle().getId(),
+        true,
+        comment.isDeleted())
     );
   }
 

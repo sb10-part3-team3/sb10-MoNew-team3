@@ -179,22 +179,29 @@ public class UserActivityService {
     log.debug("사용자 활동 내역 삭제 성공: userId={}", userId);
   }
 
-  public void removeCommentSummary(UUID userId, UUID commentId, UUID articleId) {
+  public void removeCommentSummary(UUID userId, UUID commentId, UUID articleId, boolean isHardDelete, boolean isFirstDelete) {
     log.debug("사용자 활동 내역 댓글 삭제 시작: userId={} commentId={}", userId, commentId);
-    UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
-        .orElse(null);
-    if (userActivityDocument == null) {
-      log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
-      return;
-    }
-    userActivityDocument.removeCommentSummary(commentId);
-    userActivityRepository.save(userActivityDocument);
+    // 하드 삭제 시 최근 댓글, 다른 사람이 좋아요 한 댓글에서 삭제
+    if (isHardDelete) {
+      UserActivityDocument userActivityDocument = userActivityRepository.findById(userId)
+          .orElse(null);
+      if (userActivityDocument == null) {
+        log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
+        return;
+      }
+      userActivityDocument.removeCommentSummary(commentId);
+      userActivityRepository.save(userActivityDocument);
 
-    // 해당 댓글이 달린 기사의 댓글 수 감소
-    userActivityRepository.incrementArticleCommentCount(articleId, -1);
-    // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
-    userActivityRepository.removeCommentLikeSummaryByCommentId(commentId);
+      // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
+      userActivityRepository.removeCommentLikeSummaryByCommentId(commentId);
+    }
+
+    // 첫 소프트 or 하드 삭제 시 해당 댓글이 달린 기사의 댓글 수 감소
+    if (isFirstDelete){
+      userActivityRepository.incrementArticleCommentCount(articleId, -1);
+    }
     log.debug("사용자 활동 내역 댓글 삭제 성공: userId={} commentId={}", userId, commentId);
+
   }
 
   @Retryable(
@@ -246,7 +253,6 @@ public class UserActivityService {
     List<UserActivityDocument> userActivityDocuments =
         userActivityRepository.findAllByArticleViewsArticleId(articleId);
 
-    userActivityRepository.incrementArticleViewCount(articleId, -1);
     userActivityDocuments.forEach(userActivityDocument -> {
       userActivityDocument.removeArticleViewSummary(articleId);
       userActivityRepository.save(userActivityDocument);
