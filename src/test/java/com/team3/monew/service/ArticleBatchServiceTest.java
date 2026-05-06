@@ -1,10 +1,11 @@
 package com.team3.monew.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.mock;
 
 import com.team3.monew.dto.article.ArticleBackup;
 import com.team3.monew.dto.article.ArticleRestoreResultDto;
@@ -13,9 +14,12 @@ import com.team3.monew.entity.NewsSource;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -36,20 +40,27 @@ class ArticleBatchServiceTest {
   private NewsSourceRepository newsSourceRepository;
   @Mock
   private ArticleBackupJobLogService articleBackupJobLogService;
+  @Mock
+  private EntityManager em;
 
   @InjectMocks
   private ArticleBatchService articleBatchService;
+
+  private Map<NewsSourceType, UUID> sourceTypeIdMap;
 
   @Test
   @DisplayName("백업된 데이터가 들어오면 정제하고 DB에 저장 및 로그를 기록한다")
   void shouldSaveArticleAndRecordLog_whenBackupDateIsGiven() {
     // given
-    NewsSource naverSource = NewsSource.create(NewsSourceType.NAVER.name(), NewsSourceType.NAVER,
-        "baseUrl");
-    NewsSource chosunSource = NewsSource.create(NewsSourceType.CHOSUN.name(), NewsSourceType.CHOSUN,
-        "baseUrl");
-    List<NewsSource> sources = List.of(naverSource, chosunSource);
-    given(newsSourceRepository.findAll()).willReturn(sources);
+    UUID naverId = UUID.randomUUID();
+    UUID chosunId = UUID.randomUUID();
+    sourceTypeIdMap = new HashMap<>();
+    sourceTypeIdMap.put(NewsSourceType.NAVER, naverId);
+    sourceTypeIdMap.put(NewsSourceType.CHOSUN, chosunId);
+    ReflectionTestUtils.setField(articleBatchService, "sourceTypeIdMap", sourceTypeIdMap);
+
+    given(em.getReference(NewsSource.class, naverId)).willReturn(mock(NewsSource.class));
+    given(em.getReference(NewsSource.class, chosunId)).willReturn(mock(NewsSource.class));
 
     Instant time1 = Instant.now();
     Instant time2 = time1.plus(1, ChronoUnit.HOURS);

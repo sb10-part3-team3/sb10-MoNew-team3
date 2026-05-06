@@ -35,6 +35,7 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
 import com.team3.monew.repository.UserRepository;
 import com.team3.monew.service.ArticleBackupJobLogService;
+import com.team3.monew.service.ArticleBatchService;
 import com.team3.monew.support.IntegrationTestSupport;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -105,6 +106,8 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
   private ObjectMapper backupObjectMapper;
   @Autowired
   private ArticleBackupJobRepository articleBackupJobRepository;
+  @Autowired
+  private ArticleBatchService articleBatchService;
 
   @Autowired
   private MockMvc mockMvc;
