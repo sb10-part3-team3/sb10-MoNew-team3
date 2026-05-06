@@ -250,13 +250,9 @@ public class UserActivityService {
 
   public void removeArticleViewSummary(UUID articleId) {
     log.debug("사용자 활동 내역 기사 뷰 삭제 시작: articleId={}", articleId);
-    List<UserActivityDocument> userActivityDocuments =
-        userActivityRepository.findAllByArticleViewsArticleId(articleId);
-
-    userActivityDocuments.forEach(userActivityDocument -> {
-      userActivityDocument.removeArticleViewSummary(articleId);
-      userActivityRepository.save(userActivityDocument);
-    });
+    userActivityRepository.removeArticleViewSummaryByArticleId(articleId);
+    userActivityRepository.removeCommentSummaryByArticleId(articleId);
+    userActivityRepository.removeCommentLikeSummaryByArticleId(articleId);
     log.debug("사용자 활동 내역 기사 뷰 삭제 성공: articleId={}", articleId);
   }
 

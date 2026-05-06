@@ -56,4 +56,19 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
   @Query("{ 'commentLikes.commentId': { $in: ?0 } }")
   @Update("{ '$pull': { 'commentLikes': { 'commentId': { $in: ?0 } } } }")
   void removeCommentLikeSummariesByCommentIds(List<UUID> commentIds);
+
+  // articleViews에서 해당 기사 항목 일괄 제거
+  @Query("{ 'articleViews.articleId': ?0 }")
+  @Update("{ '$pull': { 'articleViews': { 'articleId': ?0 } } }")
+  void removeArticleViewSummaryByArticleId(UUID articleId);
+
+  // comments에서 해당 기사 댓글 일괄 제거
+  @Query("{ 'comments.articleId': ?0 }")
+  @Update("{ '$pull': { 'comments': { 'articleId': ?0 } } }")
+  void removeCommentSummaryByArticleId(UUID articleId);
+
+  // commentLikes에서 해당 기사 댓글 좋아요 일괄 제거
+  @Query("{ 'commentLikes.articleId': ?0 }")
+  @Update("{ '$pull': { 'commentLikes': { 'articleId': ?0 } } }")
+  void removeCommentLikeSummaryByArticleId(UUID articleId);
 }
