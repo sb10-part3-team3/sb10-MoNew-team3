@@ -1424,8 +1424,8 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("하드 삭제 시 문서가 없으면 아무 작업도 하지 않습니다.")
-  void shouldDoNothing_whenUserActivityNotFoundOnHardDelete() {
+  @DisplayName("하드 삭제 시 문서가 없으면 save는 하지 않고 좋아요 삭제와 댓글 수 감소는 수행합니다.")
+  void shouldSkipSaveButStillRemoveLikeAndDecrementCount_whenUserActivityNotFoundOnHardDelete() {
     // given
     UUID commentId = UUID.randomUUID();
     UUID articleId = UUID.randomUUID();
@@ -1437,7 +1437,7 @@ class UserActivityServiceTest {
 
     // then
     then(userActivityRepository).should(never()).save(any());
-    then(userActivityRepository).should(never()).removeCommentLikeSummaryByCommentId(any());
-    then(userActivityRepository).should(never()).incrementArticleCommentCount(any(), anyInt());
+    then(userActivityRepository).should().removeCommentLikeSummaryByCommentId(commentId);
+    then(userActivityRepository).should().incrementArticleCommentCount(articleId, -1);
   }
 }
