@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -639,7 +639,7 @@ class ArticleServiceTest {
           .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
       ArticleBackup mock = mock(ArticleBackup.class);
       willReturn(List.of(mock)).given(articleService)
-          .decompressGzipAndReturnArticlesToRestore(any(), anyInt(), any());
+          .decompressGzipAndReturnArticlesToRestore(any(), anyLong(), any());
 
       // when
       articleService.restoreArticle(from, to);
@@ -688,7 +688,7 @@ class ArticleServiceTest {
           .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
       ArticleBackup mock = mock(ArticleBackup.class);
       willReturn(List.of(mock)).given(articleService)
-          .decompressGzipAndReturnArticlesToRestore(any(), anyInt(), any());
+          .decompressGzipAndReturnArticlesToRestore(any(), anyLong(), any());
       given(articleBatchService.saveRestoredArticlesAndLog(anyList(), any()))
           .willThrow(new RuntimeException("저장 에러"));
 
