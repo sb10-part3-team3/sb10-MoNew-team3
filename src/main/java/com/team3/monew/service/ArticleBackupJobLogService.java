@@ -62,7 +62,7 @@ public class ArticleBackupJobLogService {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public Map<LocalDate, UUID> createRestoreJobAll(Set<LocalDate> localDates) {
-    Map<LocalDate, UUID> retoreJobs = new HashMap<>();
+    Map<LocalDate, UUID> restoreJobs = new HashMap<>();
     List<ArticleBackupJob> jobs = new ArrayList<>();
 
     localDates.forEach(localDate -> {
@@ -72,10 +72,10 @@ public class ArticleBackupJobLogService {
       jobs.add(backupJob);
     });
     articleBackupJobRepository.saveAll(jobs);
-    jobs.forEach(job -> retoreJobs.put(job.getBackupDate(), job.getId()));
+    jobs.forEach(job -> restoreJobs.put(job.getBackupDate(), job.getId()));
 
     log.debug("RestoreJob {}개 생성", jobs.size());
-    return retoreJobs;
+    return restoreJobs;
   }
 
   @Transactional

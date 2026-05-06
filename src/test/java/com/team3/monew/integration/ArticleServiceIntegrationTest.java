@@ -73,7 +73,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Tag("integration")
+@Tag("external-api")
 @TestPropertySource(locations = "file:.env")
 public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
 
@@ -401,7 +401,7 @@ public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
     Instant startAt = start.atZone(zone).toInstant();
     Instant endAt = end.atZone(zone).toInstant();
     Map<LocalDate, List<NewsArticle>> articlesByDate = newsArticleRepository
-        .indAllByPublishedAtGreaterThanEqualAndPublishedAtLessThan(startAt, endAt)
+        .findAllByPublishedAtGreaterThanEqualAndPublishedAtLessThan(startAt, endAt)
         .stream()
         .collect(Collectors.groupingBy(
             article -> article.getPublishedAt().atZone(zone).toLocalDate(),

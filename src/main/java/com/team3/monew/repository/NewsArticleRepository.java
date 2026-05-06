@@ -71,7 +71,7 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
 
     LocalDate getLocalDate();
 
-    Integer getCount();
+    Long getCount();
   }
 
   @Query(value = """
@@ -101,7 +101,7 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticle, UUID>,
       WHERE a.publishedAt >= :startAt
         AND a.publishedAt  < :endAt
       """)
-  List<NewsArticle> indAllByPublishedAtGreaterThanEqualAndPublishedAtLessThan(
+  List<NewsArticle> findAllByPublishedAtGreaterThanEqualAndPublishedAtLessThan(
       @Param("startAt") Instant startAt,
       @Param("endAt") Instant endAt);
 

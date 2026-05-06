@@ -73,7 +73,7 @@ public class AsyncConfig implements AsyncConfigurer {
     int processors = Runtime.getRuntime().availableProcessors();    // 이용 가능한 프로세서 수
 
     int coreSize = Math.max(3, processors / 2);
-    executor.setCorePoolSize(coreSize);                       // 기본 3개 미만
+    executor.setCorePoolSize(coreSize);
     executor.setMaxPoolSize(Math.max(coreSize, processors));  // core 이상 보장
     executor.setQueueCapacity(30);                            // 큐 대기 30
     executor.setThreadNamePrefix("s3-decompress-");           // 스레드 이름

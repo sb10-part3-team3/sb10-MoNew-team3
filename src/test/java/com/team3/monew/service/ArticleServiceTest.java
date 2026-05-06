@@ -770,9 +770,9 @@ class ArticleServiceTest {
     static class TestArticleCountInfo implements ArticleCountInfo {
 
       private final LocalDate date;
-      private final int count;
+      private final long count;
 
-      public TestArticleCountInfo(LocalDate date, int count) {
+      public TestArticleCountInfo(LocalDate date, long count) {
         this.date = date;
         this.count = count;
       }
@@ -783,7 +783,7 @@ class ArticleServiceTest {
       }
 
       @Override
-      public Integer getCount() {
+      public Long getCount() {
         return count;
       }
     }

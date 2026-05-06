@@ -189,10 +189,9 @@ public class ArticleService {
         .toInstant();   // To날의 다음날 시작지점(미만)
 
     // DB에 저장된 날짜별 기사 개수
-    Map<LocalDate, Integer> countByDate = newsArticleRepository
+    Map<LocalDate, Long> countByDate = newsArticleRepository
         .countNewsArticlesByPublishDate(startAt, endAt).stream()
         .collect(Collectors.toMap(ArticleCountInfo::getLocalDate, ArticleCountInfo::getCount));
-    Set<LocalDate> dates = countByDate.keySet();
 
     // 날짜별 기사 개수와 저장된 백업 기사개수가 다른 복구해야할 항목들
     List<ArticleBackupJob> jobsToRestore = articleBackupJobRepository.findAllByBackupDateBetweenAndJobTypeAndStatus(
@@ -200,7 +199,7 @@ public class ArticleService {
             BackupJobType.ARTICLE_DAILY_BACKUP, BackupJobStatus.SUCCESS)
         .stream()
         .filter(abj -> {
-          Integer actualCount = countByDate.getOrDefault(abj.getBackupDate(), 0);
+          Long actualCount = countByDate.getOrDefault(abj.getBackupDate(), 0L);
           return actualCount < abj.getArticleCount();
         })
         .toList();
@@ -211,13 +210,13 @@ public class ArticleService {
     }
 
     // 날짜별 복구해야하는 기사 개수
-    Map<LocalDate, Integer> articleCountToRestoreByDate = jobsToRestore.stream()
+    Map<LocalDate, Long> articleCountToRestoreByDate = jobsToRestore.stream()
         .collect(Collectors.toMap(
             ArticleBackupJob::getBackupDate,
             abj -> {
               int backupCount = abj.getArticleCount(); // 백업된 데이터 개수
-              int DBCount = countByDate.getOrDefault(abj.getBackupDate(), 0); // 실제 가지고 있는 데이터 개수
-              return backupCount - DBCount;
+              long dbCount = countByDate.getOrDefault(abj.getBackupDate(), 0L); // 실제 가지고 있는 데이터 개수
+              return backupCount - dbCount;
             }
         ));
     Map<LocalDate, UUID> restoreJobIdsByDate = articleBackupJobLogService
@@ -247,15 +246,25 @@ public class ArticleService {
                       AsyncResponseTransformer.toBlockingInputStream())   // InputStream 형
                   .thenApplyAsync(inputStream -> {
                     LocalDate localDate = job.getBackupDate();
-                    int limit = articleCountToRestoreByDate.getOrDefault(localDate, 0);
+                    long limit = articleCountToRestoreByDate.getOrDefault(localDate, 0L);
                     Set<String> existingLinks = existingLinksByDate.getOrDefault(localDate,
                         Set.of());
-                    return decompressGzipAndReturnArticlesToRestore( // 압축해제 및 List반환
+                    List<ArticleBackup> articleBackups = decompressGzipAndReturnArticlesToRestore( // 압축해제 및 List반환
                         inputStream, limit, existingLinks);
+
+                    if (articleBackups.isEmpty()) {
+                      // 복구 대상이 없거나 모두 이미 존재 -> SUCCESS(0)으로 종료
+                      log.info("뉴스기사 복구 성공 - restoredArticleCount=0");
+                      articleBackupJobLogService.recordRestoreSuccess(
+                          restoreJobIdsByDate.get(job.getBackupDate()), 0);
+                    }
+                    return articleBackups;
                   }, decompressTaskExecutor);
 
           return Mono.fromFuture(future)
+              // 성공시 map만
               .map(articles -> Map.entry(job.getBackupDate(), articles))
+              // 실패시 onErrorResume
               .onErrorResume(e -> {
                 String errorMessage;
                 if (e instanceof IOException || e.getCause() instanceof IOException) {
@@ -288,6 +297,7 @@ public class ArticleService {
       return List.of();
     }
 
+    // 모두 복구된 Id들
     List<UUID> allRestoredIds = new ArrayList<>();
     for (var entry : articlesToRestoreByDate.entrySet()) {
       LocalDate date = entry.getKey();
@@ -299,6 +309,7 @@ public class ArticleService {
       UUID restoreJobId = restoreJobIdsByDate.get(date);
 
       try {
+        // 백업된 데이터 -> NewsArticle 변환 및 저장
         List<UUID> articleIds = articleBatchService
             .saveRestoredArticlesAndLog(backups, restoreJobId);
         allRestoredIds.addAll(articleIds);
@@ -358,7 +369,7 @@ public class ArticleService {
   }
 
   List<ArticleBackup> decompressGzipAndReturnArticlesToRestore(
-      InputStream stream, int limit, Set<String> existingLinks) {
+      InputStream stream, long limit, Set<String> existingLinks) {
     if (limit <= 0) {
       return List.of();
     }
