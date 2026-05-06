@@ -24,18 +24,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 import reactor.test.StepVerifier;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Tag("external-api")
-@EnabledIf(
-    expression =
-        "#{environment.getProperty('app.news.collector-mode') == 'reactive'}",
-    loadContext = true  // 환경 읽을려면 true해야함
-)
-@TestPropertySource(locations = "file:.env")
+@TestPropertySource(locations = "file:.env", properties = "app.news.collector-mode=reactive")
 class NewsCollectIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
