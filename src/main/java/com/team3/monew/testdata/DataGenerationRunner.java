@@ -42,7 +42,7 @@ public class DataGenerationRunner implements CommandLineRunner {
     List<User> generatedUsers = userGenerator.generate(10000, 1000); // 1만 명 생성, 1천 건씩 배치
     log.info("✅ 사용자 데이터 생성 완료");
 
-    List<Interest> generatedInterests = interestGenerator.generate(1000, 100);
+    List<Interest> generatedInterests = interestGenerator.generate(10000, 1000);
     log.info("✅ 관심사 데이터 생성 완료: {}건", generatedInterests.size());
 
     List<NewsArticle> generatedArticles = newsArticleGenerator.generate(10000, 1000);
