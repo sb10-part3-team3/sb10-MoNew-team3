@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 public class NewsArticleGenerator extends AbstractGenerator<NewsArticle> {
 
   private final NewsSourceRepository newsSourceRepository;
-  private List<NewsSource> sourcePool = new ArrayList<>();
+  private List<NewsSource> sourcePool = new ArrayList<>(); // 기사 생성에 사용할 뉴스 소스 목록
 
   public NewsArticleGenerator(
       JdbcTemplate jdbcTemplate,
@@ -49,8 +49,10 @@ public class NewsArticleGenerator extends AbstractGenerator<NewsArticle> {
   @Override
   protected Model<NewsArticle> getModel() {
     return Instancio.of(NewsArticle.class)
+        // NewsArticle은 NewsSource를 참조하므로 미리 준비된 sourcePool에서 매핑
         .supply(field(NewsArticle::getSource), () ->
             sourcePool.get(ThreadLocalRandom.current().nextInt(sourcePool.size())))
+        // original_link는 unique 제약이 있어 source baseUrl과 UUID를 조합해 생성
         .supply(field(NewsArticle::getOriginalLink), () -> {
           NewsSource source = sourcePool.get(ThreadLocalRandom.current().nextInt(sourcePool.size()));
           return source.getBaseUrl() + "/news/" + UUID.randomUUID();
@@ -105,6 +107,7 @@ public class NewsArticleGenerator extends AbstractGenerator<NewsArticle> {
 
   @Override
   public List<NewsArticle> generate(int totalSize, int chunkSize) {
+    // 뉴스 기사는 선행 데이터인 NewsSource가 필요하므로 sourcePool이 비어 있으면 먼저 로드
     if (sourcePool.isEmpty()) {
       List<NewsSource> sources = newsSourceRepository.findAll();
       if (sources.isEmpty()) {
