@@ -57,6 +57,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -75,6 +76,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 @ActiveProfiles("test")
 @Tag("external-api")
 @TestPropertySource(locations = "file:.env")
+@EnabledIfEnvironmentVariable(named = "ENV", matches = "dev")
 public class ArticleServiceIntegrationTest extends IntegrationTestSupport {
 
   @Autowired

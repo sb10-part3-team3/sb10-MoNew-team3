@@ -57,7 +57,7 @@ public class ArticleBackupJobLogService {
         .setFinishedAt(Instant.now())
         .setErrorMessage(message);
     articleBackupJobRepository.save(backupJob);
-    log.debug("BackupJob 실패 - localDate={}", backupJob.getBackupDate());
+    log.warn("BackupJob 실패 - localDate={}", backupJob.getBackupDate());
   }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -96,7 +96,7 @@ public class ArticleBackupJobLogService {
         .setFinishedAt(Instant.now())
         .setErrorMessage(message);
     articleBackupJobRepository.save(restoreJob);
-    log.debug("RestoreJob 실패 - localDate={}", restoreJob.getBackupDate());
+    log.warn("RestoreJob 실패 - localDate={}", restoreJob.getBackupDate());
   }
 
   private ArticleBackupJob getArticleBackupJobOrThrow(UUID backupJobId) {

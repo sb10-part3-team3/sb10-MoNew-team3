@@ -8,6 +8,8 @@ import com.team3.monew.entity.base.BaseEntity;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
+import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,21 +29,32 @@ public class ArticleBatchService {
   private final NewsArticleRepository newsArticleRepository;
   private final NewsSourceRepository newsSourceRepository;
   private final ArticleBackupJobLogService articleBackupJobLogService;
+  private final EntityManager em;
+  private Map<NewsSourceType, UUID> sourceTypeIdMap;
+
+  @PostConstruct
+  public void init() {
+    this.sourceTypeIdMap = newsSourceRepository.findAll().stream()
+        .collect(Collectors.toMap(NewsSource::getSourceType, NewsSource::getId));
+  }
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public ArticleRestoreResultDto saveRestoredArticlesAndLog(List<ArticleBackup> backups,
       UUID restoreJobId) {
-    Map<NewsSourceType, NewsSource> sourceMap = newsSourceRepository.findAll().stream()
-        .collect(Collectors.toMap(NewsSource::getSourceType, source -> source));
 
     List<NewsArticle> articles = backups.stream()
-        .map(backup -> NewsArticle.create(
-            sourceMap.get(backup.sourceType()),
-            backup.originalLink(),
-            backup.title(),
-            backup.publishedAt(),
-            backup.summary()
-        )).toList();
+        .map(backup -> {
+          UUID sourceId = sourceTypeIdMap.get(backup.sourceType());
+          NewsSource sourceProxy = em.getReference(NewsSource.class, sourceId); // 준영속 문제 해결
+
+          return NewsArticle.create(
+              sourceProxy,
+              backup.originalLink(),
+              backup.title(),
+              backup.publishedAt(),
+              backup.summary()
+          );
+        }).toList();
     newsArticleRepository.saveAll(articles);
     Instant finishedAt = articleBackupJobLogService
         .recordRestoreSuccess(restoreJobId, articles.size());
