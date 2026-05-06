@@ -1,6 +1,8 @@
 package com.team3.monew.testdata;
 
+import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.User;
+import com.team3.monew.testdata.generator.InterestGenerator;
 import com.team3.monew.testdata.generator.NotificationGenerator;
 import com.team3.monew.testdata.generator.UserGenerator;
 import java.util.List;
@@ -23,6 +25,7 @@ public class DataGenerationRunner implements CommandLineRunner {
   private final ApplicationContext context;
   private final UserGenerator userGenerator;
   private final NotificationGenerator notificationGenerator;
+  private final InterestGenerator interestGenerator;
 
   // private final로 제너레이트 추가
 
@@ -33,6 +36,9 @@ public class DataGenerationRunner implements CommandLineRunner {
     // 데이터 생성 순서 주의(의존 관계 고려)
     List<User> generatedUsers = userGenerator.generate(10000, 1000); // 1만 명 생성, 1천 건씩 배치
     log.info("✅ 사용자 데이터 생성 완료");
+
+    List<Interest> generatedInterests = interestGenerator.generate(1000, 100);
+    log.info("✅ 관심사 데이터 생성 완료: {}건", generatedInterests.size());
 
     notificationGenerator.setUsers(generatedUsers);
     notificationGenerator.generate(10000, 1000);
