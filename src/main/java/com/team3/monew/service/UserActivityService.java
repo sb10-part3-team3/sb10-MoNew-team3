@@ -187,10 +187,10 @@ public class UserActivityService {
           .orElse(null);
       if (userActivityDocument == null) {
         log.debug("사용자 활동 내역 문서가 이미 없어 댓글 삭제를 건너뜁니다: userId={} commentId={}", userId, commentId);
-        return;
+      } else {
+        userActivityDocument.removeCommentSummary(commentId);
+        userActivityRepository.save(userActivityDocument);
       }
-      userActivityDocument.removeCommentSummary(commentId);
-      userActivityRepository.save(userActivityDocument);
 
       // 삭제 처리하는 사용자가 쓴 댓글이 다른 사람의 좋아요 댓글에 있는 경우
       userActivityRepository.removeCommentLikeSummaryByCommentId(commentId);
@@ -345,7 +345,8 @@ public class UserActivityService {
   public void recoverUpdateArticleViewSummary(
       OptimisticLockingFailureException e,
       UUID userId,
-      ArticleViewSummary summary
+      ArticleViewSummary summary,
+      Boolean isFirstView
   ) {
     log.error("기사 뷰 요약 업데이트 최종 실패: userId={}, articleViewId={}",
         userId, summary.id(), e);
