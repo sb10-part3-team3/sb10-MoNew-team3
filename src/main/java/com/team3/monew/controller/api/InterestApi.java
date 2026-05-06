@@ -20,7 +20,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "Interest", description = "관심사 API")
+@Tag(name = "관심사 관리", description = "관심사 API")
 @RequestMapping("/api/interests")
 public interface InterestApi {
 
