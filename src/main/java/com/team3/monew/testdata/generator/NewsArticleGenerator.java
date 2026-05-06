@@ -52,11 +52,7 @@ public class NewsArticleGenerator extends AbstractGenerator<NewsArticle> {
         // NewsArticle은 NewsSource를 참조하므로 미리 준비된 sourcePool에서 매핑
         .supply(field(NewsArticle::getSource), () ->
             sourcePool.get(ThreadLocalRandom.current().nextInt(sourcePool.size())))
-        // original_link는 unique 제약이 있어 source baseUrl과 UUID를 조합해 생성
-        .supply(field(NewsArticle::getOriginalLink), () -> {
-          NewsSource source = sourcePool.get(ThreadLocalRandom.current().nextInt(sourcePool.size()));
-          return source.getBaseUrl() + "/news/" + UUID.randomUUID();
-        })
+        .ignore(field(NewsArticle::getOriginalLink)) // setValues()에서 source 기준으로 생성
         .supply(field(NewsArticle::getTitle), () -> {
           String title = faker().lorem().sentence(3, 6);
           return title.length() > 500 ? title.substring(0, 500) : title;
@@ -90,10 +86,11 @@ public class NewsArticleGenerator extends AbstractGenerator<NewsArticle> {
     long diffMillis = Instant.now().toEpochMilli() - createdAt.getTime();
     long randomOffset = ThreadLocalRandom.current().nextLong(0, diffMillis + 1);
     Timestamp updatedAt = new Timestamp(createdAt.getTime() + randomOffset);
+    String originalLink = article.getSource().getBaseUrl() + "/news/" + UUID.randomUUID();
 
     ps.setObject(1, article.getId());
     ps.setObject(2, article.getSource().getId());
-    ps.setString(3, article.getOriginalLink());
+    ps.setString(3, originalLink);
     ps.setString(4, article.getTitle());
     ps.setTimestamp(5, Timestamp.from(article.getPublishedAt()));
     ps.setString(6, article.getSummary());
