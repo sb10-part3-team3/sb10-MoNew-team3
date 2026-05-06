@@ -11,11 +11,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 import org.instancio.Instancio;
 import org.instancio.Model;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -117,34 +115,32 @@ public class CommentGenerator extends AbstractGenerator<Comment> {
   }
 
   private void syncArticleCommentCounts(List<Comment> comments) {
-    Map<UUID, Integer> countsByArticleId = comments.stream()
-        .collect(Collectors.groupingBy(
-            comment -> comment.getArticle().getId(),
-            Collectors.summingInt(comment -> 1)
-        ));
-
-    List<ArticleCommentCountRow> rows = articlePool.stream()
-        .map(article -> new ArticleCommentCountRow(
-            article.getId(),
-            countsByArticleId.getOrDefault(article.getId(), 0)
-        ))
+    List<UUID> affectedArticleIds = comments.stream()
+        .map(comment -> comment.getArticle().getId())
+        .distinct()
         .toList();
 
+    if (affectedArticleIds.isEmpty()) {
+      return;
+    }
+
     jdbcTemplate.batchUpdate(
-        "UPDATE news_articles SET comment_count = ? WHERE id = ?",
-        rows,
-        rows.size(),
-        (ps, row) -> {
-          ps.setInt(1, row.commentCount());
-          ps.setObject(2, row.articleId());
+        """
+            UPDATE news_articles
+            SET comment_count = (
+              SELECT COUNT(*)
+              FROM comments
+              WHERE article_id = ?
+                AND delete_status = 'ACTIVE'
+            )
+            WHERE id = ?
+            """,
+        affectedArticleIds,
+        affectedArticleIds.size(),
+        (ps, articleId) -> {
+          ps.setObject(1, articleId);
+          ps.setObject(2, articleId);
         }
     );
-  }
-
-  private record ArticleCommentCountRow(
-      UUID articleId,
-      int commentCount
-  ) {
-
   }
 }
