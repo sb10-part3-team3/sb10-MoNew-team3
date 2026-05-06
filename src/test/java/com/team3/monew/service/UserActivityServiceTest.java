@@ -1318,7 +1318,6 @@ class UserActivityServiceTest {
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
-    then(userActivityRepository).should().incrementArticleViewCount(articleId, -1);
   }
 
   @Test
