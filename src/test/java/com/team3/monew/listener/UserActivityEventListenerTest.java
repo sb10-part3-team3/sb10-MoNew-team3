@@ -295,15 +295,16 @@ class UserActivityEventListenerTest {
     // given
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
 
-    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId);
+    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId, articleId);
 
     // when
     userActivityEventListener.handleCommentDeletedEvent(event);
 
     // then
     then(userActivityService).should(times(1))
-        .removeCommentSummary(userId, commentId);
+        .removeCommentSummary(userId, commentId, articleId);
   }
 
   @Test

@@ -4,7 +4,8 @@ import java.util.UUID;
 
 public record CommentDeletedEvent(
     UUID commentId,
-    UUID userId
+    UUID userId,
+    UUID articleId
 ) {
 
 }

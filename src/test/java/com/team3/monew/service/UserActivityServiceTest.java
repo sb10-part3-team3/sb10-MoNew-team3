@@ -623,6 +623,7 @@ class UserActivityServiceTest {
   void shouldRemoveCommentSummary() {
     // given
     UUID commentId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
 
     UserActivityDocument document = UserActivityDocument.create(
         userId,
@@ -633,7 +634,7 @@ class UserActivityServiceTest {
 
     CommentSummary summary = new CommentSummary(
         commentId,
-        UUID.randomUUID(),
+        articleId,
         "기사 제목",
         userId,
         "tester",
@@ -647,7 +648,7 @@ class UserActivityServiceTest {
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(document));
 
     // when
-    userActivityService.removeCommentSummary(userId, commentId);
+    userActivityService.removeCommentSummary(userId, commentId, articleId);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
@@ -668,6 +669,7 @@ class UserActivityServiceTest {
     // given
     UUID commentId = UUID.randomUUID();
     UUID otherUserId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
 
     UserActivityDocument userActivityDocument = UserActivityDocument.create(
         userId,
@@ -678,7 +680,7 @@ class UserActivityServiceTest {
 
     CommentSummary commentSummary = new CommentSummary(
         commentId,
-        UUID.randomUUID(),
+        articleId,
         "기사 제목",
         userId,
         "tester",
@@ -698,7 +700,7 @@ class UserActivityServiceTest {
         UUID.randomUUID(),
         createdAt,
         commentId,         // 삭제될 댓글 ID
-        UUID.randomUUID(),
+        articleId,
         "기사 제목",
         userId,
         "tester",
@@ -711,22 +713,21 @@ class UserActivityServiceTest {
     otherUserActivityDocument.addCommentLikeSummary(commentLikeSummary);
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
-    given(userActivityRepository.findAllByCommentLikesCommentId(commentId))
-        .willReturn(List.of(otherUserActivityDocument));
 
     // when
-    userActivityService.removeCommentSummary(userId, commentId);
+    userActivityService.removeCommentSummary(userId, commentId, articleId);
 
     // then
     ArgumentCaptor<UserActivityDocument> documentCaptor =
         ArgumentCaptor.forClass(UserActivityDocument.class);
 
-    then(userActivityRepository).should(times(2)).save(documentCaptor.capture());
+    then(userActivityRepository).should(times(1)).save(documentCaptor.capture());
 
     List<UserActivityDocument> savedDocuments = documentCaptor.getAllValues();
 
     assertEquals(0, savedDocuments.get(0).getComments().size());
-    assertEquals(0, savedDocuments.get(1).getCommentLikes().size());
+    then(userActivityRepository).should().removeCommentLikeSummaryByCommentId(commentId);
+    then(userActivityRepository).should().incrementArticleCommentCount(articleId, -1);
   }
 
   @Test
@@ -734,11 +735,12 @@ class UserActivityServiceTest {
   void shouldDoNothingWhenUserActivityNotFoundOnRemoveCommentSummary() {
     // given
     UUID commentId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.empty());
 
     // when
-    userActivityService.removeCommentSummary(userId, commentId);
+    userActivityService.removeCommentSummary(userId, commentId, articleId);
 
     // then
     then(userActivityRepository).should(never()).save(any());
@@ -1183,21 +1185,13 @@ class UserActivityServiceTest {
 
     given(userActivityRepository.findById(userId))
         .willReturn(Optional.of(userActivityDocument));
-    given(userActivityRepository.findAllByCommentLikesCommentIdIn(List.of(commentId)))
-        .willReturn(List.of(otherUserActivityDocument));
 
     // when
     userActivityService.deleteUserActivity(userId);
 
     // then
-    ArgumentCaptor<UserActivityDocument> documentCaptor =
-        ArgumentCaptor.forClass(UserActivityDocument.class);
-
-    then(userActivityRepository).should().save(documentCaptor.capture());
     then(userActivityRepository).should().deleteById(userId);
-
-    UserActivityDocument savedDocument = documentCaptor.getValue();
-    assertEquals(0, savedDocument.getCommentLikes().size());
+    then(userActivityRepository).should().removeCommentLikeSummariesByCommentIds(List.of(commentId));
   }
 
   @Test
@@ -1369,7 +1363,6 @@ class UserActivityServiceTest {
     );
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
-
     // when
     userActivityService.updateCommentSummary(summary);
 
@@ -1406,15 +1399,14 @@ class UserActivityServiceTest {
     userActivityDocument.addCommentSummary(summary);
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
-    given(userActivityRepository.findAllByCommentLikesCommentId(commentId))
-        .willReturn(List.of());
 
     // when
-    userActivityService.removeCommentSummary(userId, commentId);
+    userActivityService.removeCommentSummary(userId, commentId, articleId);
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
     then(userActivityRepository).should().incrementArticleCommentCount(articleId, -1);
+    then(userActivityRepository).should().removeCommentLikeSummaryByCommentId(commentId);
   }
 
   @Test

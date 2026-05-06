@@ -48,4 +48,12 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
 
   @Query("{ 'commentLikes.commentUserId': ?0 }")
   List<UserActivityDocument> findAllByCommentLikesCommentUserId(UUID commentUserId);
+
+  @Query("{ 'commentLikes.commentId': ?0 }")
+  @Update("{ '$pull': { 'commentLikes': { 'commentId': ?0 } } }")
+  void removeCommentLikeSummaryByCommentId(UUID commentId);
+
+  @Query("{ 'commentLikes.commentId': { $in: ?0 } }")
+  @Update("{ '$pull': { 'commentLikes': { 'commentId': { $in: ?0 } } } }")
+  void removeCommentLikeSummariesByCommentIds(List<UUID> commentIds);
 }

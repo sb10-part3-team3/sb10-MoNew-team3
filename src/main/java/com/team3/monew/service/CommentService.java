@@ -134,7 +134,11 @@ public class CommentService {
     comment.markDeleted();
     newsArticleRepository.decrementCommentCountById(comment.getArticle().getId());
     log.info("댓글 삭제 성공 - commentId={}", commentId);
-    eventPublisher.publishEvent(new CommentDeletedEvent(comment.getId(), comment.getUser().getId()));
+    eventPublisher.publishEvent(new CommentDeletedEvent(
+        comment.getId(),
+        comment.getUser().getId(),
+        comment.getArticle().getId())
+    );
   }
 
   @Transactional
@@ -154,7 +158,11 @@ public class CommentService {
     );
     commentRepository.delete(comment);
     log.info("댓글 물리 삭제 성공 - commentId={}", commentId);
-    eventPublisher.publishEvent(new CommentDeletedEvent(comment.getId(), comment.getUser().getId()));
+    eventPublisher.publishEvent(new CommentDeletedEvent(
+        comment.getId(),
+        comment.getUser().getId(),
+        comment.getArticle().getId())
+    );
   }
 
   public CursorPageResponseCommentDto findComments(
