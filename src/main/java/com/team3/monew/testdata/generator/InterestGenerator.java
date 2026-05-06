@@ -7,15 +7,20 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.IntStream;
+import lombok.extern.slf4j.Slf4j;
 import org.instancio.Instancio;
 import org.instancio.Model;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionTemplate;
 
+@Slf4j
 @Component
 @Profile("data-gen")
 public class InterestGenerator extends AbstractGenerator<Interest> {
@@ -32,18 +37,23 @@ public class InterestGenerator extends AbstractGenerator<Interest> {
       "전기차", "배터리", "기후", "교육"
   );
 
+  private final TransactionTemplate transactionTemplate;
+
   public InterestGenerator(
       JdbcTemplate jdbcTemplate,
-      @Qualifier("dataGeneratorExecutor") Executor executor
+      @Qualifier("dataGeneratorExecutor") Executor executor,
+      TransactionTemplate transactionTemplate
   ) {
     super(jdbcTemplate, executor);
+    this.transactionTemplate = transactionTemplate;
   }
 
   @Override
   protected Model<Interest> getModel() {
     return Instancio.of(Interest.class)
         .supply(field(Interest::getName), () -> {
-          String prefix = KEYWORDS.get(ThreadLocalRandom.current().nextInt(KEYWORDS.size()));
+          String prefix = INTEREST_NAMES.get(
+              ThreadLocalRandom.current().nextInt(INTEREST_NAMES.size()));
           return prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
         })
         .supply(field(Interest::getSubscriberCount), () -> 0)
@@ -78,13 +88,40 @@ public class InterestGenerator extends AbstractGenerator<Interest> {
 
   @Override
   public List<Interest> generate(int totalSize, int chunkSize) {
-    // 대량 생성 성능을 위해 서비스/JPA cascade를 거치지 않고,
-    // interests를 먼저 저장한 뒤 FK(interest_id) 기준으로 interest_keywords를 직접 저장한다.
-    // 최종 DB 상태에서는 모든 관심사가 1개 이상의 키워드를 가진다.
-    List<Interest> interests = super.generate(totalSize, chunkSize);
-    insertKeywords(interests);
+    int numTasks = (int) Math.ceil((double) totalSize / chunkSize);
 
-    return interests;
+    List<CompletableFuture<List<Interest>>> futures = IntStream.range(0, numTasks)
+        .mapToObj(i -> {
+          int currentChunkSize = Math.min(chunkSize, totalSize - (i * chunkSize));
+
+          return CompletableFuture.supplyAsync(() ->
+              // 비동기 작업 내부에서도 트랜잭션을 보장하기 위해 TransactionTemplate 사용
+              // (각 청크 단위로 interests + interest_keywords를 하나의 트랜잭션으로 묶음)
+              transactionTemplate.execute(status -> {
+                List<Interest> chunk = Instancio.ofList(getModel())
+                    .size(currentChunkSize)
+                    .create();
+
+                jdbcTemplate.batchUpdate(getSql(), chunk, chunk.size(), this::setValues);
+                // 같은 트랜잭션 내에서 키워드 insert
+                // → 키워드 삽입 실패 시 관심사도 함께 롤백되어 정합성 보장
+                insertKeywords(chunk);
+
+                return chunk;
+              }), dataGeneratorExecutor
+          ).exceptionally(ex -> {
+            log.error("관심사 청크 {}번 생성 중 오류 발생: {}", i, ex.getMessage(), ex);
+            return List.of();
+          });
+        })
+        .toList();
+
+    // 모든 비동기 작업 완료 후 결과 flatten
+    return futures.stream()
+        .map(CompletableFuture::join)
+        .filter(chunk -> chunk != null && !chunk.isEmpty())
+        .flatMap(List::stream)
+        .toList();
   }
 
   private void insertKeywords(List<Interest> interests) {
