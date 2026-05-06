@@ -4,30 +4,54 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.team3.monew.dto.article.ArticleBackup;
 import com.team3.monew.dto.article.ArticleDto;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
 import com.team3.monew.dto.article.internal.ArticleCursor;
 import com.team3.monew.dto.article.internal.ArticleSearchCondition;
 import com.team3.monew.dto.article.internal.enums.ArticleDirection;
 import com.team3.monew.dto.article.internal.enums.ArticleOrderBy;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
+import com.team3.monew.entity.ArticleBackupJob;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.NewsSource;
+import com.team3.monew.entity.enums.BackupJobStatus;
+import com.team3.monew.entity.enums.BackupJobType;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.exception.article.ArticleInvalidPeriodException;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
 import com.team3.monew.global.exception.BusinessException;
 import com.team3.monew.mapper.ArticleMapper;
+import com.team3.monew.repository.ArticleBackupJobRepository;
 import com.team3.monew.repository.ArticleInterestRepository;
 import com.team3.monew.repository.ArticleViewRepository;
 import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
+import com.team3.monew.repository.NewsArticleRepository.ArticleCountInfo;
+import com.team3.monew.repository.NewsArticleRepository.ArticleLinkAndPublishedAt;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -35,6 +59,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.zip.GZIPOutputStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,9 +74,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.task.SyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 @Tag("unit")
+@ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
 class ArticleServiceTest {
 
@@ -65,7 +100,20 @@ class ArticleServiceTest {
   private CommentRepository commentRepository;
   @Mock
   private ArticleViewService articleViewService;
+  @Mock
+  private ArticleBackupJobRepository articleBackupJobRepository;
+  @Mock
+  private S3AsyncClient s3AsyncClient;
+  @Mock
+  private ArticleBackupJobLogService articleBackupJobLogService;
+  @Mock
+  private TaskExecutor decompressTaskExecutor;
+  @Mock
+  private ObjectMapper mockedBackupObjectMapper;
+  @Mock
+  private ArticleBatchService articleBatchService;
 
+  @Spy
   @InjectMocks
   private ArticleService articleService;
 
@@ -401,7 +449,7 @@ class ArticleServiceTest {
 
   @Nested
   @DisplayName("뉴스기사 삭제를 진행한다")
-  class deleteArticle {
+  class DeleteArticle {
 
     @Test
     @DisplayName("뉴스기사를 찾을 수 없으면 에러를 반환한다")
@@ -451,7 +499,7 @@ class ArticleServiceTest {
 
   @Nested
   @DisplayName("뉴스기사 물리삭제를 진행한다")
-  class hardDeleteArticle {
+  class HardDeleteArticle {
 
     @Test
     @DisplayName("뉴스기사를 찾을 수 없으면 에러를 반환한다")
@@ -482,6 +530,285 @@ class ArticleServiceTest {
       then(articleViewRepository).should().deleteAllByArticleId(articleId);
       then(commentRepository).should().deleteAllByArticleId(articleId);
       then(newsArticleRepository).should().delete(newsArticle);
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사를 복구한다")
+  class RestoreArticle {
+
+    private final ObjectMapper realBackupObjectMapper = new ObjectMapper()
+        .configure(SerializationFeature.INDENT_OUTPUT, false)
+        .registerModule(new JavaTimeModule())
+        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+
+    private ZoneId zone;
+    private LocalDateTime from;
+    private LocalDateTime to;
+
+    private ArticleCountInfo info1;
+    private ArticleCountInfo info2;
+    private List<ArticleCountInfo> infos;
+
+    private ArticleBackupJob job1;
+    private ArticleBackupJob job2;
+    private List<ArticleBackupJob> jobs;
+
+    private ArticleBackup backup1;
+    private ArticleBackup backup12;
+    private ArticleBackup backup2;
+    private ArticleBackup backup22;
+
+
+    @BeforeEach
+    void setUp() {
+      ReflectionTestUtils.setField(articleService, "decompressTaskExecutor",
+          new SyncTaskExecutor());
+      ReflectionTestUtils.setField(articleService, "backupObjectMapper", realBackupObjectMapper);
+      ReflectionTestUtils.setField(articleService, "downloadAndDecompressConcurrency", 3);
+
+      zone = ZoneId.of("Asia/Seoul");
+      LocalDate now = LocalDateTime.now(zone).toLocalDate();
+      from = now.atStartOfDay(zone).minusDays(2).toLocalDateTime();
+      to = now.atStartOfDay(zone).toLocalDateTime();
+
+      LocalDate date = from.toLocalDate();
+      info1 = new TestArticleCountInfo(date, 1);
+      info2 = new TestArticleCountInfo(date.plusDays(1), 1);
+      infos = List.of(info1, info2);
+
+      job1 = ArticleBackupJob.create(date, BackupJobType.ARTICLE_DAILY_BACKUP)
+          .setArticleCount(2);
+      job2 = ArticleBackupJob.create(date.plusDays(1), BackupJobType.ARTICLE_DAILY_BACKUP)
+          .setArticleCount(2);
+      jobs = List.of(job1, job2);
+
+    }
+
+    @Test
+    @DisplayName("기간 조회시 잘못된 기간이 들어오면 에러를 반환한다")
+    void shouldThrowInvalidPeriodException_whenInvalidPeriodIsGiven() {
+      // given
+      from = LocalDateTime.MAX;
+      to = LocalDateTime.MIN;
+
+      // when
+      assertThrows(ArticleInvalidPeriodException.class,
+          () -> articleService.restoreArticle(from, to));
+    }
+
+    @Test
+    @DisplayName("기간 조회시 복구해야할 데이터가 없으면 빈 배열을 반환한다")
+    void shouldReturnEmptyList_whenNoMissingDataInPeriod() {
+      // given
+      LocalDate date = from.toLocalDate();
+      ArticleCountInfo info1 = new TestArticleCountInfo(date, 2);
+      ArticleCountInfo info2 = new TestArticleCountInfo(date.plusDays(1), 2);
+      List<ArticleCountInfo> infos = List.of(info1, info2);
+      given(newsArticleRepository.countNewsArticlesByPublishDate(
+          any(Instant.class), any(Instant.class))).willReturn(infos);
+
+      ArticleBackupJob job1 = ArticleBackupJob.create(date, BackupJobType.ARTICLE_DAILY_BACKUP)
+          .setArticleCount(2);
+      ArticleBackupJob job2 = ArticleBackupJob.create(date.plusDays(1),
+              BackupJobType.ARTICLE_DAILY_BACKUP)
+          .setArticleCount(2);
+      List<ArticleBackupJob> jobs = List.of(job1, job2);
+      given(articleBackupJobRepository.findAllByBackupDateBetweenAndJobTypeAndStatus(
+          any(LocalDate.class), any(LocalDate.class), any(BackupJobType.class),
+          any(BackupJobStatus.class))).willReturn(jobs);
+
+      // when
+      List<ArticleRestoreResultDto> actual = articleService.restoreArticle(from, to);
+
+      // then
+      assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("S3 다운로드 실패 시 recordFailed 로그가 기록되어야 한다")
+    void shouldRecordFailed_whenS3ErrorOccurs() throws Exception {
+      // given
+      given(newsArticleRepository.countNewsArticlesByPublishDate(any(), any())).willReturn(infos);
+      given(articleBackupJobRepository.findAllByBackupDateBetweenAndJobTypeAndStatus(
+          any(), any(), any(), any())).willReturn(jobs);
+
+      ResponseInputStream<GetObjectResponse> successStream = mock(ResponseInputStream.class);
+      given(s3AsyncClient.getObject(any(Consumer.class), any(AsyncResponseTransformer.class)))
+          .willReturn(CompletableFuture.completedFuture(successStream))
+          .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
+      ArticleBackup mock = mock(ArticleBackup.class);
+      willReturn(List.of(mock)).given(articleService)
+          .decompressGzipAndReturnArticlesToRestore(any(), anyLong(), any());
+      given(articleBatchService.saveRestoredArticlesAndLog(any(), any()))
+          .willReturn(new ArticleRestoreResultDto(Instant.now(), List.of(UUID.randomUUID()), 1));
+
+      // when
+      articleService.restoreArticle(from, to);
+
+      // then
+      then(articleBackupJobLogService)
+          .should(timeout(2000).atLeastOnce())
+          .recordRestoreFailed(any(), contains("gzip 스트리밍 처리중 에러 발생"));
+    }
+
+    @Test
+    @DisplayName("모든 프로세스(다운로드, 압축해제) 실패 시 빠른 종료를 한다")
+    void shouldFastFail_whenAllProcessesFail() throws Exception {
+      // given
+      given(newsArticleRepository.countNewsArticlesByPublishDate(any(), any())).willReturn(infos);
+      given(articleBackupJobRepository.findAllByBackupDateBetweenAndJobTypeAndStatus(
+          any(), any(), any(), any())).willReturn(jobs);
+
+      ResponseInputStream<GetObjectResponse> invalidFileStream = mock(ResponseInputStream.class);
+      given(s3AsyncClient.getObject(any(Consumer.class), any(AsyncResponseTransformer.class)))
+          .willReturn(CompletableFuture.completedFuture(invalidFileStream))
+          .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
+
+      // when
+      List<ArticleRestoreResultDto> actual = articleService.restoreArticle(from, to);
+
+      // then
+      then(articleBackupJobLogService)
+          .should(timeout(2000).atLeastOnce())
+          .recordRestoreFailed(any(), contains("에러 발생"));
+      then(articleBatchService).shouldHaveNoInteractions();
+      assertThat(actual).isEmpty();
+    }
+
+    @Test
+    @DisplayName("배치 저장중 실패하면 오류 반환 및 에러를 기록하고 정상 진행한다")
+    void shouldRecordErrorAndContinue_whenBatchSaveFails() {
+      // given
+      given(newsArticleRepository.countNewsArticlesByPublishDate(any(), any())).willReturn(infos);
+      given(articleBackupJobRepository.findAllByBackupDateBetweenAndJobTypeAndStatus(
+          any(), any(), any(), any())).willReturn(jobs);
+
+      ResponseInputStream<GetObjectResponse> successStream = mock(ResponseInputStream.class);
+      given(s3AsyncClient.getObject(any(Consumer.class), any(AsyncResponseTransformer.class)))
+          .willReturn(CompletableFuture.completedFuture(successStream))
+          .willReturn(CompletableFuture.failedFuture(new IOException("S3 Connection Timeout")));
+      ArticleBackup mock = mock(ArticleBackup.class);
+      willReturn(List.of(mock)).given(articleService)
+          .decompressGzipAndReturnArticlesToRestore(any(), anyLong(), any());
+      given(articleBatchService.saveRestoredArticlesAndLog(anyList(), any()))
+          .willThrow(new RuntimeException("저장 에러"));
+
+      // when
+      articleService.restoreArticle(from, to);
+
+      // then
+      then(articleBackupJobLogService)
+          .should(atLeastOnce())
+          .recordRestoreFailed(any(), contains("저장중 오류"));
+    }
+
+    @Test
+    @DisplayName("복구요청을 할 때 뉴스기사를 에러없이 성공적으로 복구한다")
+    void shouldRestoreArticlesSuccessfullyWithoutAnyError_whenRestoreRequests() throws Exception {
+      // given
+      given(newsArticleRepository.countNewsArticlesByPublishDate(any(), any())).willReturn(infos);
+      given(articleBackupJobRepository.findAllByBackupDateBetweenAndJobTypeAndStatus(
+          any(), any(), any(), any())).willReturn(jobs);
+
+      Instant pub1 = from.toLocalDate().atStartOfDay(zone).toInstant().plusSeconds(300);
+      Instant pub2 = pub1.plus(1, ChronoUnit.DAYS);
+      ArticleLinkAndPublishedAt linkAndPublishedAt1 = new TestArticleLinkAndPublishedAt("link1",
+          pub1);
+      ArticleLinkAndPublishedAt linkAndPublishedAt2 = new TestArticleLinkAndPublishedAt("link2",
+          pub2);
+      Set<ArticleLinkAndPublishedAt> listPubs = Set.of(linkAndPublishedAt1, linkAndPublishedAt2);
+      given(newsArticleRepository.findLinksByPublishDate(any(), any(), anyCollection()))
+          .willReturn(listPubs);
+
+      // 1번째 LocalDate
+      backup1 = new ArticleBackup(NewsSourceType.NAVER, "link1", "title1", pub1, "summary1");
+      backup12 = new ArticleBackup(NewsSourceType.NAVER, "link1-2", "title1-2",
+          pub1.plusSeconds(10), "summary1-2");
+      String backupJsonl1 = realBackupObjectMapper.writeValueAsString(backup1) + "\n"
+          + realBackupObjectMapper.writeValueAsString(backup12);
+      byte[] gzip1 = createGzipByteArray(backupJsonl1);
+
+      // 2번째 LocalDate
+      backup2 = new ArticleBackup(NewsSourceType.NAVER, "link2", "title2", pub2, "summary2");
+      backup22 = new ArticleBackup(NewsSourceType.NAVER, "link2-2", "title2-2",
+          pub2.plusSeconds(100), "summary2-2");
+      String backupJsonl2 = realBackupObjectMapper.writeValueAsString(backup2) + "\n"
+          + realBackupObjectMapper.writeValueAsString(backup22);
+      byte[] gzip2 = createGzipByteArray(backupJsonl2);
+
+      GetObjectResponse response = GetObjectResponse.builder().build();
+      ResponseInputStream<GetObjectResponse> successStream1 =
+          new ResponseInputStream<>(response, new ByteArrayInputStream(gzip1));
+      ResponseInputStream<GetObjectResponse> successStream2 =
+          new ResponseInputStream<>(response, new ByteArrayInputStream(gzip2));
+
+      given(s3AsyncClient.getObject(any(Consumer.class), any(AsyncResponseTransformer.class)))
+          .willReturn(CompletableFuture.completedFuture(successStream1))
+          .willReturn(CompletableFuture.completedFuture(successStream2));
+
+      given(articleBatchService.saveRestoredArticlesAndLog(any(), any()))
+          .willReturn(new ArticleRestoreResultDto(Instant.now(), List.of(UUID.randomUUID()), 1))
+          .willReturn(new ArticleRestoreResultDto(Instant.now(), List.of(UUID.randomUUID()), 1));
+
+      // when
+      List<ArticleRestoreResultDto> actual = articleService.restoreArticle(from, to);
+
+      // then
+      assertThat(actual)
+          .extracting(ArticleRestoreResultDto::restoredArticleIds)
+          .flatExtracting(ids -> ids)
+          .hasSize(2);
+    }
+
+    private byte[] createGzipByteArray(String data) throws IOException {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      try (GZIPOutputStream gos = new GZIPOutputStream(baos)) {
+        gos.write(data.getBytes(StandardCharsets.UTF_8));
+      }
+      return baos.toByteArray();
+    }
+
+    static class TestArticleCountInfo implements ArticleCountInfo {
+
+      private final LocalDate date;
+      private final long count;
+
+      public TestArticleCountInfo(LocalDate date, long count) {
+        this.date = date;
+        this.count = count;
+      }
+
+      @Override
+      public LocalDate getLocalDate() {
+        return date;
+      }
+
+      @Override
+      public Long getCount() {
+        return count;
+      }
+    }
+
+    static class TestArticleLinkAndPublishedAt implements ArticleLinkAndPublishedAt {
+
+      private final String link;
+      private final Instant publishedAt;
+
+      public TestArticleLinkAndPublishedAt(String link, Instant publishedAt) {
+        this.link = link;
+        this.publishedAt = publishedAt;
+      }
+
+      @Override
+      public String getLink() {
+        return link;
+      }
+
+      @Override
+      public Instant getPublishedAt() {
+        return publishedAt;
+      }
     }
   }
 }
