@@ -10,10 +10,10 @@ import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsSourceRepository;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,7 +29,7 @@ public class ArticleBatchService {
   private final NewsSourceRepository newsSourceRepository;
   private final ArticleBackupJobLogService articleBackupJobLogService;
   private final EntityManager em;
-  private Map<NewsSourceType, UUID> sourceTypeIdMap = new HashMap<>();
+  private final Map<NewsSourceType, UUID> sourceTypeIdMap = new ConcurrentHashMap<>();
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public ArticleRestoreResultDto saveRestoredArticlesAndLog(List<ArticleBackup> backups,
