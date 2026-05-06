@@ -16,17 +16,17 @@ class InterestTasks(TaskSet):
         }
     )
 
-    @task(3)
-    def get_sorted(self):
-      self.client.get(
-          "/api/interests",
-          headers=self.user.get_headers(),
-          params={
-            "orderBy": "subscriberCount",
-            "direction": "DESC",
-            "limit": 10
-          }
-      )
+  @task(3)
+  def get_sorted(self):
+    self.client.get(
+        "/api/interests",
+        headers=self.user.get_headers(),
+        params={
+          "orderBy": "subscriberCount",
+          "direction": "DESC",
+          "limit": 10
+        }
+    )
 
   @task(3)
   def search_interests(self):
