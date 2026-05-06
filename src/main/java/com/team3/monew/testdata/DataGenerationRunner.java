@@ -3,6 +3,7 @@ package com.team3.monew.testdata;
 import com.team3.monew.entity.Interest;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.User;
+import com.team3.monew.testdata.generator.CommentGenerator;
 import com.team3.monew.testdata.generator.InterestGenerator;
 import com.team3.monew.testdata.generator.NewsArticleGenerator;
 import com.team3.monew.testdata.generator.NotificationGenerator;
@@ -27,6 +28,7 @@ public class DataGenerationRunner implements CommandLineRunner {
   private final ApplicationContext context;
   private final UserGenerator userGenerator;
   private final NewsArticleGenerator newsArticleGenerator;
+  private final CommentGenerator commentGenerator;
   private final NotificationGenerator notificationGenerator;
   private final InterestGenerator interestGenerator;
 
@@ -45,6 +47,11 @@ public class DataGenerationRunner implements CommandLineRunner {
 
     List<NewsArticle> generatedArticles = newsArticleGenerator.generate(10000, 1000);
     log.info("✅ 뉴스 기사 데이터 생성 완료");
+
+    commentGenerator.setUsers(generatedUsers);
+    commentGenerator.setArticles(generatedArticles);
+    commentGenerator.generate(10000, 1000);
+    log.info("✅ 댓글 데이터 생성 완료");
 
     notificationGenerator.setUsers(generatedUsers);
     notificationGenerator.generate(10000, 1000);
