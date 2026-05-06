@@ -8,7 +8,7 @@ import com.team3.monew.document.UserActivityDocument;
 import com.team3.monew.document.UserActivityRequest;
 import com.team3.monew.dto.useractivity.UserActivityDto;
 import com.team3.monew.event.ArticleViewEvent;
-import com.team3.monew.event.CommentLikedEvent;
+import com.team3.monew.event.CommentLikedActivityEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.SubscriptionEvent;
 import com.team3.monew.event.UserRegisteredEvent;
@@ -40,7 +40,7 @@ public interface UserActivityMapper {
   SubscriptionSummary toSubscriptionSummary(SubscriptionEvent event);
 
   @Mapping(target = "createdAt", source = "commentCreatedAt")
-  CommentLikeSummary toCommentLikeSummary(CommentLikedEvent event);
+  CommentLikeSummary toCommentLikeSummary(CommentLikedActivityEvent event);
 
   @Mapping(target = "viewedBy", source = "userId")
   ArticleViewSummary toArticleViewSummary(ArticleViewEvent event);

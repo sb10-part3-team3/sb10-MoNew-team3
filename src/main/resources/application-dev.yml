@@ -43,3 +43,7 @@ app:
   cron:
     # "초 분 시 일 월 요일" (cron)
     news-collections: "0 0/5 * * * *" # 5분 마다
+
+batch:
+  backup:
+    uri: test/backup/article

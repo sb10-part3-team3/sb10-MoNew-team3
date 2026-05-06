@@ -10,6 +10,7 @@ import software.amazon.awssdk.auth.credentials.AwsSessionCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 
 @Configuration
@@ -21,15 +22,28 @@ public class S3Config {
 
   @Bean
   public S3Client createS3Client() {
-    if (awsProperties.getRegion() == null ||
-        awsProperties.getRegion().getStaticRegion().isBlank()) {
-      throw new IllegalArgumentException("AWS S3 region은 필수 설정값입니다. (cloud.aws.region)");
-    }
-
+    validateRegion();
     return S3Client.builder()
         .region(Region.of(awsProperties.getRegion().getStaticRegion()))
         .credentialsProvider(getCredentialsProvider())
         .build();
+  }
+
+  @Bean
+  public S3AsyncClient createS3AsyncClient() {
+    validateRegion();
+    return S3AsyncClient.builder()
+        .region(Region.of(awsProperties.getRegion().getStaticRegion()))
+        .credentialsProvider(getCredentialsProvider())
+        .build();
+  }
+
+  private void validateRegion() {
+    if (awsProperties.getRegion() == null ||
+        awsProperties.getRegion().getStaticRegion() == null ||
+        awsProperties.getRegion().getStaticRegion().isBlank()) {
+      throw new IllegalArgumentException("AWS S3 region은 필수 설정값입니다. (cloud.aws.region)");
+    }
   }
 
   private AwsCredentialsProvider getCredentialsProvider() {
