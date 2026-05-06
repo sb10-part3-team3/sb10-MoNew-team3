@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.web.bind.annotation.BindParam;
 
 public record ArticleSearchRequest(
     @Schema(description = "검색어(제목, 요약)")
@@ -20,6 +21,7 @@ public record ArticleSearchRequest(
     @Schema(description = "관심사 ID")
     UUID interestId,
 
+    @BindParam("sourceIn[]")
     @Schema(description = "출처(포함)")
     List<NewsSourceType> sourceIn,
 

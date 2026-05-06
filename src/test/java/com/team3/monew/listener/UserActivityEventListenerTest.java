@@ -12,7 +12,7 @@ import com.team3.monew.document.UserActivityRequest;
 import com.team3.monew.event.ArticleDeletedEvent;
 import com.team3.monew.event.ArticleViewEvent;
 import com.team3.monew.event.CommentDeletedEvent;
-import com.team3.monew.event.CommentLikedEvent;
+import com.team3.monew.event.CommentLikedActivityEvent;
 import com.team3.monew.event.CommentRegisteredEvent;
 import com.team3.monew.event.CommentUnlikedEvent;
 import com.team3.monew.event.CommentUpdatedEvent;
@@ -171,7 +171,7 @@ class UserActivityEventListenerTest {
     UUID commentUserId = UUID.randomUUID();
     Instant createdAt = Instant.now();
 
-    CommentLikedEvent event = new CommentLikedEvent(
+    CommentLikedActivityEvent event = new CommentLikedActivityEvent(
         actorUserId,
         commentId,
         commentLikeId,
@@ -229,7 +229,8 @@ class UserActivityEventListenerTest {
         publishedAt,
         "기사 요약",
         3,
-        100
+        100,
+        true
     );
 
     ArticleViewSummary summary = new ArticleViewSummary(
@@ -254,7 +255,7 @@ class UserActivityEventListenerTest {
     // then
     then(userActivityMapper).should(times(1)).toArticleViewSummary(event);
     then(userActivityService).should(times(1))
-        .updateArticleViewSummary(userId, summary);
+        .updateArticleViewSummary(userId, summary, true);
   }
 
   @Test
@@ -294,15 +295,16 @@ class UserActivityEventListenerTest {
     // given
     UUID commentId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
 
-    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId);
+    CommentDeletedEvent event = new CommentDeletedEvent(commentId, userId, articleId, true, true);
 
     // when
     userActivityEventListener.handleCommentDeletedEvent(event);
 
     // then
     then(userActivityService).should(times(1))
-        .removeCommentSummary(userId, commentId);
+        .removeCommentSummary(userId, commentId, articleId, true, true);
   }
 
   @Test
@@ -329,15 +331,16 @@ class UserActivityEventListenerTest {
     // given
     UUID commentLikeId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
+    UUID commentId = UUID.randomUUID();
 
-    CommentUnlikedEvent event = new CommentUnlikedEvent(userId, commentLikeId);
+    CommentUnlikedEvent event = new CommentUnlikedEvent(userId, commentLikeId, commentId);
 
     // when
     userActivityEventListener.handleCommentUnlikedEvent(event);
 
     // then
     then(userActivityService).should(times(1))
-        .removeCommentLikeSummary(userId, commentLikeId);
+        .removeCommentLikeSummary(userId, commentLikeId, commentId);
   }
 
   @Test

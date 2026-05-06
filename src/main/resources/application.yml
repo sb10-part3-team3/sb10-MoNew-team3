@@ -38,6 +38,8 @@ api:
       secret: ${NAVER_API_SECRET}
 
 app:
+  restore:
+    concurrency: 3
   cron:
     # "초 분 시 일 월 요일" (cron)
     news-collections: "0 0 * * * *" # 1시간 마다
@@ -51,8 +53,8 @@ batch:
       cron: "0 0 3 * * *"  # 매일 새벽 3시
       zone: "Asia/Seoul"
   backup:
-    uri: backup/article/
+    uri: backup/article
     chunk-size: 1000
     page-size: 1000
-    cron: "0 5 4 * * *"  # 매일 00:05분
+    cron: "0 5 4 * * *"  # 매일 04시 05분
     zone: "Asia/Seoul"

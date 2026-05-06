@@ -1,5 +1,6 @@
 package com.team3.monew.controller;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
@@ -9,11 +10,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.team3.monew.dto.article.ArticleDto;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.entity.enums.NewsSourceType;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.service.ArticleService;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -260,6 +263,68 @@ class ArticleControllerTest {
 
       // when & then
       mockMvc.perform(delete(ARTICLES_BASE_URL + "/{articleId}/hard", articleId))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+          .andExpect(jsonPath("$.status").value("500"));
+    }
+  }
+
+  @Nested
+  @DisplayName("뉴스기사 복구")
+  class RestoreArticle {
+
+    @Test
+    @DisplayName("복구에 성공하면 200 Ok를 반환한다")
+    void shouldReturnOk_whenArticleRestores() throws Exception {
+      // given
+      LocalDateTime start = LocalDateTime.now();
+      LocalDateTime end = LocalDateTime.now();
+      Instant restoredDate = Instant.now();
+      UUID restoredArticleId = UUID.randomUUID();
+      ArticleRestoreResultDto dto = new ArticleRestoreResultDto(restoredDate,
+          List.of(restoredArticleId), 1L);
+      given(articleService.restoreArticle(start, end)).willReturn(List.of(dto));
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/restore")
+              .param("from", start.toString())
+              .param("to", end.toString()))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$[0].restoreDate").value(restoredDate.toString()))
+          .andExpect(jsonPath("$[0].restoredArticleIds", hasItem(restoredArticleId.toString())))
+          .andExpect(jsonPath("$[0].restoredArticleCount").value(1L));
+    }
+
+    @Test
+    @DisplayName("파라미터로 잘못된 타입이 온다면 400 ClientError를 반환한다")
+    void shouldReturnBadRequest_whenInvalidParamIsGiven() throws Exception {
+      // given
+      String start = "invalid type data";
+      LocalDateTime end = LocalDateTime.now();
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/restore")
+              .param("from", start)
+              .param("to", end.toString()))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("INVALID_PARAMETER_TYPE"))
+          .andExpect(jsonPath("$.details.requiredType").value("LocalDateTime"))
+          .andExpect(jsonPath("$.status").value("400"));
+    }
+
+    @Test
+    @DisplayName("서버 내부에서 오류가 발생하면 500 ServerError를 반환한다")
+    void shouldReturnInternalServerError_whenExceptionOccurs() throws Exception {
+      // given
+      LocalDateTime start = LocalDateTime.now();
+      LocalDateTime end = LocalDateTime.now();
+      willThrow(new RuntimeException())
+          .given(articleService).restoreArticle(any(LocalDateTime.class), any(LocalDateTime.class));
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/restore")
+              .param("from", start.toString())
+              .param("to", end.toString()))
           .andExpect(status().isInternalServerError())
           .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
           .andExpect(jsonPath("$.status").value("500"));

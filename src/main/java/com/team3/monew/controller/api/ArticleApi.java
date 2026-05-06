@@ -1,6 +1,7 @@
 package com.team3.monew.controller.api;
 
 import com.team3.monew.dto.article.ArticleDto;
+import com.team3.monew.dto.article.ArticleRestoreResultDto;
 import com.team3.monew.dto.article.ArticleSearchRequest;
 import com.team3.monew.dto.pagination.CursorPageResponseDto;
 import com.team3.monew.global.response.ErrorResponse;
@@ -11,11 +12,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "뉴스 기사 관리", description = "뉴스 기사 관련 API")
 public interface ArticleApi {
@@ -55,7 +60,7 @@ public interface ArticleApi {
       @ApiResponse(responseCode = "204", description = "논리 삭제 성공"),
       @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "500", description ="서버 내부 오류",
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   ResponseEntity<Void> deleteArticle(@PathVariable UUID articleId);
@@ -65,8 +70,20 @@ public interface ArticleApi {
       @ApiResponse(responseCode = "204", description = "삭제 성공"),
       @ApiResponse(responseCode = "404", description = "뉴스 기사 정보 없음",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-      @ApiResponse(responseCode = "500", description ="서버 내부 오류",
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
           content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   ResponseEntity<Void> hardDeleteArticle(@PathVariable UUID articleId);
+
+  @Operation(summary = "뉴스 복구", description = "유실된 뉴스 기사를 복구.")
+  @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "복구 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청(from, to 형식 오류)",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+      @ApiResponse(responseCode = "500", description = "서버 내부 오류",
+          content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+  })
+  ResponseEntity<List<ArticleRestoreResultDto>> restoreArticle(
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+      @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to);
 }

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -29,8 +28,7 @@ public class JacksonConfig {
         .build();
   }
 
-  @Bean
-  @Qualifier("backupObjectMapper")
+  @Bean(name = "backupObjectMapper")
   public ObjectMapper createBackupObjectMapper() {
     return new ObjectMapper()
         .configure(SerializationFeature.INDENT_OUTPUT, false)   // 줄바꿈 옵션 Off

@@ -67,6 +67,9 @@ dependencies {
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:postgresql'
     testImplementation 'org.testcontainers:mongodb'
+    // 더미 데이터 생성
+    implementation 'net.datafaker:datafaker:2.5.4'
+    implementation 'org.instancio:instancio-core:5.0.0'
     // QueryDSL
     implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
     annotationProcessor 'com.querydsl:querydsl-apt:5.1.0:jakarta'
@@ -103,7 +106,8 @@ jacocoTestReport {
                     "**/Exception*",
                     "**/entity/Q*",
                     "**/*Mapper*",
-                    "**/resources/**"
+                    "**/resources/**",
+                    "**/testdata/**"
             ])
         }))
     }
