@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -23,6 +24,7 @@ import reactor.core.scheduler.Schedulers;
 
 @Slf4j
 @Service
+@ConditionalOnProperty(prefix = "app.news", name = "collector-mode", havingValue = "reactive")
 @RequiredArgsConstructor
 public class NewsCollectService {
 

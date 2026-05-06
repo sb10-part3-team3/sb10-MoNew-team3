@@ -43,6 +43,8 @@ app:
   cron:
     # "초 분 시 일 월 요일" (cron)
     news-collections: "0 0 * * * *" # 1시간 마다
+  news:
+    collector-mode: batch   # batch 배치, reactive 비동기
 
 # 배치 크기, 시간 설정
 batch:
