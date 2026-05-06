@@ -3,6 +3,8 @@ package com.team3.monew.repository.impl;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
+import com.querydsl.core.types.dsl.StringExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.team3.monew.dto.interest.internal.InterestSearchCondition;
@@ -13,7 +15,6 @@ import com.team3.monew.repository.InterestRepositoryCustom;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.aspectj.weaver.ast.Or;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -95,9 +96,14 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
           : new OrderSpecifier[]{interest.subscriberCount.asc(), interest.createdAt.asc()};
     }
 
+    StringExpression koreanName = Expressions.stringTemplate(
+        "{0} COLLATE \"ko_KR.UTF-8\"",
+        interest.name
+    );
+
     return isDesc
-        ? new OrderSpecifier[]{interest.name.desc(), interest.createdAt.desc()}
-        : new OrderSpecifier[]{interest.name.asc(), interest.createdAt.asc()};
+        ? new OrderSpecifier[]{koreanName.desc(), interest.createdAt.desc()}
+        : new OrderSpecifier[]{koreanName.asc(), interest.createdAt.asc()};
   }
 
   private BooleanExpression buildCursorCondition(
@@ -141,19 +147,22 @@ public class InterestRepositoryImpl implements InterestRepositoryCustom {
           );
     }
 
-    // 기본: name 정렬
+    StringExpression koreanName = Expressions.stringTemplate(
+        "{0} COLLATE \"ko_KR.UTF-8\"",
+        interest.name
+    );
+
     if (isDesc) {
-      return interest.name.lt(cursorValue)
+      return koreanName.lt(cursorValue)
           .or(
-              interest.name.eq(cursorValue)
-                  .and(interest.createdAt.lt(after
-                  ))
+              koreanName.eq(cursorValue)
+                  .and(interest.createdAt.lt(after))
           );
     }
 
-    return interest.name.gt(cursorValue)
+    return koreanName.gt(cursorValue)
         .or(
-            interest.name.eq(cursorValue)
+            koreanName.eq(cursorValue)
                 .and(interest.createdAt.gt(after))
         );
   }
