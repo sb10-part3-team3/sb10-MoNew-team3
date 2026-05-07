@@ -294,7 +294,7 @@
 </details>
 
 <details>
-  <summary><b>🏃 김민형</b></summary>
+  <summary><b>🏃 김현민</b></summary>
   <div markdown="1">
 
 ## 전역 로깅 및 운영 관찰성 개선
