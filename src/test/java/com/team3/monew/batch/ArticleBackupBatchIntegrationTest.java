@@ -36,7 +36,7 @@ import org.springframework.test.context.jdbc.Sql;
 
 @SpringBatchTest
 @Tag("external-api")
-@Sql(scripts = "classpath:sql/batch-schema.sql",
+@Sql(scripts = "classpath:sql/postgresql/batch-schema.sql",
     executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @TestPropertySource(locations = "file:.env")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)   // 환경 격리용
