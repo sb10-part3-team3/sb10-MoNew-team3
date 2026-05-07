@@ -136,10 +136,13 @@
 ## 🛠️ **기술 스택 및 아키텍처**
 
 ### 1️⃣ 기술 스택
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/69f9203f-fc8e-4ee9-abc9-9bd7601e03c7" />
 
-- 이미지 추가
 
 ### 2️⃣ 배포 다이어그램
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/7be06350-c128-4302-87c9-8d7f2699fdcc" />
+
+----
 
 ## 📊 주요 성과
 
@@ -147,6 +150,8 @@
 
 - 테스트 커버리지 85% 이상 달성
     - [![codecov](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3/branch/main/graph/badge.svg?token=HH8VH1APA9)](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3)
+
+----
 
 ## 🔗 프로젝트 문서 및 링크
 
@@ -361,7 +366,7 @@ src/
 ## 🏠 **구현 홈페이지**
 
 <a href="http://52.79.234.93" target="_blank">
-  <img src="이미지 주소" width="600px" alt="Monew Image" />
+  <img src="https://github.com/user-attachments/assets/a31d8ae2-f334-4db6-aeac-96af12b8d4db" width="600px" alt="Monew Image" />
 </a>
 
 > **이미지를 클릭**하면 서비스 페이지로 연결됩니다.
