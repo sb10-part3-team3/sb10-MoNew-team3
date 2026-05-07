@@ -56,4 +56,35 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
   @Query("{ 'commentLikes.commentId': { $in: ?0 } }")
   @Update("{ '$pull': { 'commentLikes': { 'commentId': { $in: ?0 } } } }")
   void removeCommentLikeSummariesByCommentIds(List<UUID> commentIds);
+
+  // articleViews에서 해당 기사 항목 일괄 제거
+  @Query("{ 'articleViews.articleId': ?0 }")
+  @Update("{ '$pull': { 'articleViews': { 'articleId': ?0 } } }")
+  void removeArticleViewSummaryByArticleId(UUID articleId);
+
+  // comments에서 해당 기사 댓글 일괄 제거
+  @Query("{ 'comments.articleId': ?0 }")
+  @Update("{ '$pull': { 'comments': { 'articleId': ?0 } } }")
+  void removeCommentSummaryByArticleId(UUID articleId);
+
+  // commentLikes에서 해당 기사 댓글 좋아요 일괄 제거
+  @Query("{ 'commentLikes.articleId': ?0 }")
+  @Update("{ '$pull': { 'commentLikes': { 'articleId': ?0 } } }")
+  void removeCommentLikeSummaryByArticleId(UUID articleId);
+
+  @Query("{ 'subscriptions.interestId': ?0 }")
+  @Update("{ '$set': { 'subscriptions.$.interestSubscriberCount': ?1 } }")
+  void updateSubscriberCount(UUID interestId, int count);
+
+  @Query("{ 'comments.id': ?0 }")
+  @Update("{ '$set': { 'comments.$.likeCount': ?1 } }")
+  void updateCommentLikeCount(UUID commentId, int count);
+
+  @Query("{ 'commentLikes.commentId': ?0 }")
+  @Update("{ '$set': { 'commentLikes.$.commentLikeCount': ?1 } }")
+  void updateCommentLikeCountInLikes(UUID commentId, int count);
+
+  @Query("{ 'articleViews.articleId': ?0 }")
+  @Update("{ '$set': { 'articleViews.$.articleViewCount': ?1 } }")
+  void updateArticleViewCount(UUID articleId, int count);
 }

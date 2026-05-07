@@ -12,6 +12,7 @@ import com.team3.monew.entity.ArticleBackupJob;
 import com.team3.monew.entity.NewsArticle;
 import com.team3.monew.entity.enums.BackupJobStatus;
 import com.team3.monew.entity.enums.BackupJobType;
+import com.team3.monew.event.ArticleDeletedEvent;
 import com.team3.monew.exception.article.ArticleInvalidPeriodException;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
@@ -48,6 +49,7 @@ import java.util.zip.GZIPInputStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -77,6 +79,7 @@ public class ArticleService {
   private final ArticleMapper articleMapper;
   private final TaskExecutor decompressTaskExecutor;
   private final ObjectMapper backupObjectMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Value("${app.restore.concurrency:3}")
   private int downloadAndDecompressConcurrency;
@@ -186,7 +189,8 @@ public class ArticleService {
     articleViewRepository.deleteAllByArticleId(articleId);
     // 3. Comments 삭제
     commentRepository.deleteAllByArticleId(articleId);
-
+    // 활동 내역 이벤트 발행
+    eventPublisher.publishEvent(new ArticleDeletedEvent(newsArticle.getId()));
     newsArticleRepository.delete(newsArticle);
     log.info("뉴스기사 물리삭제 성공 - articleId={}", articleId);
   }
