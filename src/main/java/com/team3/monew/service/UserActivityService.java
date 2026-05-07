@@ -70,7 +70,8 @@ public class UserActivityService {
 
     userActivityDocument.addSubscriptionSummary(subscriptionSummary);
     userActivityRepository.save(userActivityDocument);
-    userActivityRepository.incrementSubscriberCount(subscriptionSummary.interestId(), 1);
+    userActivityRepository.updateSubscriberCount(subscriptionSummary.interestId(),
+        subscriptionSummary.interestSubscriberCount());
     log.debug("사용자 활동 내역 구독 업데이트 성공: userId={} interestId={}", userId, subscriptionSummary.interestId());
   }
 
@@ -102,8 +103,8 @@ public class UserActivityService {
       userActivityDocument.addCommentLikeSummary(commentLikeSummary);
       userActivityRepository.save(userActivityDocument);
     }
-    userActivityRepository.incrementCommentLikeCount(commentLikeSummary.commentId(), 1);
-    userActivityRepository.incrementCommentLikeCountInLikes(commentLikeSummary.commentId(), 1);
+    userActivityRepository.updateCommentLikeCount(commentLikeSummary.commentId(), commentLikeSummary.commentLikeCount());
+    userActivityRepository.updateCommentLikeCountInLikes(commentLikeSummary.commentId(), commentLikeSummary.commentLikeCount());
     log.debug("사용자 활동 내역 좋아요 업데이트 성공: userId={} commentLikeId={}", userId, commentLikeSummary.id());
   }
 
@@ -119,7 +120,7 @@ public class UserActivityService {
     userActivityDocument.addArticleViewSummary(articleViewSummary);
     userActivityRepository.save(userActivityDocument);
     if (isFirstView) {
-      userActivityRepository.incrementArticleViewCount(articleViewSummary.articleId(), 1);
+      userActivityRepository.updateArticleViewCount(articleViewSummary.articleId(), articleViewSummary.articleViewCount());
     }
     log.debug("사용자 활동 내역 기사 뷰 업데이트 성공: userId={} articleViewId={}", userId, articleViewSummary.id());
   }

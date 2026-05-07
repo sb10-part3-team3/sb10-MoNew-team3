@@ -1040,7 +1040,7 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("구독 추가 시 다른 유저 문서의 구독자 수가 증가합니다.")
+  @DisplayName("구독 추가 시 모든 유저 문서의 구독자 수를 업데이트합니다.")
   void shouldIncrementSubscriberCount_whenSubscriptionAdded() {
     // given
     UUID interestId = UUID.randomUUID();
@@ -1057,7 +1057,7 @@ class UserActivityServiceTest {
         interestId,
         "경제",
         List.of("금리", "주식"),
-        10,
+        10, // 최신 구독자 수
         createdAt
     );
 
@@ -1068,7 +1068,7 @@ class UserActivityServiceTest {
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
-    then(userActivityRepository).should().incrementSubscriberCount(interestId, 1);
+    then(userActivityRepository).should().updateSubscriberCount(interestId, 10);
   }
 
   @Test
@@ -1107,7 +1107,7 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("댓글 좋아요 추가 시 댓글 작성자 문서의 likeCount와 다른 유저 문서의 commentLikeCount가 증가합니다.")
+  @DisplayName("댓글 좋아요 추가 시 댓글 작성자 문서의 likeCount와 다른 유저 문서의 commentLikeCount를 업데이트합니다.")
   void shouldIncrementCommentLikeCount_whenCommentLikeAdded() {
     // given
     UUID commentId = UUID.randomUUID();
@@ -1128,7 +1128,7 @@ class UserActivityServiceTest {
         UUID.randomUUID(),
         "commentWriter",
         "댓글 내용",
-        1,
+        1, // 최신 좋아요 수
         createdAt
     );
 
@@ -1139,8 +1139,8 @@ class UserActivityServiceTest {
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
-    then(userActivityRepository).should().incrementCommentLikeCount(commentId, 1);
-    then(userActivityRepository).should().incrementCommentLikeCountInLikes(commentId, 1);
+    then(userActivityRepository).should().updateCommentLikeCount(commentId, 1);
+    then(userActivityRepository).should().updateCommentLikeCountInLikes(commentId, 1);
   }
 
   @Test
@@ -1217,7 +1217,7 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("기사 조회 시 기사 뷰 조회수가 증가합니다.")
+  @DisplayName("기사 조회 시 기사 뷰 조회수를 업데이트합니다.")
   void shouldIncrementArticleViewCount_whenArticleViewed() {
     // given
     UUID articleId = UUID.randomUUID();
@@ -1240,7 +1240,7 @@ class UserActivityServiceTest {
         createdAt,
         "기사 요약",
         3,
-        100
+        100 // 최신 조회 수
     );
 
     given(userActivityRepository.findById(userId)).willReturn(Optional.of(userActivityDocument));
@@ -1250,7 +1250,7 @@ class UserActivityServiceTest {
 
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
-    then(userActivityRepository).should().incrementArticleViewCount(articleId, 1);
+    then(userActivityRepository).should().updateArticleViewCount(articleId, 100);
   }
 
   @Test
