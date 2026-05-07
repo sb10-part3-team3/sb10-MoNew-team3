@@ -136,7 +136,8 @@
 ## 🛠️ **기술 스택 및 아키텍처**
 
 ### 1️⃣ 기술 스택
-<img width="700" alt="image" src="https://github.com/user-attachments/assets/5e492dfb-1c3f-4f73-b1b0-41428f79ada4" />
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/27d2f321-ec6c-446a-bd19-e0fe9bad9284" />
+
 
 
 ### 2️⃣ 배포 다이어그램
@@ -150,6 +151,32 @@
 
 - 테스트 커버리지 85% 이상 달성
     - [![codecov](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3/branch/main/graph/badge.svg?token=HH8VH1APA9)](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3)
+      
+      <img width="700" alt="image" src="https://github.com/user-attachments/assets/408dc780-bd88-4c5a-80e1-f47aee12df67" />
+
+### 2️⃣ 배치 작업 모니터링
+- Spring Batch 작업별로 실행 횟수, 성공·실패 여부, 처리 건수, 실행 시간 등의 커스텀 메트릭 지표 수집 (Spring Actuator)
+  
+  <img width="700" alt="image" src="https://github.com/user-attachments/assets/7d62e14a-fc40-4365-b1d8-aa8d4bb131a1" />
+
+### 3️⃣ 부하테스트
+
+<details>
+  <summary>사용자 API</summary>
+    <img width="700" alt="사용자 부하테스트" src="https://github.com/user-attachments/assets/6fe1e5ba-a00d-4602-b329-afaa4f3a9dc6" />
+</details>
+<details>
+  <summary>알림 API</summary>
+    <img width="700"alt="관심사 부하테스트" src="https://github.com/user-attachments/assets/80390084-4ede-4372-a317-00fe526413c0" />
+</details>
+<details>
+  <summary>알림 API</summary>
+   <img width="700" alt="알림 부하테스트" src="https://github.com/user-attachments/assets/3ea5398a-149a-44ca-af07-0af81d980829" />
+</details>
+  
+
+
+
 
 ----
 
@@ -159,11 +186,12 @@
 |:---------------|:------------------------------------------------------------------------------------------------------------------------|:----------------------------|
 | **Workspace**  | [Notion Workspace](https://www.notion.so/JAVA-682254ef76b6827585f281bb5eff9f63?source=copy_link)                        | 기획 문서, 회의록 및 팀 컨벤션 관리       |
 | **Management** | [GitHub Issues & Gantt](https://github.com/orgs/sb10-part3-team3/projects/3/views/2)                                    | 이슈 카드를 활용한 역할 및 일정 관리       |
-| **요구사항 명세서**   | [요구사항 명세서](https://docs.google.com/spreadsheets/d/1wDdlF1cUaX2ReYMBSfZH6NytVy9-uuuVviT5A4RkpgY/edit?usp=sharing)/pdf 추가 | 구글 스프레드 시트를 활용한 요구사항 명세 작성  |
-| **API Docs**   | [Swagger UI](http://52.79.234.93/swagger-ui/index.html)/json추가                                                          | RESTful API 명세서             |
-| **Design**     | [Database ERD](https://dbdiagram.io/d/69b1119c77d079431b56b7c9)/png추가                                                   | dbDiagram을 통한 데이터베이스 구조 설계도 |
-| **프로젝트 계획서**   | [프로젝트 계획서](https://www.notion.so/344254ef76b6802c9cceda44f858d8c7)/pdf 추가                                               | 프로젝트 계획서                    |
-| **발표 자료**      | [발표 자료](https://canva.link/cydmnvhakz6u2or)/pdf 추가                                                                      | 발표 자료                       |
+| **요구사항 명세서**   | [요구사항 명세서](https://docs.google.com/spreadsheets/d/1wDdlF1cUaX2ReYMBSfZH6NytVy9-uuuVviT5A4RkpgY/edit?usp=sharing)/[요구사항명세서.pdf](https://github.com/user-attachments/files/27497005/SB10-MoNew-Team3-.-.-3.pdf) | 구글 스프레드 시트를 활용한 요구사항 명세 작성  |
+| **API Docs**   | [Swagger UI](http://52.79.234.93/swagger-ui/index.html)/[monew-api.json](https://github.com/user-attachments/files/27497078/monew-api.json)                                                          | RESTful API 명세서             |
+| **Design**     | [Database ERD](https://dbdiagram.io/d/69b1119c77d079431b56b7c9)/[ERD.png](https://github.com/user-attachments/assets/b619dcf8-4890-4d53-bbdc-9bd53e322f38)| dbDiagram을 통한 데이터베이스 구조 설계도 |
+| **프로젝트 계획서**   | [프로젝트 계획서](https://www.notion.so/344254ef76b6802c9cceda44f858d8c7)/[프로젝트_계획서.pdf](https://github.com/user-attachments/files/27497172/_.pdf)                                               | 프로젝트 계획서                    |
+| **발표 자료**      | [발표 자료](https://canva.link/cydmnvhakz6u2or)/[Monew_NEWSJAVA_Team3.pdf](https://github.com/user-attachments/files/27497305/Monew_NEWSJAVA_Team3.pdf)| 발표 자료                       |
+| **시연 영상**      | [시연 영상](https://drive.google.com/file/d/1DWs7WOC0UZxpHCz75v-MjSG-NSntkSGx/view?usp=share_link)| 시연 영상                      |
 
 -----
 
@@ -512,7 +540,383 @@
 
 ```text
 src/
-├── 최종 완료시 수정 예정
+├── main/
+│   ├── java/
+│   │   ├── com/
+│   │       ├── team3/
+│   │           ├── monew/
+│   │               ├── batch/
+│   │               │   ├── job/
+│   │               │   │   ├── ArticleBackupBatchConfig.java
+│   │               │   │   ├── ArticleCollectBatchConfig.java
+│   │               │   │   ├── NotificationDeleteBatchConfig.java
+│   │               │   │   └── UserDeleteBatchConfig.java
+│   │               │   ├── scheduler/
+│   │               │   │   ├── ArticleBackupBatchScheduleConfig.java
+│   │               │   │   ├── ArticleCollectBatchScheduleConfig.java
+│   │               │   │   ├── NotificationDeleteScheduleConfig.java
+│   │               │   │   └── UserDeleteScheduler.java
+│   │               │   ├── tasklet/
+│   │               │       └── UserDeleteTasklet.java
+│   │               ├── component/
+│   │               │   ├── news/
+│   │               │       ├── client/
+│   │               │       │   ├── ChosunNewsClient.java
+│   │               │       │   ├── NaverNewsClient.java
+│   │               │       │   └── NewsClient.java
+│   │               │       ├── collect/
+│   │               │       │   ├── ChosunNewsCollect.java
+│   │               │       │   ├── NaverNewsCollect.java
+│   │               │       │   ├── NewsCollect.java
+│   │               │       │   └── NewsCollector.java
+│   │               │       ├── filter/
+│   │               │       │   ├── KeywordMatch.java
+│   │               │       │   └── NewsFilter.java
+│   │               │       ├── parse/
+│   │               │       │   ├── ChosunNewsParse.java
+│   │               │       │   ├── NaverNewsParse.java
+│   │               │       │   ├── NewsParse.java
+│   │               │       │   └── NewsParser.java
+│   │               │       ├── record/
+│   │               │           ├── ParsedData.java
+│   │               │           ├── ParsedNewsArticle.java
+│   │               │           └── RawArticleResult.java
+│   │               ├── config/
+│   │               │   ├── AsyncConfig.java
+│   │               │   ├── AwsProperties.java
+│   │               │   ├── BatchConfig.java
+│   │               │   ├── CloudWatchConfig.java
+│   │               │   ├── JacksonConfig.java
+│   │               │   ├── JpaAuditingConfig.java
+│   │               │   ├── MongoConfig.java
+│   │               │   ├── NaverProperties.java
+│   │               │   ├── PasswordEncoderConfig.java
+│   │               │   ├── QueryDslConfig.java
+│   │               │   ├── S3Config.java
+│   │               │   ├── SchedulingConfig.java
+│   │               │   ├── SwaggerConfig.java
+│   │               │   └── WebConfig.java
+│   │               ├── controller/
+│   │               │   ├── api/
+│   │               │   │   ├── ArticleApi.java
+│   │               │   │   ├── ArticleViewApi.java
+│   │               │   │   ├── CommentApi.java
+│   │               │   │   ├── InterestApi.java
+│   │               │   │   ├── NotificationApi.java
+│   │               │   │   ├── UserActivityApi.java
+│   │               │   │   └── UserApi.java
+│   │               │   ├── ArticleController.java
+│   │               │   ├── ArticleViewController.java
+│   │               │   ├── CommentController.java
+│   │               │   ├── InterestController.java
+│   │               │   ├── NotificationController.java
+│   │               │   ├── UserActivityController.java
+│   │               │   └── UserController.java
+│   │               ├── document/
+│   │               │   ├── ArticleViewSummary.java
+│   │               │   ├── CommentLikeSummary.java
+│   │               │   ├── CommentSummary.java
+│   │               │   ├── SubscriptionSummary.java
+│   │               │   ├── UserActivityDocument.java
+│   │               │   └── UserActivityRequest.java
+│   │               ├── dto/
+│   │               │   ├── article/
+│   │               │   │   ├── internal/
+│   │               │   │   │   ├── enums/
+│   │               │   │   │   │   ├── ArticleDirection.java
+│   │               │   │   │   │   └── ArticleOrderBy.java
+│   │               │   │   │   ├── ArticleCursor.java
+│   │               │   │   │   └── ArticleSearchCondition.java
+│   │               │   │   ├── ArticleBackup.java
+│   │               │   │   ├── ArticleDto.java
+│   │               │   │   ├── ArticleRestoreResultDto.java
+│   │               │   │   ├── ArticleSearchRequest.java
+│   │               │   │   └── ArticleViewDto.java
+│   │               │   ├── comment/
+│   │               │   │   ├── CommentDto.java
+│   │               │   │   ├── CommentLikeDto.java
+│   │               │   │   ├── CommentRegisterRequest.java
+│   │               │   │   ├── CommentUpdateRequest.java
+│   │               │   │   └── CursorPageResponseCommentDto.java
+│   │               │   ├── interest/
+│   │               │   │   ├── internal/
+│   │               │   │   │   ├── InterestCursor.java
+│   │               │   │   │   └── InterestSearchCondition.java
+│   │               │   │   ├── InterestDto.java
+│   │               │   │   ├── InterestRegisterRequest.java
+│   │               │   │   ├── InterestUpdateRequest.java
+│   │               │   │   └── SubscriptionDto.java
+│   │               │   ├── notification/
+│   │               │   │   ├── CommentLikedNotificationRequest.java
+│   │               │   │   ├── InterestNotificationRequest.java
+│   │               │   │   └── NotificationDto.java
+│   │               │   ├── pagination/
+│   │               │   │   └── CursorPageResponseDto.java
+│   │               │   ├── user/
+│   │               │   │   ├── UserDto.java
+│   │               │   │   ├── UserLoginRequest.java
+│   │               │   │   ├── UserRegisterRequest.java
+│   │               │   │   └── UserUpdateRequest.java
+│   │               │   ├── useractivity/
+│   │               │       └── UserActivityDto.java
+│   │               ├── entity/
+│   │               │   ├── base/
+│   │               │   │   ├── BaseEntity.java
+│   │               │   │   └── SoftDeleteEntity.java
+│   │               │   ├── enums/
+│   │               │   │   ├── BackupJobStatus.java
+│   │               │   │   ├── BackupJobType.java
+│   │               │   │   ├── DeleteStatus.java
+│   │               │   │   ├── NewsSourceType.java
+│   │               │   │   └── NotificationResourceType.java
+│   │               │   ├── ArticleBackupJob.java
+│   │               │   ├── ArticleInterest.java
+│   │               │   ├── ArticleView.java
+│   │               │   ├── Comment.java
+│   │               │   ├── CommentLike.java
+│   │               │   ├── Interest.java
+│   │               │   ├── InterestKeyword.java
+│   │               │   ├── NewsArticle.java
+│   │               │   ├── NewsSource.java
+│   │               │   ├── Notification.java
+│   │               │   ├── Subscription.java
+│   │               │   └── User.java
+│   │               ├── event/
+│   │               │   ├── ArticleDeletedEvent.java
+│   │               │   ├── ArticleViewEvent.java
+│   │               │   ├── CommentDeletedEvent.java
+│   │               │   ├── CommentLikedActivityEvent.java
+│   │               │   ├── CommentLikedEvent.java
+│   │               │   ├── CommentRegisteredEvent.java
+│   │               │   ├── CommentUnlikedEvent.java
+│   │               │   ├── CommentUpdatedEvent.java
+│   │               │   ├── InterestDeletedEvent.java
+│   │               │   ├── InterestKeywordUpdatedEvent.java
+│   │               │   ├── InterestNotificationEvent.java
+│   │               │   ├── SubscriptionCanceledEvent.java
+│   │               │   ├── SubscriptionEvent.java
+│   │               │   ├── UserDeletedEvent.java
+│   │               │   ├── UserRegisteredEvent.java
+│   │               │   └── UserUpdatedEvent.java
+│   │               ├── exception/
+│   │               │   ├── article/
+│   │               │   │   ├── ArticleBackupJobNotFoundException.java
+│   │               │   │   ├── ArticleException.java
+│   │               │   │   ├── ArticleInvalidPeriodException.java
+│   │               │   │   ├── ArticleNotFoundException.java
+│   │               │   │   ├── ArticleRequestInvalidException.java
+│   │               │   │   └── DeletedArticleException.java
+│   │               │   ├── comment/
+│   │               │   │   ├── CommentException.java
+│   │               │   │   ├── CommentLikeAlreadyExistsException.java
+│   │               │   │   ├── CommentLikeNotFoundException.java
+│   │               │   │   ├── CommentNotFoundException.java
+│   │               │   │   ├── DeletedCommentException.java
+│   │               │   │   └── UnauthorizedCommentUpdateException.java
+│   │               │   ├── interest/
+│   │               │   │   ├── InterestDuplicateNameException.java
+│   │               │   │   ├── InterestException.java
+│   │               │   │   └── InterestNotFoundException.java
+│   │               │   ├── news/
+│   │               │   │   ├── NewsClientException.java
+│   │               │   │   ├── NewsException.java
+│   │               │   │   └── NewsIllegalBeanException.java
+│   │               │   ├── notification/
+│   │               │   │   ├── NotificationConfirmForbiddenException.java
+│   │               │   │   ├── NotificationException.java
+│   │               │   │   └── NotificationNotFoundException.java
+│   │               │   ├── user/
+│   │               │   │   ├── AuthException.java
+│   │               │   │   ├── DeletedUserException.java
+│   │               │   │   ├── DuplicateEmailException.java
+│   │               │   │   ├── InvalidNicknameException.java
+│   │               │   │   ├── InvalidPasswordException.java
+│   │               │   │   ├── UserException.java
+│   │               │   │   └── UserNotFoundException.java
+│   │               │   ├── useractivity/
+│   │               │       ├── UserActivityConflictException.java
+│   │               │       ├── UserActivityException.java
+│   │               │       └── UserActivityNotFoundException.java
+│   │               ├── global/
+│   │               │   ├── enums/
+│   │               │   │   └── ErrorCode.java
+│   │               │   ├── exception/
+│   │               │   │   ├── BusinessException.java
+│   │               │   │   └── GlobalExceptionHandler.java
+│   │               │   ├── init/
+│   │               │   │   └── NewsSourceInitializer.java
+│   │               │   ├── logging/
+│   │               │   │   ├── ControllerLoggingAspect.java
+│   │               │   │   └── RequestLoggingFilter.java
+│   │               │   ├── response/
+│   │               │       └── ErrorResponse.java
+│   │               ├── listener/
+│   │               │   ├── NotificationEventListener.java
+│   │               │   └── UserActivityEventListener.java
+│   │               ├── mapper/
+│   │               │   ├── ArticleMapper.java
+│   │               │   ├── ArticleViewMapper.java
+│   │               │   ├── CommentMapper.java
+│   │               │   ├── InterestMapper.java
+│   │               │   ├── NotificationMapper.java
+│   │               │   ├── UserActivityMapper.java
+│   │               │   └── UserMapper.java
+│   │               ├── monitoring/
+│   │               │   └── BatchMetrics.java
+│   │               ├── repository/
+│   │               │   ├── impl/
+│   │               │   │   ├── InterestRepositoryImpl.java
+│   │               │   │   ├── NewsArticleRepositoryImpl.java
+│   │               │   │   └── UserActivityRepositoryImpl.java
+│   │               │   ├── ArticleBackupJobRepository.java
+│   │               │   ├── ArticleInterestRepository.java
+│   │               │   ├── ArticleViewRepository.java
+│   │               │   ├── CommentLikeRepository.java
+│   │               │   ├── CommentRepository.java
+│   │               │   ├── InterestKeywordRepository.java
+│   │               │   ├── InterestRepository.java
+│   │               │   ├── InterestRepositoryCustom.java
+│   │               │   ├── NewsArticleRepository.java
+│   │               │   ├── NewsArticleRepositoryCustom.java
+│   │               │   ├── NewsSourceRepository.java
+│   │               │   ├── NotificationRepository.java
+│   │               │   ├── SubscriptionRepository.java
+│   │               │   ├── UserActivityRepository.java
+│   │               │   ├── UserActivityRepositoryCustom.java
+│   │               │   └── UserRepository.java
+│   │               ├── service/
+│   │               │   ├── ArticleBackupJobLogService.java
+│   │               │   ├── ArticleBatchService.java
+│   │               │   ├── ArticleService.java
+│   │               │   ├── ArticleViewService.java
+│   │               │   ├── CommentService.java
+│   │               │   ├── InterestService.java
+│   │               │   ├── NewsCollectService.java
+│   │               │   ├── NewsSaveService.java
+│   │               │   ├── NotificationService.java
+│   │               │   ├── UserActivityService.java
+│   │               │   └── UserService.java
+│   │               ├── testdata/
+│   │               │   ├── generator/
+│   │               │   │   ├── AbstractGenerator.java
+│   │               │   │   ├── CommentGenerator.java
+│   │               │   │   ├── InterestGenerator.java
+│   │               │   │   ├── NewsArticleGenerator.java
+│   │               │   │   ├── NotificationGenerator.java
+│   │               │   │   └── UserGenerator.java
+│   │               │   ├── DataGenerationRunner.java
+│   │               │   └── DataGeneratorConfig.java
+│   │               └── MonewApplication.java
+│   ├── resources/
+│       ├── sql/
+│       │   ├── h2/
+│       │   │   ├── batch-schema.sql
+│       │   │   └── schema-h2.sql
+│       │   ├── postgresql/
+│       │       ├── batch-schema.sql
+│       │       └── schema-postgresql.sql
+│       ├── static/
+│       │   ├── assets/
+│       │   │   ├── index-BBLciFoK.js
+│       │   │   ├── index-CHX_5t7G.css
+│       │   │   ├── landing_comments-BoMt6RvV.svg
+│       │   │   ├── landing_interests-CBQzCgwG.svg
+│       │   │   └── landing_notifications-BkwzqdfE.svg
+│       │   ├── fonts/
+│       │   │   ├── pretendard/
+│       │   │       ├── LICENSE.txt
+│       │   │       ├── Pretendard-Bold.woff2
+│       │   │       ├── Pretendard-Regular.woff2
+│       │   │       └── PretendardVariable.woff2
+│       │   ├── favicon.ico
+│       │   └── index.html
+│       ├── templates/
+│       ├── application-data-gen.yml
+│       ├── application-dev.yml
+│       ├── application-prod.yml
+│       ├── application-test.yml
+│       ├── application.yml
+│       └── logback-spring.xml
+├── test/
+    ├── java/
+        ├── com/
+            ├── team3/
+                ├── monew/
+                    ├── batch/
+                    │   ├── job/
+                    │   │   ├── ArticleBackupBatchConfigTest.java
+                    │   │   └── ArticleCollectBatchConfigTest.java
+                    │   ├── scheduler/
+                    │   │   ├── ArticleBackupBatchScheduleConfigTest.java
+                    │   │   ├── ArticleCollectBatchScheduleConfigTest.java
+                    │   │   ├── NotificationDeleteScheduleConfigTest.java
+                    │   │   └── UserDeleteSchedulerTest.java
+                    │   ├── tasklet/
+                    │   │   └── UserDeleteTaskletTest.java
+                    │   ├── ArticleBackupBatchIntegrationTest.java
+                    │   └── NotificationDeleteBatchIntegrationTest.java
+                    ├── component/
+                    │   ├── news/
+                    │       ├── client/
+                    │       │   ├── ChosunNewsClientTest.java
+                    │       │   └── NaverNewsClientTest.java
+                    │       ├── collect/
+                    │       │   ├── ChosunNewsCollectTest.java
+                    │       │   ├── NaverNewsCollectTest.java
+                    │       │   └── NewsCollectorTest.java
+                    │       ├── filter/
+                    │       │   ├── KeywordMatchTest.java
+                    │       │   └── NewsFilterTest.java
+                    │       ├── parse/
+                    │           ├── ChosunNewsParseTest.java
+                    │           ├── NaverNewsParseTest.java
+                    │           └── NewsParserTest.java
+                    ├── config/
+                    │   ├── BatchTestConfig.java
+                    │   └── TestcontainersConfig.java
+                    ├── controller/
+                    │   ├── ArticleControllerTest.java
+                    │   ├── ArticleViewControllerTest.java
+                    │   ├── CommentControllerTest.java
+                    │   ├── InterestControllerTest.java
+                    │   ├── NotificationControllerTest.java
+                    │   ├── UserActivityControllerTest.java
+                    │   └── UserControllerTest.java
+                    ├── integration/
+                    │   ├── ArticleServiceIntegrationTest.java
+                    │   ├── ArticleSourceIntegrationTest.java
+                    │   ├── ArticleViewIntegrationTest.java
+                    │   ├── CommentIntegrationTest.java
+                    │   ├── InterestServiceIntegrationTest.java
+                    │   ├── NewsCollectIntegrationTest.java
+                    │   ├── NotificationIntegrationTest.java
+                    │   ├── UserActivityIntegrationTest.java
+                    │   └── UserIntegrationTest.java
+                    ├── listener/
+                    │   ├── NotificationEventListenerIntegrationTest.java
+                    │   ├── NotificationEventListenerTest.java
+                    │   └── UserActivityEventListenerTest.java
+                    ├── repository/
+                    │   ├── impl/
+                    │   │   ├── InterestRepositoryTest.java
+                    │   │   └── NewsArticleRepositoryImplTest.java
+                    │   └── NotificationRepositoryTest.java
+                    ├── service/
+                    │   ├── ArticleBackupJobLogServiceTest.java
+                    │   ├── ArticleBatchServiceTest.java
+                    │   ├── ArticleServiceTest.java
+                    │   ├── ArticleViewServiceTest.java
+                    │   ├── CommentServiceTest.java
+                    │   ├── InterestServiceTest.java
+                    │   ├── NewsCollectServiceTest.java
+                    │   ├── NewsSaveServiceTest.java
+                    │   ├── NotificationServiceTest.java
+                    │   ├── UserActivityServiceTest.java
+                    │   └── UserServiceTest.java
+                    ├── support/
+                    │   └── IntegrationTestSupport.java
+                    └── MonewApplicationTests.java
+
 ```
 
   </div>
