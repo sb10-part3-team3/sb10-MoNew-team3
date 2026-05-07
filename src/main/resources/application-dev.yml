@@ -20,8 +20,8 @@ spring:
     init:
       mode: always
       schema-locations:
-        - classpath:sql/schema.sql
-        - classpath:sql/batch-schema.sql
+        - classpath:sql/h2/schema-h2.sql
+        - classpath:sql/h2/batch-schema.sql
 
 logging:
   level:

@@ -28,7 +28,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBatchTest
 @SpringBootTest
-@Sql(scripts = "classpath:sql/batch-schema.sql",
+@Sql(scripts = "classpath:sql/postgresql/batch-schema.sql",
     executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 public class NotificationDeleteBatchIntegrationTest extends IntegrationTestSupport {
 
