@@ -136,7 +136,7 @@
 ## 🛠️ **기술 스택 및 아키텍처**
 
 ### 1️⃣ 기술 스택
-<img width="1550" height="650" alt="image" src="https://github.com/user-attachments/assets/5e492dfb-1c3f-4f73-b1b0-41428f79ada4" />
+<img width="700" alt="image" src="https://github.com/user-attachments/assets/5e492dfb-1c3f-4f73-b1b0-41428f79ada4" />
 
 
 ### 2️⃣ 배포 다이어그램
