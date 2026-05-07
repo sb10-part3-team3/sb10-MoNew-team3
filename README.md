@@ -411,25 +411,96 @@
   <summary><b>🏃 황준수</b></summary>
   <div markdown="1">
 
-## 알림 관리 API
+## 공통 예외 구조
 
-- **알림 등록 구현**:
-  - 
-- **슬라이스 페이징 기반 정렬 조회**:
-    - **커서 기반 페이지네이션**구현
-    - 첫 번째 페이지 조회 시 불필요한`Count`쿼리가 발생하지 않도록 최적화하여 DB 부하 감소
-- **DTO Projection 최적화**:
+- **`BusinessException` 기반 예외 계층 설계**:
+    - 모든 도메인 예외가 `BusinessException`을 상속하는 단일 예외 계층 구조 구축
+    - `ErrorCode` enum에 HTTP 상태 코드와 메시지를 함께 관리하여 예외 정보를 일관되게 유지
+    - 예외 생성 시 `details` 필드를 통해 컨텍스트 정보(userId, field명 등)를 구조화된 형태로 전달
+
+- **`GlobalExceptionHandler` 구현**:
+    - `@RestControllerAdvice` 기반 전역 예외 처리기 구현으로 컨트롤러 레이어에서 예외 처리 코드 제거
+    - `BusinessException`, `MethodArgumentNotValidException`, `MethodArgumentTypeMismatchException`, `MissingRequestHeaderException` 등 주요 예외 유형별 핸들러 분리
+    - 5xx 서버 오류는 `log.error`, 4xx 클라이언트 오류는 `log.warn`으로 로그 레벨을 구분하여 운영 노이즈 감소
+
+- **`ErrorResponse` 구조 설계**:
+    - `timestamp`, `code`, `message`, `details`, `status` 필드를 포함한 일관된 에러 응답 포맷 구현
+    - Java `record` 타입으로 설계하여 불변성 및 간결성 확보
+    - `BusinessException`, `MethodArgumentNotValidException`, `MethodArgumentTypeMismatchException`, 일반 `Exception` 각각에 대한 정적 팩토리 메서드(`of`) 제공
+
+- **민감 정보 로그 차단 처리**:
+    - `password`, `token`, `apiKey`, `credential` 등 민감 키 목록을 정의하고, 로그 출력 전 해당 필드를 `[REDACTED]`로 마스킹
+    - 키 정규화(대소문자·특수문자 제거) 및 중첩 `Map` / `List`에 대한 재귀 처리로 중첩 구조 내 민감 정보 누락 방지
+    - 긴 문자열 값은 200자로 잘라 로그 과부하 방지, 바이너리 데이터는 `[BINARY]`로 치환
+
+---
+
+## 사용자 관리 API
+
+- **회원가입 구현**:
+    - `PasswordEncoder`를 통한 비밀번호 암호화 후 저장
+    - 애플리케이션 레벨 중복 이메일 검증과 DB Unique Constraint 기반 이중 방어로 동시성 상황의 중복 가입 방지
+    - 회원가입 완료 시 `UserRegisteredEvent` 이벤트 발행으로 MongoDB 활동 내역 문서 생성 연동
+
+- **로그인 구현**:
+    - 이메일·비밀번호 불일치 및 소프트 삭제 계정 여부를 동일한 `AuthException`으로 처리하여 정보 노출 방지
+
+- **사용자 수정 구현**:
+    - 닉네임 변경 시 `UserUpdatedEvent` 발행으로 MongoDB 활동 내역 문서(댓글·좋아요 내 닉네임)까지 일괄 동기화
+
+- **논리 삭제 / 물리 삭제 분리**:
+    - 소프트 삭제(`DELETE /api/users/{userId}`): `deletedAt` 타임스탬프 기록 방식의 논리 삭제
+    - 하드 삭제(`DELETE /api/users/{userId}/hard`): 알림·댓글 좋아요·댓글·구독·기사 조회 이력 등 연관 데이터 순차 삭제 후 사용자 물리 삭제
+    - `UserDeletedEvent` 발행으로 MongoDB 활동 내역 문서 삭제 연동
+
+---
+
+## 사용자 배치 처리
+
+- **Spring Batch 기반 사용자 물리 삭제 배치 구현**:
+    - `@Scheduled` + `JobLauncher` 조합으로 매일 새벽 2시 3분(기본값) 자동 실행
+    - `runTime` JobParameter를 통해 실행 시각 기준으로 대상 사용자를 결정하여 재실행 시에도 동일한 기준 유지
+
+- **`UserDeleteTasklet` 구현**:
+    - 소프트 삭제 후 `retentionDays`(기본 1일) 경과한 사용자를 `batchSize`(기본 100건) 단위로 반복 처리
+    - `RepeatStatus.CONTINUABLE` 반환으로 대상이 없을 때까지 루프 처리하여 대량 데이터 안전 처리
+    - 알림 → 댓글 좋아요 → 댓글 → 구독 → 기사 조회 이력 → 활동 내역 순서로 외래키 제약 고려한 연관 데이터 삭제
+    - ExecutionContext에 `userDelete.deletedCount`를 누적 기록하여 배치 완료 후 처리 건수 추적
+
+- **배치 모니터링 연동**:
+    - `BatchMetrics`를 통해 배치 성공/실패 여부, 실행 시간, 처리 건수를 CloudWatch 메트릭으로 수집
+    - `batchSize`, `retentionDays`, cron 표현식을 외부 설정(`application.yml`)으로 분리하여 환경별 유연한 조정 가능
+    - `@PostConstruct` 시점에 설정값 유효성 검증으로 잘못된 설정으로 인한 런타임 오류 사전 차단
+
+---
+
+## 사용자 활동 내역
+
+- **MongoDB 문서 기반 활동 내역 관리**:
+    - 사용자별 구독 중인 관심사, 최근 작성 댓글, 좋아요 한 댓글, 최근 확인한 기사를 단일 MongoDB 문서(`UserActivityDocument`)에서 통합 관리
+    - 이벤트 기반 아키텍처로 사용자 등록·수정·삭제 등의 변경 사항을 비동기적으로 활동 내역에 반영
+
+- **낙관적 락 기반 동시성 처리**:
+    - 활동 내역 업데이트 시 `OptimisticLockingFailureException` 발생 시 `@Retryable`(최대 3회, 100ms 백오프)로 자동 재시도
+    - 재시도 소진 시 `@Recover`를 통해 `UserActivityConflictException`으로 전환하여 클라이언트에 명시적 오류 전달
+    - `getOrCreate` 패턴을 통해 문서 부재 시 빈 문서를 생성하여 동시 이벤트로 인한 누락 방지
+
+- **닉네임 변경 시 전파 처리**:
+    - 닉네임 수정 시 해당 사용자의 활동 내역 문서뿐 아니라 다른 사용자의 활동 내역 내 `comments`·`commentLikes` 임베디드 필드까지 일괄 업데이트하여 데이터 정합성 유지
+
+- **삭제 시 연관 데이터 정리**:
+    - 사용자 삭제 시 다른 사용자의 활동 내역 문서에 포함된 해당 사용자 댓글 기반의 좋아요 요약 제거
+    - 기사 삭제 시 전체 사용자 문서에서 기사 조회 이력·댓글 요약·댓글 좋아요 요약을 일괄 제거
+    - `TransientDataAccessException`에 대해서도 재시도 처리를 적용하여 일시적 MongoDB 오류 대응
 
 ## 구현기능
 
 - **자세한 사항**:
-    - 설명
+    - 공통 예외 구조, 사용자 관리 API, 사용자 배치 처리, 사용자 활동 내역 전반 구현
+    - 민감 정보 마스킹, 낙관적 락 재시도, 배치 모니터링 등 운영 안정성을 고려한 설계 적용
+    - Spring Batch, Spring Retry, MongoDB 이벤트 기반 연동, 이중 중복 방지 처리 등을 활용하여 기능/운영/정합성 전반을 개선
+    - 테스트 코드(Unit Test / Controller Slice Test / Integration Test) 기반 안정성 확보
 
-## 성능 최적화 및 인프라 개선
-
-- 설명
-
-<img width="1437" alt="Image" src="https://github.com/user-attachments/assets/259036d9-bf1a-4262-ae04-8fa36c58b231" />
   </div>
 </details>
 
