@@ -29,7 +29,7 @@ import reactor.test.StepVerifier;
 @SpringBootTest
 @ActiveProfiles("test")
 @Tag("external-api")
-@TestPropertySource(locations = "file:.env")
+@TestPropertySource(locations = "file:.env", properties = "app.news.collector-mode=reactive")
 class NewsCollectIntegrationTest extends IntegrationTestSupport {
 
   @Autowired
