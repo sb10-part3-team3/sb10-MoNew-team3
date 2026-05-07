@@ -278,6 +278,9 @@ CREATE TABLE article_backup_jobs
 -- INDEXES
 -- =========================
 
+CREATE INDEX idx_notif_user_status_date
+    ON notifications (user_id, is_confirmed, created_at DESC);
+
 -- CREATE INDEX idx_users_delete_status
 --     ON users(delete_status);
 --
