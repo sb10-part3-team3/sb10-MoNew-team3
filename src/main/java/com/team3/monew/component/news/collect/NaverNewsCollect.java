@@ -120,6 +120,7 @@ public class NaverNewsCollect implements NewsCollect {
         // 400번대 에러
         .onStatus(HttpStatusCode::is4xxClientError, response ->
             response.bodyToMono(String.class)
+                .defaultIfEmpty("")
                 .flatMap(errorBody -> Mono.error(
                     new NewsClientException("Naver 요청 실패(4xx): " + errorBody, false
                     )
@@ -128,8 +129,9 @@ public class NaverNewsCollect implements NewsCollect {
         // 500번대 에러
         .onStatus(HttpStatusCode::is5xxServerError, response ->
             response.bodyToMono(String.class)
+                .defaultIfEmpty("")
                 .flatMap(errorBody -> Mono.error(
-                    new NewsClientException("Naver 서버 일시적 장애(5xx): " + errorBody, false
+                    new NewsClientException("Naver 서버 일시적 장애(5xx): " + errorBody, true
                     )
                 ))
         )
