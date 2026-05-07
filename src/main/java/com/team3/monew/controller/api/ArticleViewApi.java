@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-@Tag(name = "기사 관리", description = "기사 관리 API")
+@Tag(name = "기사 조회 이력", description = "기사 조회 이력 API")
 public interface ArticleViewApi {
 
   String REQUEST_USER_ID_HEADER = "Monew-Request-User-ID";

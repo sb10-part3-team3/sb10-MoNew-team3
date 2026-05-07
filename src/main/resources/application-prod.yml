@@ -16,6 +16,7 @@ spring:
   sql:
     init:
       mode: never
+      schema-locations: classpath:sql/postgresql/schema-postgresql.sql
 
 logging:
   level:
