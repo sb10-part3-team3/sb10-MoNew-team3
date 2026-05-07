@@ -22,7 +22,7 @@ public class UserDeleteScheduler {
   private final BatchMetrics batchMetrics;
   private final Job userDeleteJob;
 
-  @Scheduled(cron = "${batch.user.delete.cron:0 0 2 * * *}")
+  @Scheduled(cron = "${batch.user.delete.cron:0 3 2 * * *}", zone = "${batch.user.delete.zone:Asia/Seoul}")
   public void run() {
     long startTime = System.currentTimeMillis();
     try {
