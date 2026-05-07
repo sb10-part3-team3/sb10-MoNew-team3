@@ -119,14 +119,21 @@ public class NaverNewsCollect implements NewsCollect {
         .retrieve()
         // 400번대 에러
         .onStatus(HttpStatusCode::is4xxClientError, response ->
-            // 바디를 읽지 않고 비움처리 후에 에러 전파
-            response.releaseBody()
-                .then(Mono.error(new NewsClientException("Naver 요청 실패(4xx)", false)))
+            response.bodyToMono(String.class)
+                .defaultIfEmpty("")
+                .flatMap(errorBody -> Mono.error(
+                    new NewsClientException("Naver 요청 실패(4xx): " + errorBody, false
+                    )
+                ))
         )
         // 500번대 에러
         .onStatus(HttpStatusCode::is5xxServerError, response ->
-            response.releaseBody()
-                .then(Mono.error(new NewsClientException("Naver 서버 일시적 장애(5xx)", true)))
+            response.bodyToMono(String.class)
+                .defaultIfEmpty("")
+                .flatMap(errorBody -> Mono.error(
+                    new NewsClientException("Naver 서버 일시적 장애(5xx): " + errorBody, true
+                    )
+                ))
         )
         .bodyToMono(String.class)
         .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
