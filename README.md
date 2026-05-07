@@ -96,7 +96,7 @@
 ## 📰 프로젝트 소개
 
 - 관심 뉴스 구독 서비스의 Spring 백엔드 시스템 구축
-- 프로젝트 기간: 2026.04.11 ~ 2026.05.08
+- 프로젝트 기간: 2026.04.14 ~ 2026.05.08
 - 주요 기능
     - 사용자 관리
         - 이메일(아이디)과 닉네임, 비밀번호로 회원가입을 할 수 있습니다.
@@ -150,9 +150,9 @@
 ### 1️⃣ Test Coverage
 
 - 테스트 커버리지 85% 이상 달성
-    - [![codecov](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3/branch/main/graph/badge.svg?token=HH8VH1APA9)](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3)
+  [![codecov](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3/branch/main/graph/badge.svg?token=HH8VH1APA9)](https://codecov.io/gh/sb10-part3-team3/sb10-MoNew-team3)
       
-      <img width="700" alt="image" src="https://github.com/user-attachments/assets/408dc780-bd88-4c5a-80e1-f47aee12df67" />
+  <img width="700" alt="image" src="https://github.com/user-attachments/assets/408dc780-bd88-4c5a-80e1-f47aee12df67" />
 
 ### 2️⃣ 배치 작업 모니터링
 - Spring Batch 작업별로 실행 횟수, 성공·실패 여부, 처리 건수, 실행 시간 등의 커스텀 메트릭 지표 수집 (Spring Actuator)
@@ -251,23 +251,45 @@
 
 ## 알림 관리 API
 
-- **알림 등록 구현**:
-  - 
-- **슬라이스 페이징 기반 정렬 조회**:
-    - **커서 기반 페이지네이션**구현
-    - 첫 번째 페이지 조회 시 불필요한`Count`쿼리가 발생하지 않도록 최적화하여 DB 부하 감소
-- **DTO Projection 최적화**:
+- **이벤트 기반 알림 아키텍처 설계**
+  - 서비스 간 결합도 해소를 위해 Spring Event 기반 알림 생성 및 저장 로직 구현
+  - `TransactionPhase.AFTER_COMMIT` 설정을 통해 메인 비즈니스 로직 성공 시에만 알림 발행 보장
+  - 알림 유형(좋아요, 관심사 뉴스)별 스레드 풀 분리를 통해 시스템 자원 격리 및 안정성 확보
+  - `getReferenceById` 프록시 객체 활용으로 불필요한 엔티티 조회 쿼리 방지
 
-## 구현기능
+- **조회 및 업데이트 최적화**
+  - 커서(ID)와 보조 커서(시간)를 결합한 복합 커서 방식의 페이지네이션 적용
+  - 복합 인덱스(`user_id`, `is_confirmed`, `created_at DESC`) 생성으로 조회 성능 개선
+  - 첫 페이지 조회 시 불필요한 `Count` 쿼리가 발생하지 않도록 슬라이스 처리 최적화
+  - 벌크 업데이트 쿼리를 적용하여 대량 알림 확인 처리 시의 DB I/O 부하 감소
 
-- **자세한 사항**:
-    - 설명
+- **데이터 생명주기 관리 및 배치 처리**
+  - Spring Batch Tasklet을 활용한 미확인/오래된 알림 자동 삭제 로직 구축
+  - Native Query와 `LIMIT` 절을 조합하여 배치 사이즈 단위로 분할 삭제함으로써 DB 락(Lock) 경합 최소화
+  - 새벽 시간대(03:00 KST) 스케줄링을 통한 안정적인 데이터 클리닝
 
-## 성능 최적화 및 인프라 개선
+## 인프라 및 배포 자동화 (CI/CD)
 
-- 설명
+- **컨테이너 빌드 최적화**
+  - Docker Multi-stage Build를 적용하여 최종 배포 이미지 크기 최소화 및 빌드 속도 개선
+- **AWS 인프라 구축 및 운영**
+  - ECR, S3, ECS(EC2), RDS 환경 구축 및 연동
+  - ECS Task Definition 자동화(JSON)를 통한 신규 이미지 배포 파이프라인 구축
+- **서버리스 로그 백업**
+  - CloudWatch 로그를 AWS Lambda 및 이벤트 스케줄러를 활용하여 매일 S3로 자동 백업
 
-<img width="1437" alt="Image" src="https://github.com/user-attachments/assets/259036d9-bf1a-4262-ae04-8fa36c58b231" />
+## 개발 환경 및 테스트 전략
+
+- **프로파일 기반 환경 관리**
+  - test, dev, prod, data-gen 등 환경별 설정 분리 및 관리
+  - 로컬 실행을 위한 Docker Compose 구성(DB 볼륨 처리 및 초기 스크립트 자동 실행)
+- **테스트 신뢰성 확보**
+  - Testcontainers를 싱글톤 패턴으로 구성하여 통합 테스트 환경의 일관성확보
+  - Codecov 연동을 통해 CI 단계에서 테스트 커버리지 및 코드 품질 모니터링
+- **성능 검증 환경 구축**
+  - Locust를 활용한 부하 테스트 환경 설정 및 테스트 시나리오(locustfile.py) 작성
+  - Instancio 라이브러리와 JDBC Batch Insert를 활용한 대량 더미 데이터 생성기 구축
+
   </div>
 </details>
 
