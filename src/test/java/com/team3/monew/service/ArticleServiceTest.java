@@ -814,4 +814,36 @@ class ArticleServiceTest {
       }
     }
   }
+
+  @Nested
+  @DisplayName("뉴스 기사 출처 목록을 조회한다")
+  class GetArticleSources {
+
+    @Test
+    @DisplayName("등록된 출처가 있으면 중복 없이 문자열 목록을 반환한다")
+    void shouldReturnDistinctArticleSources_whenNewsSourcesExist() {
+      NewsSource naverPrimary = NewsSource.create("NAVER", NewsSourceType.NAVER,
+          "https://openapi.naver.com");
+      NewsSource naverSecondary = NewsSource.create("NAVER-SECONDARY", NewsSourceType.NAVER,
+          "https://openapi.naver.com/news");
+      NewsSource chosun = NewsSource.create("CHOSUN", NewsSourceType.CHOSUN,
+          "https://www.chosun.com");
+
+      given(newsSourceRepository.findAll()).willReturn(List.of(naverPrimary, naverSecondary, chosun));
+
+      List<String> actual = articleService.getArticleSources();
+
+      assertThat(actual).containsExactly("NAVER", "CHOSUN");
+    }
+
+    @Test
+    @DisplayName("등록된 출처가 없으면 빈 목록을 반환한다")
+    void shouldReturnEmptyList_whenNewsSourcesDoNotExist() {
+      given(newsSourceRepository.findAll()).willReturn(List.of());
+
+      List<String> actual = articleService.getArticleSources();
+
+      assertThat(actual).isEmpty();
+    }
+  }
 }

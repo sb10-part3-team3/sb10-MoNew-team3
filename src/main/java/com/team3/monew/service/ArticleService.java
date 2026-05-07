@@ -149,7 +149,7 @@ public class ArticleService {
   }
 
   public List<String> getArticleSources() {
-    log.debug("?댁뒪 湲곗궗 異쒖쿂 紐⑸줉 議고쉶 ?붿껌");
+    log.debug("뉴스 기사 출처 목록 조회 요청");
 
     List<String> articleSources = newsSourceRepository.findAll().stream()
         .map(newsSource -> newsSource.getSourceType())
@@ -158,7 +158,7 @@ public class ArticleService {
         .map(Enum::name)
         .toList();
 
-    log.debug("?댁뒪 湲곗궗 異쒖쿂 紐⑸줉 議고쉶 ?깃났 - size={}", articleSources.size());
+    log.debug("뉴스 기사 출처 목록 조회 성공 - size={}", articleSources.size());
     return articleSources;
   }
 

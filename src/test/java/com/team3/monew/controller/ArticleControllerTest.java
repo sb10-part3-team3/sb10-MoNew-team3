@@ -330,4 +330,31 @@ class ArticleControllerTest {
           .andExpect(jsonPath("$.status").value("500"));
     }
   }
+
+  @Nested
+  @DisplayName("뉴스 기사 출처 목록 조회")
+  class GetArticleSources {
+
+    @Test
+    @DisplayName("등록된 출처가 있으면 문자열 배열로 반환한다")
+    void shouldReturnArticleSources_whenSourcesExist() throws Exception {
+      given(articleService.getArticleSources()).willReturn(List.of("NAVER", "CHOSUN"));
+
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/sources"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$[0]").value("NAVER"))
+          .andExpect(jsonPath("$[1]").value("CHOSUN"));
+    }
+
+    @Test
+    @DisplayName("등록된 출처가 없으면 빈 배열을 반환한다")
+    void shouldReturnEmptyArray_whenSourcesDoNotExist() throws Exception {
+      given(articleService.getArticleSources()).willReturn(List.of());
+
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/sources"))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$").isArray())
+          .andExpect(jsonPath("$").isEmpty());
+    }
+  }
 }
