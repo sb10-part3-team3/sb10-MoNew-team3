@@ -71,4 +71,20 @@ public interface UserActivityRepository extends MongoRepository<UserActivityDocu
   @Query("{ 'commentLikes.articleId': ?0 }")
   @Update("{ '$pull': { 'commentLikes': { 'articleId': ?0 } } }")
   void removeCommentLikeSummaryByArticleId(UUID articleId);
+
+  @Query("{ 'subscriptions.interestId': ?0 }")
+  @Update("{ '$set': { 'subscriptions.$.interestSubscriberCount': ?1 } }")
+  void updateSubscriberCount(UUID interestId, int count);
+
+  @Query("{ 'comments.id': ?0 }")
+  @Update("{ '$set': { 'comments.$.likeCount': ?1 } }")
+  void updateCommentLikeCount(UUID commentId, int count);
+
+  @Query("{ 'commentLikes.commentId': ?0 }")
+  @Update("{ '$set': { 'commentLikes.$.commentLikeCount': ?1 } }")
+  void updateCommentLikeCountInLikes(UUID commentId, int count);
+
+  @Query("{ 'articleViews.articleId': ?0 }")
+  @Update("{ '$set': { 'articleViews.$.articleViewCount': ?1 } }")
+  void updateArticleViewCount(UUID articleId, int count);
 }
