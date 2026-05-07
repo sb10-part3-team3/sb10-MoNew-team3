@@ -377,9 +377,10 @@
     - 사용자 기능뿐 아니라 운영 모니터링과 성능 검증 기반까지 함께 구축
     - Cursor Pagination, 배치 메트릭, 대량 데이터 생성, 부하 테스트 등을 활용하여 기능/운영/검증 전반을 개선
     - 테스트 코드(Unit Test / Controller Slice Test / Integration Test) 기반 안정성 확보
-
   </div>
 </details>
+
+<details>
   <summary><b>🏃 조성진</b></summary>
   <div markdown="1">
 
