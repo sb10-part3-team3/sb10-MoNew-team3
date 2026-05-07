@@ -34,6 +34,7 @@ import com.team3.monew.entity.enums.BackupJobStatus;
 import com.team3.monew.entity.enums.BackupJobType;
 import com.team3.monew.entity.enums.DeleteStatus;
 import com.team3.monew.entity.enums.NewsSourceType;
+import com.team3.monew.event.ArticleDeletedEvent;
 import com.team3.monew.exception.article.ArticleInvalidPeriodException;
 import com.team3.monew.exception.article.ArticleNotFoundException;
 import com.team3.monew.exception.article.DeletedArticleException;
@@ -74,6 +75,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.test.context.ActiveProfiles;
@@ -112,6 +114,8 @@ class ArticleServiceTest {
   private ObjectMapper mockedBackupObjectMapper;
   @Mock
   private ArticleBatchService articleBatchService;
+  @Mock
+  ApplicationEventPublisher eventPublisher;
 
   @Spy
   @InjectMocks
@@ -530,6 +534,7 @@ class ArticleServiceTest {
       then(articleViewRepository).should().deleteAllByArticleId(articleId);
       then(commentRepository).should().deleteAllByArticleId(articleId);
       then(newsArticleRepository).should().delete(newsArticle);
+      then(eventPublisher).should().publishEvent(any(ArticleDeletedEvent.class));
     }
   }
 

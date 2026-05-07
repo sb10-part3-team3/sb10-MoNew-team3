@@ -813,47 +813,19 @@ class UserActivityServiceTest {
   }
 
   @Test
-  @DisplayName("뉴스 기사 삭제 시 활동 내역에서 해당 기사 뷰를 삭제합니다.")
-  void shouldRemoveArticleView_whenArticleRemoved() {
-    //given
+  @DisplayName("기사 삭제 시 활동 내역의 기사 뷰, 댓글, 댓글 좋아요를 일괄 제거합니다.")
+  void shouldRemoveAllArticleActivitySummary_whenArticleDeleted() {
+    // given
     UUID articleId = UUID.randomUUID();
-
-    UserActivityDocument document = UserActivityDocument.create(
-        userId,
-        "test@test.com",
-        "tester",
-        createdAt
-    );
-
-    ArticleViewSummary articleViewSummary = new ArticleViewSummary(
-        UUID.randomUUID(),
-        UUID.randomUUID(),
-        Instant.now(),
-        articleId,
-        "source1",
-        "sourceUrl1",
-        "title1",
-        Instant.now(),
-        "summary1",
-        1,
-        100
-    );
-
-    document.addArticleViewSummary(articleViewSummary);
-    given(userActivityRepository.findAllByArticleViewsArticleId(articleId)).willReturn(List.of(document));
 
     // when
     userActivityService.removeArticleViewSummary(articleId);
 
     // then
-    ArgumentCaptor<UserActivityDocument> documentCaptor =
-        ArgumentCaptor.forClass(UserActivityDocument.class);
-    then(userActivityRepository).should().save(documentCaptor.capture());
-
-    UserActivityDocument savedDocument = documentCaptor.getValue();
-    assertNotNull(savedDocument);
-    assertEquals(userId, savedDocument.getId());
-    assertEquals(0, savedDocument.getArticleViews().size());
+    then(userActivityRepository).should().removeArticleViewSummaryByArticleId(articleId);
+    then(userActivityRepository).should().removeCommentSummaryByArticleId(articleId);
+    then(userActivityRepository).should().removeCommentLikeSummaryByArticleId(articleId);
+    then(userActivityRepository).should(never()).save(any());
   }
 
   @Test
@@ -1279,45 +1251,6 @@ class UserActivityServiceTest {
     // then
     then(userActivityRepository).should().save(any(UserActivityDocument.class));
     then(userActivityRepository).should().incrementArticleViewCount(articleId, 1);
-  }
-
-  @Test
-  @DisplayName("기사 삭제 시 기사 뷰 조회수가 감소합니다.")
-  void shouldDecrementArticleViewCount_whenArticleDeleted() {
-    // given
-    UUID articleId = UUID.randomUUID();
-
-    UserActivityDocument userActivityDocument = UserActivityDocument.create(
-        userId,
-        "test@test.com",
-        "tester",
-        createdAt
-    );
-
-    ArticleViewSummary summary = new ArticleViewSummary(
-        UUID.randomUUID(),
-        userId,
-        createdAt,
-        articleId,
-        "NAVER",
-        "https://example.com",
-        "기사 제목",
-        createdAt,
-        "기사 요약",
-        3,
-        100
-    );
-
-    userActivityDocument.addArticleViewSummary(summary);
-
-    given(userActivityRepository.findAllByArticleViewsArticleId(articleId))
-        .willReturn(List.of(userActivityDocument));
-
-    // when
-    userActivityService.removeArticleViewSummary(articleId);
-
-    // then
-    then(userActivityRepository).should().save(any(UserActivityDocument.class));
   }
 
   @Test
