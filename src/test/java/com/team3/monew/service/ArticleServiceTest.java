@@ -46,6 +46,7 @@ import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsArticleRepository.ArticleCountInfo;
 import com.team3.monew.repository.NewsArticleRepository.ArticleLinkAndPublishedAt;
+import com.team3.monew.repository.NewsSourceRepository;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -98,6 +99,8 @@ class ArticleServiceTest {
   private ArticleInterestRepository articleInterestRepository;
   @Mock
   private CommentRepository commentRepository;
+  @Mock
+  private NewsSourceRepository newsSourceRepository;
   @Mock
   private ArticleViewService articleViewService;
   @Mock
