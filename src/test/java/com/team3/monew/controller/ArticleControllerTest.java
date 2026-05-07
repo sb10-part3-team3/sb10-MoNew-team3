@@ -338,8 +338,10 @@ class ArticleControllerTest {
     @Test
     @DisplayName("등록된 출처가 있으면 문자열 배열로 반환한다")
     void shouldReturnArticleSources_whenSourcesExist() throws Exception {
+      // given
       given(articleService.getArticleSources()).willReturn(List.of("NAVER", "CHOSUN"));
 
+      // when & then
       mockMvc.perform(get(ARTICLES_BASE_URL + "/sources"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$[0]").value("NAVER"))
@@ -349,12 +351,27 @@ class ArticleControllerTest {
     @Test
     @DisplayName("등록된 출처가 없으면 빈 배열을 반환한다")
     void shouldReturnEmptyArray_whenSourcesDoNotExist() throws Exception {
+      // given
       given(articleService.getArticleSources()).willReturn(List.of());
 
+      // when & then
       mockMvc.perform(get(ARTICLES_BASE_URL + "/sources"))
           .andExpect(status().isOk())
           .andExpect(jsonPath("$").isArray())
           .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    @DisplayName("?쒕쾭 ?대??먯꽌 ?ㅻ쪟媛 諛쒖깮?섎㈃ 500 ServerError瑜?諛섑솚?쒕떎")
+    void shouldReturnInternalServerError_whenExceptionOccurs() throws Exception {
+      // given
+      given(articleService.getArticleSources()).willThrow(new RuntimeException());
+
+      // when & then
+      mockMvc.perform(get(ARTICLES_BASE_URL + "/sources"))
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.code").value("INTERNAL_SERVER_ERROR"))
+          .andExpect(jsonPath("$.status").value("500"));
     }
   }
 }

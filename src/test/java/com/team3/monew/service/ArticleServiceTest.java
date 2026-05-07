@@ -822,6 +822,7 @@ class ArticleServiceTest {
     @Test
     @DisplayName("등록된 출처가 있으면 중복 없이 문자열 목록을 반환한다")
     void shouldReturnDistinctArticleSources_whenNewsSourcesExist() {
+      // given
       NewsSource naverPrimary = NewsSource.create("NAVER", NewsSourceType.NAVER,
           "https://openapi.naver.com");
       NewsSource naverSecondary = NewsSource.create("NAVER-SECONDARY", NewsSourceType.NAVER,
@@ -831,18 +832,23 @@ class ArticleServiceTest {
 
       given(newsSourceRepository.findAll()).willReturn(List.of(naverPrimary, naverSecondary, chosun));
 
+      // when
       List<String> actual = articleService.getArticleSources();
 
+      // then
       assertThat(actual).containsExactly("NAVER", "CHOSUN");
     }
 
     @Test
     @DisplayName("등록된 출처가 없으면 빈 목록을 반환한다")
     void shouldReturnEmptyList_whenNewsSourcesDoNotExist() {
+      // given
       given(newsSourceRepository.findAll()).willReturn(List.of());
 
+      // when
       List<String> actual = articleService.getArticleSources();
 
+      // then
       assertThat(actual).isEmpty();
     }
   }
