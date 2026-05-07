@@ -362,7 +362,7 @@ class ArticleControllerTest {
     }
 
     @Test
-    @DisplayName("?쒕쾭 ?대??먯꽌 ?ㅻ쪟媛 諛쒖깮?섎㈃ 500 ServerError瑜?諛섑솚?쒕떎")
+    @DisplayName("서버 내부에서 예외가 발생하면 500 ServerError를 반환한다")
     void shouldReturnInternalServerError_whenExceptionOccurs() throws Exception {
       // given
       given(articleService.getArticleSources()).willThrow(new RuntimeException());
