@@ -190,7 +190,7 @@
 | **API Docs**   | [Swagger UI](http://52.79.234.93/swagger-ui/index.html)/[monew-api.json](https://github.com/user-attachments/files/27497078/monew-api.json)                                                          | RESTful API 명세서             |
 | **Design**     | [Database ERD](https://dbdiagram.io/d/69b1119c77d079431b56b7c9)/[ERD.png](https://github.com/user-attachments/assets/b619dcf8-4890-4d53-bbdc-9bd53e322f38)| dbDiagram을 통한 데이터베이스 구조 설계도 |
 | **프로젝트 계획서**   | [프로젝트 계획서](https://www.notion.so/344254ef76b6802c9cceda44f858d8c7)/[프로젝트_계획서.pdf](https://github.com/user-attachments/files/27497172/_.pdf)                                               | 프로젝트 계획서                    |
-| **발표 자료**      | [발표 자료](https://canva.link/cydmnvhakz6u2or)/[Monew_NEWSJAVA_Team3.pdf](https://github.com/user-attachments/files/27497305/Monew_NEWSJAVA_Team3.pdf)| 발표 자료                       |
+| **발표 자료**      | [발표 자료](https://canva.link/cydmnvhakz6u2or)/[Monew_발표자료.pdf](https://github.com/user-attachments/files/27500032/3._Monew_.pdf)| 발표 자료                       |
 | **시연 영상**      | [시연 영상](https://drive.google.com/file/d/1DWs7WOC0UZxpHCz75v-MjSG-NSntkSGx/view?usp=share_link)| 시연 영상                      |
 
 -----
@@ -553,6 +553,8 @@
 
   </div>
 </details>
+
+----
 
 ## 📁 **파일 구조**
 
@@ -944,6 +946,8 @@ src/
   </div>
 </details>
 
+---
+
 ## 🏠 **구현 홈페이지**
 
 <a href="http://52.79.234.93" target="_blank">
@@ -957,7 +961,7 @@ src/
 
 ## 📝 **프로젝트 개인 개발 리포트**
 
-- [김민형](개인개발 레포트 주소 추가)
+- [김민형](https://minbro-kim.github.io/sprint/sprint-2/)
 - [김하은](https://www.notion.so/359cef5b940680eb9fdfcf48f548f5a8?source=copy_link)
 - [김현민]()
 - [조성진]()
