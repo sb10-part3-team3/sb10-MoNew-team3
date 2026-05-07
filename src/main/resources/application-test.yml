@@ -11,6 +11,7 @@ spring:
   sql:
     init:
       mode: never
+      schema-locations: classpath:sql/h2/schema-h2.sql
   batch:
     job:
       enabled: false

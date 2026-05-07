@@ -26,6 +26,7 @@ import com.team3.monew.repository.CommentRepository;
 import com.team3.monew.repository.NewsArticleRepository;
 import com.team3.monew.repository.NewsArticleRepository.ArticleCountInfo;
 import com.team3.monew.repository.NewsArticleRepository.ArticleLinkAndPublishedAt;
+import com.team3.monew.repository.NewsSourceRepository;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,6 +71,7 @@ public class ArticleService {
   private final ArticleViewService articleViewService;
   private final ArticleInterestRepository articleInterestRepository;
   private final CommentRepository commentRepository;
+  private final NewsSourceRepository newsSourceRepository;
   private final ArticleBackupJobRepository articleBackupJobRepository;
   private final ArticleBatchService articleBatchService;
 
@@ -147,6 +149,20 @@ public class ArticleService {
 
     log.debug("뉴스 단건 조회 성공 - articleId={}", updatedArticle.getId());
     return articleMapper.toDto(updatedArticle, true);
+  }
+
+  public List<String> getArticleSources() {
+    log.debug("뉴스 기사 출처 목록 조회 요청");
+
+    List<String> articleSources = newsSourceRepository.findAll().stream()
+        .map(newsSource -> newsSource.getSourceType())
+        .distinct()
+        .sorted()
+        .map(Enum::name)
+        .toList();
+
+    log.debug("뉴스 기사 출처 목록 조회 성공 - size={}", articleSources.size());
+    return articleSources;
   }
 
   @Transactional
