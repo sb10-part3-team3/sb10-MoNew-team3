@@ -130,6 +130,12 @@
         - 확인하지 않은 알림 목록을 최신순으로 조회할 수 있습니다.
         - 알림을 개별 확인 또는 전체 확인 할 수 있고, 일주일 후에 확인한 알림을 자동으로 삭제합니다.
 - 주요 화면
+  |Tab|화면|||
+  |:---|:-------|:---|:--------|
+  |시작화면|<img width="300" alt="image" src="https://github.com/user-attachments/assets/128995e3-b6fc-4cc8-8669-e252f3cf1172" />|||
+  |회원가입|<img width="300" alt="image" src="https://github.com/user-attachments/assets/5ce6377d-c797-4883-9a75-a39be938d642" />|로그인|<img width="300" alt="image" src="https://github.com/user-attachments/assets/f1f9a39c-e663-4710-97c0-0a26de4052c9" />|
+  |뉴스기사|<img width="300" alt="image" src="https://github.com/user-attachments/assets/d7431ea2-4da8-4d85-a57b-1c33eaec6277" />|관심사|<img width="300"  alt="image" src="https://github.com/user-attachments/assets/f27759bc-bc8a-4dbf-9e99-b950ac898ef7" />|
+  |활동내역|<img width="300" alt="image" src="https://github.com/user-attachments/assets/eeeb1493-8c39-43d3-8e6f-155ef37da756" />|알림|<img width="300" alt="image" src="https://github.com/user-attachments/assets/ee7377a1-5203-4e11-b9f6-5f551833f889" />|
 
 ---
 
@@ -166,7 +172,7 @@
     <img width="700" alt="사용자 부하테스트" src="https://github.com/user-attachments/assets/6fe1e5ba-a00d-4602-b329-afaa4f3a9dc6" />
 </details>
 <details>
-  <summary>알림 API</summary>
+  <summary>관심사 API</summary>
     <img width="700"alt="관심사 부하테스트" src="https://github.com/user-attachments/assets/80390084-4ede-4372-a317-00fe526413c0" />
 </details>
 <details>
@@ -260,13 +266,13 @@
 - **조회 및 업데이트 최적화**
   - 커서(ID)와 보조 커서(시간)를 결합한 복합 커서 방식의 페이지네이션 적용
   - 복합 인덱스(`user_id`, `is_confirmed`, `created_at DESC`) 생성으로 조회 성능 개선
-  - 첫 페이지 조회 시 불필요한 `Count` 쿼리가 발생하지 않도록 슬라이스 처리 최적화
-  - 벌크 업데이트 쿼리를 적용하여 대량 알림 확인 처리 시의 DB I/O 부하 감소
+  - 첫 페이지 조회 시 불필요한 `Count` 쿼리가 발생하지 않도록 최적화
+  - **벌크 업데이트 쿼리**를 적용하여 대량 알림 확인 처리 시의 DB I/O 부하 감소
 
 - **데이터 생명주기 관리 및 배치 처리**
-  - Spring Batch Tasklet을 활용한 미확인/오래된 알림 자동 삭제 로직 구축
+  - `Spring Batch Tasklet`을 활용한 확인한 알림 자동 삭제 로직 구축
   - Native Query와 `LIMIT` 절을 조합하여 배치 사이즈 단위로 분할 삭제함으로써 DB 락(Lock) 경합 최소화
-  - 새벽 시간대(03:00 KST) 스케줄링을 통한 안정적인 데이터 클리닝
+  - 새벽 시간대(03:00 KST) 스케줄링을 통한 안정적인 데이터 삭제
 
 ## 인프라 및 배포 자동화 (CI/CD)
 
@@ -275,8 +281,9 @@
 - **AWS 인프라 구축 및 운영**
   - ECR, S3, ECS(EC2), RDS 환경 구축 및 연동
   - ECS Task Definition 자동화(JSON)를 통한 신규 이미지 배포 파이프라인 구축
+  - 팀원들에게 최소한의 IAM 사용자 그룹 권한 부여
 - **서버리스 로그 백업**
-  - CloudWatch 로그를 AWS Lambda 및 이벤트 스케줄러를 활용하여 매일 S3로 자동 백업
+  - CloudWatch 로그를 `AWS Lambda` 와 이벤트 스케줄러를 활용하여 매일 S3로 자동 백업
 
 ## 개발 환경 및 테스트 전략
 
@@ -287,7 +294,7 @@
   - Testcontainers를 싱글톤 패턴으로 구성하여 통합 테스트 환경의 일관성확보
   - Codecov 연동을 통해 CI 단계에서 테스트 커버리지 및 코드 품질 모니터링
 - **성능 검증 환경 구축**
-  - Locust를 활용한 부하 테스트 환경 설정 및 테스트 시나리오(locustfile.py) 작성
+  - `Locust`를 활용한 부하 테스트 환경 설정 및 테스트 시나리오 작성
   - Instancio 라이브러리와 JDBC Batch Insert를 활용한 대량 더미 데이터 생성기 구축
 
   </div>
