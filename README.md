@@ -976,6 +976,6 @@ src/
 
 - [김민형](https://minbro-kim.github.io/sprint/sprint-2/)
 - [김하은](https://www.notion.so/359cef5b940680eb9fdfcf48f548f5a8?source=copy_link)
-- [김현민]()
+- [김현민](https://velog.io/@gusals911/Monew-%EA%B0%9C%EC%9D%B8-%EA%B0%9C%EB%B0%9C-%EB%A6%AC%ED%8F%AC%ED%8A%B8)
 - [조성진](https://thundering-jute-a70.notion.site/3590a7d6766d800b9b53c42838d6f82b?source=copy_link)
 - [황준수](https://www.notion.so/3597307bd83b8054a8bcea417471b809?source=copy_link)
