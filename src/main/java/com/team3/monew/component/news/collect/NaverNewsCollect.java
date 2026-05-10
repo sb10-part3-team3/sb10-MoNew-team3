@@ -111,76 +111,79 @@ public class NaverNewsCollect implements NewsCollect {
     String queryKeyword =
         interestKeyword.getInterest().getName() + " " + interestKeyword.getKeyword();
 
-    return requestGate.acquire()
-        // burst 방지
-        .delayElement(Duration.ofMillis(100))
-        .then(
-            webClient.get().uri(builder ->
-                    URI.create(fullBaseUrl + builder
-                        .path(NAVER_QUERY_PATH)
-                        .queryParam("query", queryKeyword)
-                        .queryParam("display", NAVER_QUERY_DISPLAY)
-                        .queryParam("start", NAVER_QUERY_DISPLAY * (page - 1) + 1)
-                        .queryParam("sort", NAVER_QUERY_SORT)
-                        .build())
+    return Mono.usingWhen(
+        requestGate.acquirePermit(),
+        permit ->
+            // burst 방지
+            Mono.delay(Duration.ofMillis(100))
+                .then(
+                    webClient.get().uri(builder ->
+                            URI.create(fullBaseUrl + builder
+                                .path(NAVER_QUERY_PATH)
+                                .queryParam("query", queryKeyword)
+                                .queryParam("display", NAVER_QUERY_DISPLAY)
+                                .queryParam("start", NAVER_QUERY_DISPLAY * (page - 1) + 1)
+                                .queryParam("sort", NAVER_QUERY_SORT)
+                                .build())
+                        )
+                        .header("X-Naver-Client-Id", naverProperties.getId())
+                        .header("X-Naver-Client-Secret", naverProperties.getSecret())
+                        .exchangeToMono(response -> response.toEntity(String.class))
                 )
-                .header("X-Naver-Client-Id", naverProperties.getId())
-                .header("X-Naver-Client-Secret", naverProperties.getSecret())
-                .exchangeToMono(response -> response.toEntity(String.class))
-        )
-        .map(entity -> {
+                .map(entity -> {
 
-          HttpHeaders headers = entity.getHeaders();
+                  HttpHeaders headers = entity.getHeaders();
 
-          int remaining = Optional.ofNullable(headers.getFirst("x-rate-limit-remaining"))
-              .map(Integer::parseInt)
-              .orElse(1);
-          long reset = Optional.ofNullable(headers.getFirst("x-rate-limit-reset"))
-              .map(Long::parseLong)
-              .orElse(System.currentTimeMillis());
-          log.debug("remaining={}, reset={}", remaining, reset);
-          requestGate.getRateLimitState().update(remaining, reset);
+                  int remaining = Optional.ofNullable(headers.getFirst("x-rate-limit-remaining"))
+                      .map(Integer::parseInt)
+                      .orElse(1);
+                  long reset = Optional.ofNullable(headers.getFirst("x-rate-limit-reset"))
+                      .map(Long::parseLong)
+                      .orElse(System.currentTimeMillis());
+                  log.debug("remaining={}, reset={}", remaining, reset);
+                  requestGate.getRateLimitState().update(remaining, reset);
 
-          HttpStatusCode status = entity.getStatusCode();
-          String body = Optional.ofNullable(entity.getBody()).orElse("");
+                  HttpStatusCode status = entity.getStatusCode();
+                  String body = Optional.ofNullable(entity.getBody()).orElse("");
 
-          if (status.is4xxClientError()) {
-            boolean retryable = status.value() == 429;
-            throw new NewsClientException("Naver 요청 실패(4xx): " + body, retryable);
-          }
+                  if (status.is4xxClientError()) {
+                    boolean retryable = status.value() == 429;
+                    throw new NewsClientException("Naver 요청 실패(4xx): " + body, retryable);
+                  }
 
-          if (status.is5xxServerError()) {
-            throw new NewsClientException("Naver 서버 일시적 장애(5xx): " + body, true);
-          }
+                  if (status.is5xxServerError()) {
+                    throw new NewsClientException("Naver 서버 일시적 장애(5xx): " + body, true);
+                  }
 
-          return body;
-        })
-        .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
-        // 재시도 전략(최대 2번, 0.5초 간격)
-        .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
-            // 400번대 에러는 재시도 전략에서 제거 || 타임아웃 재시도 부여
-            .filter(ex ->
-                (ex instanceof NewsClientException ncs && ncs.isRetryable()) ||
-                    ex instanceof TimeoutException
-            )
-        )
-        .onErrorResume(e -> {
-          log.error("Naver 기사 수집 실패: interest={}, keyword={}, error={}",
-              interestKeyword.getInterest().getName(),
-              interestKeyword.getKeyword(),
-              e.getMessage());
+                  return body;
+                })
+                .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
+                // 재시도 전략(최대 2번, 0.5초 간격)
+                .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
+                    // 400번대 에러는 재시도 전략에서 제거 || 타임아웃 재시도 부여
+                    .filter(ex ->
+                        (ex instanceof NewsClientException ncs && ncs.isRetryable()) ||
+                            ex instanceof TimeoutException
+                    )
+                )
+                .onErrorResume(e -> {
+                  log.error("Naver 기사 수집 실패: interest={}, keyword={}, error={}",
+                      interestKeyword.getInterest().getName(),
+                      interestKeyword.getKeyword(),
+                      e.getMessage());
 
-          return Mono.empty();
-        })
-        .map(rawData -> {
-          log.info("Naver 뉴스기사 rawData 받기 성공 - interest={}, keyword={}, page={}",
-              interestKeyword.getInterest().getName(),
-              interestKeyword.getKeyword(),
-              page);
+                  return Mono.empty();
+                })
+                .map(rawData -> {
+                  log.info("Naver 뉴스기사 rawData 받기 성공 - interest={}, keyword={}, page={}",
+                      interestKeyword.getInterest().getName(),
+                      interestKeyword.getKeyword(),
+                      page);
 
-          return new RawArticleResult(rawData, queryKeyword, page);
-        })
-        .doFinally(signal -> requestGate.release());
+                  return new RawArticleResult(rawData, queryKeyword, page);
+                }),
+        requestGate::release
+    );
   }
 
 
@@ -198,7 +201,7 @@ public class NaverNewsCollect implements NewsCollect {
       this.state = state;
     }
 
-    public Mono<Void> acquire() {
+    public Mono<Permit> acquirePermit() {
       return Mono.fromCallable(() -> {
         semaphore.acquire();
 
@@ -211,17 +214,22 @@ public class NaverNewsCollect implements NewsCollect {
           }
         }
 
-        return true;
-      }).subscribeOn(Schedulers.boundedElastic()).then();
+        return new Permit();
+      }).subscribeOn(Schedulers.boundedElastic());
     }
 
-    public void release() {
+    public Mono<Void> release(Permit permit) {
       semaphore.release();
+      return Mono.empty();
     }
 
     public RateLimitState getRateLimitState() {
       return state;
     }
+  }
+
+  static final class Permit {
+
   }
 
   static class RateLimitState {
