@@ -48,7 +48,7 @@ public class NaverNewsCollect implements NewsCollect {
   private static final int NAVER_QUERY_START = 1;         // 검색 시작 위치(1~1000)    default: 1
   private static final String NAVER_QUERY_SORT = "date";  // 검색결과 정렬 내림차순(sim:정확도, date:날짜) default: sim
 
-  private static final int NAVER_CONCURRENCY_SIZE = 1;
+  private static final int NAVER_CONCURRENCY_SIZE = 2;
   private final RequestGate requestGate = new RequestGate(new RateLimitState());
 
   // keyword별 검색시간(Key형태: '관심사__키워드')
@@ -239,7 +239,7 @@ public class NaverNewsCollect implements NewsCollect {
     }
 
     public boolean shouldWait() {
-      return remaining.get() <= 3;    // 사후대처라 미리 널널하게 막음
+      return remaining.get() <= 6;    // 사후대처라 미리 널널하게 막음
     }
   }
 }
