@@ -12,16 +12,23 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.util.retry.Retry;
 
 @Slf4j
@@ -41,7 +48,8 @@ public class NaverNewsCollect implements NewsCollect {
   private static final int NAVER_QUERY_START = 1;         // 검색 시작 위치(1~1000)    default: 1
   private static final String NAVER_QUERY_SORT = "date";  // 검색결과 정렬 내림차순(sim:정확도, date:날짜) default: sim
 
-  private static final int NAVER_CONCURRENCY_SIZE = 5;
+  private static final int NAVER_CONCURRENCY_SIZE = 2;
+  private final RequestGate requestGate = new RequestGate(new RateLimitState());
 
   // keyword별 검색시간(Key형태: '관심사__키워드')
   private final Map<String, Instant> lastCollectedAt = new ConcurrentHashMap<>();
@@ -97,74 +105,149 @@ public class NaverNewsCollect implements NewsCollect {
 
   }
 
-
   private Mono<RawArticleResult> fetchNewsData(
       WebClient webClient, InterestKeyword interestKeyword, int page) {
     String fullBaseUrl = naverBaseUrl.contains("://") ? naverBaseUrl : "http://" + naverBaseUrl;
-
     String queryKeyword =
         interestKeyword.getInterest().getName() + " " + interestKeyword.getKeyword();
 
-    return webClient.get().uri(builder ->
-            URI.create(fullBaseUrl + builder
-                .path(NAVER_QUERY_PATH)
-                .queryParam("query", queryKeyword)
-                .queryParam("display", NAVER_QUERY_DISPLAY)
-                .queryParam("start", NAVER_QUERY_DISPLAY * (page - 1) + 1)
-                .queryParam("sort", NAVER_QUERY_SORT)
-                .build())
-        )
-        .header("X-Naver-Client-Id", naverProperties.getId())
-        .header("X-Naver-Client-Secret", naverProperties.getSecret())
-        .retrieve()
-        // 400번대 에러
-        .onStatus(HttpStatusCode::is4xxClientError, response ->
-            response.bodyToMono(String.class)
-                .defaultIfEmpty("")
-                .flatMap(errorBody -> Mono.error(
-                    new NewsClientException("Naver 요청 실패(4xx): " + errorBody, false
-                    )
-                ))
-        )
-        // 500번대 에러
-        .onStatus(HttpStatusCode::is5xxServerError, response ->
-            response.bodyToMono(String.class)
-                .defaultIfEmpty("")
-                .flatMap(errorBody -> Mono.error(
-                    new NewsClientException("Naver 서버 일시적 장애(5xx): " + errorBody, true
-                    )
-                ))
-        )
-        .bodyToMono(String.class)
-        .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
-        // 재시도 전략(최대 2번, 0.5초 간격)
-        .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
-            // 400번대 에러는 재시도 전략에서 제거 || 타임아웃 재시도 부여
-            .filter(ex ->
-                (ex instanceof NewsClientException ncs && ncs.isRetryable()) ||
-                    ex instanceof java.util.concurrent.TimeoutException
-            )
-        )
-        .onErrorResume(e -> {
-          log.error("Naver 기사 수집 실패: interest={}, keyword={}, error={}",
-              interestKeyword.getInterest().getName(),
-              interestKeyword.getKeyword(),
-              e.getMessage());
+    return Mono.usingWhen(
+        requestGate.acquirePermit(),
+        permit ->
+            // burst 방지
+            Mono.delay(Duration.ofMillis(100))
+                .then(
+                    webClient.get().uri(builder ->
+                            URI.create(fullBaseUrl + builder
+                                .path(NAVER_QUERY_PATH)
+                                .queryParam("query", queryKeyword)
+                                .queryParam("display", NAVER_QUERY_DISPLAY)
+                                .queryParam("start", NAVER_QUERY_DISPLAY * (page - 1) + 1)
+                                .queryParam("sort", NAVER_QUERY_SORT)
+                                .build())
+                        )
+                        .header("X-Naver-Client-Id", naverProperties.getId())
+                        .header("X-Naver-Client-Secret", naverProperties.getSecret())
+                        .exchangeToMono(response -> response.toEntity(String.class))
+                )
+                .map(entity -> {
 
-          return Mono.empty();
-        })
-        .map(rawData -> {
-          log.info("Naver 뉴스기사 rawData 받기 성공 - interest={}, keyword={}, page={}",
-              interestKeyword.getInterest().getName(),
-              interestKeyword.getKeyword(),
-              page);
+                  HttpHeaders headers = entity.getHeaders();
 
-          return new RawArticleResult(rawData, queryKeyword, page);
-        });
+                  int remaining = Optional.ofNullable(headers.getFirst("x-rate-limit-remaining"))
+                      .map(Integer::parseInt)
+                      .orElse(1);
+                  long reset = Optional.ofNullable(headers.getFirst("x-rate-limit-reset"))
+                      .map(Long::parseLong)
+                      .orElse(System.currentTimeMillis());
+                  log.debug("remaining={}, reset={}", remaining, reset);
+                  requestGate.getRateLimitState().update(remaining, reset);
+
+                  HttpStatusCode status = entity.getStatusCode();
+                  String body = Optional.ofNullable(entity.getBody()).orElse("");
+
+                  if (status.is4xxClientError()) {
+                    boolean retryable = status.value() == 429;
+                    throw new NewsClientException("Naver 요청 실패(4xx): " + body, retryable);
+                  }
+
+                  if (status.is5xxServerError()) {
+                    throw new NewsClientException("Naver 서버 일시적 장애(5xx): " + body, true);
+                  }
+
+                  return body;
+                })
+                .timeout(Duration.ofSeconds(3)) // 전체 응답 대기 시간
+                // 재시도 전략(최대 2번, 0.5초 간격)
+                .retryWhen(Retry.fixedDelay(2, Duration.ofMillis(500))
+                    // 400번대 에러는 재시도 전략에서 제거 || 타임아웃 재시도 부여
+                    .filter(ex ->
+                        (ex instanceof NewsClientException ncs && ncs.isRetryable()) ||
+                            ex instanceof TimeoutException
+                    )
+                )
+                .onErrorResume(e -> {
+                  log.error("Naver 기사 수집 실패: interest={}, keyword={}, error={}",
+                      interestKeyword.getInterest().getName(),
+                      interestKeyword.getKeyword(),
+                      e.getMessage());
+
+                  return Mono.empty();
+                })
+                .map(rawData -> {
+                  log.info("Naver 뉴스기사 rawData 받기 성공 - interest={}, keyword={}, page={}",
+                      interestKeyword.getInterest().getName(),
+                      interestKeyword.getKeyword(),
+                      page);
+
+                  return new RawArticleResult(rawData, queryKeyword, page);
+                }),
+        requestGate::release
+    );
   }
+
 
   private String resolveKeyword(InterestKeyword interestKeyword) {
     return String.format("%s__%s",
         interestKeyword.getInterest().getName(), interestKeyword.getKeyword());
+  }
+
+  static class RequestGate {
+
+    private final RateLimitState state;
+    private final Semaphore semaphore = new Semaphore(2);
+
+    public RequestGate(RateLimitState state) {
+      this.state = state;
+    }
+
+    public Mono<Permit> acquirePermit() {
+      return Mono.fromCallable(() -> {
+        semaphore.acquire();
+
+        // rate limit 체크
+        if (state.shouldWait()) {
+          long wait = state.resetAt() - System.currentTimeMillis();
+
+          if (wait > 0) {
+            Thread.sleep(Math.min(wait, 1000)); // 상한선 추가
+          }
+        }
+
+        return new Permit();
+      }).subscribeOn(Schedulers.boundedElastic());
+    }
+
+    public Mono<Void> release(Permit permit) {
+      semaphore.release();
+      return Mono.empty();
+    }
+
+    public RateLimitState getRateLimitState() {
+      return state;
+    }
+  }
+
+  static final class Permit {
+
+  }
+
+  static class RateLimitState {
+
+    private final AtomicInteger remaining = new AtomicInteger();
+    private final AtomicLong resetAt = new AtomicLong();
+
+    public void update(int remaining, long resetAt) {
+      this.remaining.set(remaining);
+      this.resetAt.set(resetAt);
+    }
+
+    public long resetAt() {
+      return resetAt.get();
+    }
+
+    public boolean shouldWait() {
+      return remaining.get() <= 6;    // 사후대처라 미리 널널하게 막음
+    }
   }
 }
